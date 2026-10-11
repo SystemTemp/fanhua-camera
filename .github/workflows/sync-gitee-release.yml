@@ -56,3 +56,26 @@ except urllib.error.HTTPError as e:
           done
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+
+      - name: Update Gitee version.json
+        run: |
+          APK_NAME=$(basename "$(ls release-tmp/*.apk | head -1)")
+          echo "apk file: $APK_NAME"
+          git clone --depth 1 "https://TDSI:$GITEE_TOKEN@gitee.com/TDSI/file.git" version-repo
+          APK_NAME="$APK_NAME" python3 -c "
+import json, os
+ref = os.environ['GITHUB_REF_NAME']
+notes = os.environ['NOTES']
+apk = os.environ['APK_NAME']
+v = {'version': ref.lstrip('v'), 'notes': notes, 'apk': f'https://gitee.com/TDSI/fanhua-camera/releases/download/{ref}/{apk}'}
+json.dump(v, open('version-repo/fanhua/version.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+"
+          cd version-repo
+          git config user.name "TDSI"
+          git config user.email "TDSI@gitee.local"
+          git add fanhua/version.json
+          git commit -m "update version channel to $GITHUB_REF_NAME" || true
+          git push origin master
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          NOTES: ${{ github.event.release.body }}
