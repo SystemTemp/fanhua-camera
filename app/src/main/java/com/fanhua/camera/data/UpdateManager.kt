@@ -1,12 +1,13 @@
 package com.fanhua.camera.data
 
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageInstaller
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
-import androidx.core.content.FileProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -105,24 +106,36 @@ class UpdateManager(
                     Intent(
                         Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                         Uri.parse("package:${context.packageName}")
-                    )
+                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 )
             } catch (e: Exception) {
             }
             return false
         }
         return try {
-            val uri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                file
+            val installer = context.packageManager.packageInstaller
+            val params = PackageInstaller.SessionParams(
+                PackageInstaller.SessionParams.MODE_FULL_INSTALL
             )
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, "application/vnd.android.package-archive")
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            params.setAppPackageName(context.packageName)
+            val sessionId = installer.createSession(params)
+            val session = installer.openSession(sessionId)
+            try {
+                session.openWrite("fanhua", 0, file.length()).use { out ->
+                    file.inputStream().use { input -> input.copyTo(out) }
+                    session.fsync(out)
+                }
+                val intent = Intent(context, Class.forName(context.packageName + ".MainActivity"))
+                val pending = PendingIntent.getActivity(
+                    context,
+                    0,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                session.commit(pending.intentSender)
+            } finally {
+                session.close()
             }
-            context.startActivity(intent)
             Handler(Looper.getMainLooper()).postDelayed({
                 try {
                     file.delete()

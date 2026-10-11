@@ -12,8 +12,8 @@ android {
         applicationId = "com.fanhua.camera"
         minSdk = 26
         targetSdk = 34
-        versionCode = 6
-        versionName = "0.1.5-beta"
+        versionCode = 7
+        versionName = "0.1.6-beta"
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -22,6 +22,10 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
+            ndk {
+                abiFilters += listOf("arm64-v8a")
+            }
         }
     }
 
