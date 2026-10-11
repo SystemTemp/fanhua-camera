@@ -12,8 +12,8 @@ android {
         applicationId = "com.fanhua.camera"
         minSdk = 26
         targetSdk = 34
-        versionCode = 5
-        versionName = "0.1.3-beta"
+        versionCode = 6
+        versionName = "0.1.5-beta"
         vectorDrawables {
             useSupportLibrary = true
         }
