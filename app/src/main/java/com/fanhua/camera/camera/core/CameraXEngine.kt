@@ -169,6 +169,9 @@ class CameraXEngine(
             if (released) return@addListener
             try {
                 provider = future.get()
+                if (previewView == null && proSurfaceView == null) {
+                    return@addListener
+                }
                 bind()
             } catch (e: Exception) {
                 Log.e(TAG, "ProcessCameraProvider init failed", e)
@@ -343,9 +346,6 @@ class CameraXEngine(
         Log.d(TAG, "bind ok mode=$mode filterPreviewActive=$useEffect")
         _state.update { it.copy(filterPreviewActive = useEffect) }
 
-        if (viewPort == null) {
-            requestViewPortRebind()
-        }
         attachRotationListener()
 
         applyFlash()

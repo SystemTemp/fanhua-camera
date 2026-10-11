@@ -135,32 +135,49 @@ fun BottomControls(
             Spacer(modifier = Modifier.height(10.dp))
         }
 
-        ModeCarousel(state = state, onSelect = controller::setMode)
-        Spacer(modifier = Modifier.height(if (landscape) 10.dp else 18.dp))
+        if (landscape) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    ModeCarousel(state = state, onSelect = controller::setMode, compact = true)
+                }
+                ShutterButton(state = state, controller = controller)
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                    GalleryButton(onClick = onOpenGallery)
+                }
+            }
+        } else {
+            ModeCarousel(state = state, onSelect = controller::setMode)
+            Spacer(modifier = Modifier.height(18.dp))
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = if (landscape) 18.dp else 22.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    LensSwitcher(state = state, onSelect = controller::setLens)
-                    AnimatedVisibility(visible = state.mode == CaptureMode.PHOTO) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            LivePhotoToggle(
-                                enabled = state.livePhotoEnabled,
-                                onClick = { controller.setLivePhotoEnabled(!state.livePhotoEnabled) }
-                            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 22.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        LensSwitcher(state = state, onSelect = controller::setLens)
+                        AnimatedVisibility(visible = state.mode == CaptureMode.PHOTO) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                LivePhotoToggle(
+                                    enabled = state.livePhotoEnabled,
+                                    onClick = { controller.setLivePhotoEnabled(!state.livePhotoEnabled) }
+                                )
+                            }
                         }
                     }
                 }
-            }
-            ShutterButton(state = state, controller = controller)
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                GalleryButton(onClick = onOpenGallery)
+                ShutterButton(state = state, controller = controller)
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                    GalleryButton(onClick = onOpenGallery)
+                }
             }
         }
 
@@ -236,7 +253,8 @@ private fun FilterStrip(
 @Composable
 private fun ModeCarousel(
     state: CameraUiState,
-    onSelect: (CaptureMode) -> Unit
+    onSelect: (CaptureMode) -> Unit,
+    compact: Boolean = false
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -267,12 +285,12 @@ private fun ModeCarousel(
                         scaleY = scale
                     }
                     .clickable { onSelect(mode) }
-                    .padding(horizontal = 14.dp, vertical = 4.dp)
+                    .padding(horizontal = if (compact) 8.dp else 14.dp, vertical = 4.dp)
             ) {
                 Text(
                     text = stringResource(mode.labelRes),
                     color = color,
-                    style = MaterialTheme.typography.labelLarge
+                    style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Box(
