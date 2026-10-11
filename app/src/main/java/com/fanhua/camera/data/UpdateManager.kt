@@ -52,7 +52,29 @@ class UpdateManager(
     }
 
     fun hasUpdate(remote: UpdateInfo): Boolean {
-        return remote.versionName.isNotEmpty() && remote.versionName != currentVersionName()
+        return compareVersions(remote.versionName, currentVersionName()) > 0
+    }
+
+    private fun compareVersions(a: String, b: String): Int {
+        fun parse(v: String): Pair<List<Int>, Boolean> {
+            val cleaned = v.trim().lowercase()
+            val parts = cleaned.split("-")
+            val nums = parts[0].split(".").mapNotNull { it.toIntOrNull() }
+            val prerelease = parts.getOrNull(1) != null && parts[1].isNotEmpty()
+            return nums to prerelease
+        }
+        val (an, ap) = parse(a)
+        val (bn, bp) = parse(b)
+        for (i in 0 until maxOf(an.size, bn.size)) {
+            val x = an.getOrElse(i) { 0 }
+            val y = bn.getOrElse(i) { 0 }
+            if (x != y) return x.compareTo(y)
+        }
+        return when {
+            ap == bp -> 0
+            ap -> -1
+            else -> 1
+        }
     }
 
     suspend fun download(info: UpdateInfo, onProgress: (DownloadProgress) -> Unit): File? =
