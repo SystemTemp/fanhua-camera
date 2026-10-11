@@ -112,6 +112,8 @@ class CameraXEngine(
     private var rotationListener: View.OnLayoutChangeListener? = null
     private var rotationListenerView: View? = null
     private var glFilterDowngraded = false
+    private var providerStarted = false
+    private var probeStarted = false
     private var released = false
 
     init {
@@ -128,16 +130,40 @@ class CameraXEngine(
                 )
             }
         }
+        if (ContextCompat.checkSelfPermission(
+                context, Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            onPermissionResult(true)
+        }
     }
 
     override fun onPermissionResult(granted: Boolean) {
         _state.update { it.copy(permissionGranted = granted, cameraAvailable = granted) }
         if (!granted) return
-        capability = capabilityProbe.probe(lensFacing)
         startProvider()
+        probeAsync()
+    }
+
+    private fun probeAsync() {
+        if (probeStarted || released) return
+        probeStarted = true
+        scope.launch {
+            val report = withContext(Dispatchers.IO) { capabilityProbe.probe(lensFacing) }
+            val previous = capability
+            capability = report
+            val needRebind = _state.value.stabilizationEnabled &&
+                report.stabilizationModes.contains("ON") &&
+                !previous.stabilizationModes.contains("ON")
+            if (needRebind && provider != null && !released) {
+                bind()
+            }
+        }
     }
 
     private fun startProvider() {
+        if (providerStarted || released) return
+        providerStarted = true
         val future = ProcessCameraProvider.getInstance(context)
         future.addListener({
             if (released) return@addListener
