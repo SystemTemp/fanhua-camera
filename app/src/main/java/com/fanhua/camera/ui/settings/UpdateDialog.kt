@@ -175,7 +175,7 @@ fun UpdateDialog(
                             progress = { state.progress / 100f },
                             color = FanhuaGold,
                             trackColor = FanhuaOutline,
-                            stopIndicator = {},
+                            drawStopIndicator = {},
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
