@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">繁華如夢カメラ</string>
+
+    <string name="mode_photo">写真</string>
+    <string name="mode_video">動画</string>
+    <string name="mode_pro">プロ</string>
+    <string name="mode_superres">超解像</string>
+
+    <string name="filter_original">オリジナル</string>
+    <string name="filter_dream">繁華如夢</string>
+    <string name="filter_leica">ライカの瞬間</string>
+
+    <string name="flash_auto">自動</string>
+    <string name="flash_on">オン</string>
+    <string name="flash_off">オフ</string>
+
+    <string name="action_settings">設定</string>
+    <string name="action_close">閉じる</string>
+    <string name="action_switch_camera">カメラ切替</string>
+    <string name="action_confirm">確定</string>
+    <string name="action_cancel">キャンセル</string>
+
+    <string name="permission_title">カメラの権限が必要です</string>
+    <string name="permission_message">撮影と録画のためにカメラとマイクへのアクセスを許可してください</string>
+    <string name="permission_grant">権限を許可</string>
+
+    <string name="message_photo_saved">写真を保存しました</string>
+    <string name="message_video_saved">動画を保存しました</string>
+    <string name="message_recording_started">録画中</string>
+    <string name="message_recording_stopped">録画を終了しました</string>
+    <string name="message_saving">保存中</string>
+    <string name="message_processing">処理中</string>
+    <string name="message_error_camera">カメラを利用できません</string>
+    <string name="message_filter_degraded">リアルタイムフィルターが利用できません。直通プレビューに切り替えました</string>
+    <string name="message_error_record">録画に失敗しました</string>
+    <string name="message_error_save">保存に失敗しました</string>
+    <string name="message_high_speed_unavailable">この端末は高フレームレート録画に対応していません</string>
+    <string name="message_superres_unavailable">この端末は超解像出力に対応していません</string>
+    <string name="message_stabilization_unavailable">この端末はこの手ぶれ補正設定に対応していません</string>
+
+    <string name="settings_title">設定</string>
+    <string name="settings_language">表示言語</string>
+    <string name="settings_language_system">システムに従う</string>
+    <string name="settings_filter_intensity">フィルター強度</string>
+    <string name="settings_stabilization">動画の手ぶれ補正</string>
+    <string name="settings_stabilization_desc">ハードウェア補正を優先し、超解像録画時はジャイロ補正を有効にします</string>
+    <string name="settings_superres">写真の超解像</string>
+    <string name="settings_superres_desc">撮影後に写真をより高い解像度へ拡大します</string>
+    <string name="settings_autocomposition">自動構図</string>
+    <string name="settings_autocomposition_desc">被写体の位置を検出し、構図ガイドとトリミング提案を行います</string>
+    <string name="settings_capability">端末の性能</string>
+    <string name="settings_capability_desc">この端末が実際に対応する録画仕様を確認します</string>
+    <string name="settings_about">アプリ情報</string>
+    <string name="settings_about_desc">繁華如夢カメラ · 多言語撮影</string>
+
+    <string name="capability_title">端末性能レポート</string>
+    <string name="capability_max_video">最大録画仕様</string>
+    <string name="capability_encode_4k30">4K 30FPS エンコード</string>
+    <string name="capability_encode_4k60">4K 60FPS エンコード</string>
+    <string name="capability_encode_4k120">4K 120FPS エンコード</string>
+    <string name="capability_hevc">HEVC エンコード</string>
+    <string name="capability_highspeed">高フレームレート撮影</string>
+    <string name="capability_superres">超解像の出力目標</string>
+    <string name="capability_stabilization">利用可能な手ぶれ補正</string>
+    <string name="capability_slow_motion">スローモーション設定</string>
+    <string name="capability_notes">説明</string>
+    <string name="value_supported">対応</string>
+    <string name="value_unsupported">非対応</string>
+    <string name="value_none">なし</string>
+
+    <string name="pro_manual_focus">マニュアルフォーカス</string>
+    <string name="pro_speed_normal">標準</string>
+    <string name="pro_speed_slow_motion">スローモーション</string>
+    <string name="pro_output_spec">出力仕様</string>
+
+    <string name="composition_hint_center">被写体を三分割の交点へ</string>
+    <string name="composition_hint_left">被写体が右寄り、左へ調整</string>
+    <string name="composition_hint_right">被写体が左寄り、右へ調整</string>
+    <string name="composition_hint_up">被写体が下寄り、上へ調整</string>
+    <string name="composition_hint_down">被写体が上寄り、下へ調整</string>
+    <string name="composition_aligned">構図は良好です</string>
+
+    <string name="gallery_title">撮影結果</string>
+    <string name="gallery_empty">まだありません</string>
+    <string name="gallery_interpolate">高フレームレートを生成</string>
+    <string name="gallery_upscale">4K へ超解像</string>
+    <string name="processing_title">処理中</string>
+    <string name="processing_done">処理が完了しました</string>
+    <string name="processing_failed">処理に失敗しました</string>
+
+    <string name="zoom_label">ズーム</string>
+    <string name="live_photo">ライブフォト</string>
+</resources>

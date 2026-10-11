@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Fanhua Kamera</string>
+
+    <string name="mode_photo">Foto</string>
+    <string name="mode_video">Video</string>
+    <string name="mode_pro">Profi</string>
+    <string name="mode_superres">Super</string>
+
+    <string name="filter_original">Original</string>
+    <string name="filter_dream">Blütentraum</string>
+    <string name="filter_leica">Leica-Moment</string>
+
+    <string name="flash_auto">Auto</string>
+    <string name="flash_on">Ein</string>
+    <string name="flash_off">Aus</string>
+
+    <string name="action_settings">Einstellungen</string>
+    <string name="action_close">Schließen</string>
+    <string name="action_switch_camera">Kamera wechseln</string>
+    <string name="action_confirm">Bestätigen</string>
+    <string name="action_cancel">Abbrechen</string>
+
+    <string name="permission_title">Kameraberechtigung erforderlich</string>
+    <string name="permission_message">Bitte Zugriff auf Kamera und Mikrofon erlauben, um Fotos und Videos aufzunehmen</string>
+    <string name="permission_grant">Berechtigung erteilen</string>
+
+    <string name="message_photo_saved">Foto gespeichert</string>
+    <string name="message_video_saved">Video gespeichert</string>
+    <string name="message_recording_started">Aufnahme läuft</string>
+    <string name="message_recording_stopped">Aufnahme beendet</string>
+    <string name="message_saving">Wird gespeichert</string>
+    <string name="message_processing">Wird verarbeitet</string>
+    <string name="message_error_camera">Kamera nicht verfügbar</string>
+    <string name="message_filter_degraded">Live-Filter nicht verfügbar, auf direkte Vorschau umgeschaltet</string>
+    <string name="message_error_record">Aufnahme fehlgeschlagen</string>
+    <string name="message_error_save">Speichern fehlgeschlagen</string>
+    <string name="message_high_speed_unavailable">Dieses Gerät unterstützt keine Hochgeschwindigkeitsaufnahme</string>
+    <string name="message_superres_unavailable">Dieses Gerät unterstützt keine Superauflösungs-Ausgabe</string>
+    <string name="message_stabilization_unavailable">Dieses Gerät unterstützt diese Stabilisierungseinstellung nicht</string>
+
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_language">Sprache der Oberfläche</string>
+    <string name="settings_language_system">Systemeinstellung folgen</string>
+    <string name="settings_filter_intensity">Filterstärke</string>
+    <string name="settings_stabilization">Videostabilisierung</string>
+    <string name="settings_stabilization_desc">Hardware-Stabilisierung bevorzugen, Gyroskop-Ausgleich bei Superauflösung</string>
+    <string name="settings_superres">Foto-Superauflösung</string>
+    <string name="settings_superres_desc">Foto nach der Aufnahme auf höhere Auflösung vergrößern</string>
+    <string name="settings_autocomposition">Automatischer Bildaufbau</string>
+    <string name="settings_autocomposition_desc">Motiv erkennen und Hinweise zu Bildaufbau und Zuschnitt geben</string>
+    <string name="settings_capability">Gerätefähigkeiten</string>
+    <string name="settings_capability_desc">Tatsächlich unterstützte Aufnahmespezifikationen anzeigen</string>
+    <string name="settings_about">Über</string>
+    <string name="settings_about_desc">Fanhua Kamera · Mehrsprachige Fotografie</string>
+
+    <string name="capability_title">Fähigkeitsbericht</string>
+    <string name="capability_max_video">Maximale Aufnahme</string>
+    <string name="capability_encode_4k30">4K 30FPS Kodierung</string>
+    <string name="capability_encode_4k60">4K 60FPS Kodierung</string>
+    <string name="capability_encode_4k120">4K 120FPS Kodierung</string>
+    <string name="capability_hevc">HEVC-Kodierung</string>
+    <string name="capability_highspeed">Hochgeschwindigkeitsaufnahme</string>
+    <string name="capability_superres">Superauflösungs-Ziel</string>
+    <string name="capability_stabilization">Stabilisierungsmodi</string>
+    <string name="capability_slow_motion">Zeitlupenstufen</string>
+    <string name="capability_notes">Hinweise</string>
+    <string name="value_supported">Unterstützt</string>
+    <string name="value_unsupported">Nicht unterstützt</string>
+    <string name="value_none">Keine</string>
+
+    <string name="pro_manual_focus">Manueller Fokus</string>
+    <string name="pro_speed_normal">Normal</string>
+    <string name="pro_speed_slow_motion">Zeitlupe</string>
+    <string name="pro_output_spec">Ausgabespezifikation</string>
+
+    <string name="composition_hint_center">Motiv auf einen Drittel-Schnittpunkt bringen</string>
+    <string name="composition_hint_left">Motiv rechts, nach links verschieben</string>
+    <string name="composition_hint_right">Motiv links, nach rechts verschieben</string>
+    <string name="composition_hint_up">Motiv unten, nach oben verschieben</string>
+    <string name="composition_hint_down">Motiv oben, nach unten verschieben</string>
+    <string name="composition_aligned">Guter Bildaufbau</string>
+
+    <string name="gallery_title">Ergebnisse</string>
+    <string name="gallery_empty">Kein Inhalt</string>
+    <string name="gallery_interpolate">Hohe Bildrate erzeugen</string>
+    <string name="gallery_upscale">Superauflösung auf 4K</string>
+    <string name="processing_title">Wird verarbeitet</string>
+    <string name="processing_done">Verarbeitung abgeschlossen</string>
+    <string name="processing_failed">Verarbeitung fehlgeschlagen</string>
+
+    <string name="zoom_label">Zoom</string>
+    <string name="live_photo">Live-Foto</string>
+</resources>

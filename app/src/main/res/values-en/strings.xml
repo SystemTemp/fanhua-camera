@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Fanhua Camera</string>
+
+    <string name="mode_photo">Photo</string>
+    <string name="mode_video">Video</string>
+    <string name="mode_pro">Pro</string>
+    <string name="mode_superres">SuperRes</string>
+
+    <string name="filter_original">Original</string>
+    <string name="filter_dream">Flourishing Dream</string>
+    <string name="filter_leica">Leica Moment</string>
+
+    <string name="flash_auto">Auto</string>
+    <string name="flash_on">On</string>
+    <string name="flash_off">Off</string>
+
+    <string name="action_settings">Settings</string>
+    <string name="action_close">Close</string>
+    <string name="action_switch_camera">Switch camera</string>
+    <string name="action_confirm">Confirm</string>
+    <string name="action_cancel">Cancel</string>
+
+    <string name="permission_title">Camera permission required</string>
+    <string name="permission_message">Allow camera and microphone access to take photos and record videos</string>
+    <string name="permission_grant">Grant permission</string>
+
+    <string name="message_photo_saved">Photo saved</string>
+    <string name="message_video_saved">Video saved</string>
+    <string name="message_recording_started">Recording</string>
+    <string name="message_recording_stopped">Recording finished</string>
+    <string name="message_saving">Saving</string>
+    <string name="message_processing">Processing</string>
+    <string name="message_error_camera">Camera unavailable</string>
+    <string name="message_filter_degraded">Live filter unavailable, switched to direct preview</string>
+    <string name="message_error_record">Recording failed</string>
+    <string name="message_error_save">Save failed</string>
+    <string name="message_high_speed_unavailable">High frame rate recording is not supported on this device</string>
+    <string name="message_superres_unavailable">Super resolution output is not supported on this device</string>
+    <string name="message_stabilization_unavailable">This stabilization mode is not supported on this device</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_system">System default</string>
+    <string name="settings_filter_intensity">Filter intensity</string>
+    <string name="settings_stabilization">Video stabilization</string>
+    <string name="settings_stabilization_desc">Prefer hardware stabilization, gyroscope compensation in super resolution recording</string>
+    <string name="settings_superres">Photo super resolution</string>
+    <string name="settings_superres_desc">Upscale photos to a higher resolution after capture</string>
+    <string name="settings_autocomposition">Auto composition</string>
+    <string name="settings_autocomposition_desc">Detect subject position and suggest framing and crop</string>
+    <string name="settings_capability">Device capability</string>
+    <string name="settings_capability_desc">Check the real recording specs supported by this device</string>
+    <string name="settings_about">About</string>
+    <string name="settings_about_desc">Fanhua Camera · Multilingual photography</string>
+
+    <string name="capability_title">Device capability report</string>
+    <string name="capability_max_video">Max video spec</string>
+    <string name="capability_encode_4k30">4K 30FPS encoding</string>
+    <string name="capability_encode_4k60">4K 60FPS encoding</string>
+    <string name="capability_encode_4k120">4K 120FPS encoding</string>
+    <string name="capability_hevc">HEVC encoding</string>
+    <string name="capability_highspeed">High speed capture</string>
+    <string name="capability_superres">Super resolution target</string>
+    <string name="capability_stabilization">Stabilization modes</string>
+    <string name="capability_slow_motion">Slow motion profiles</string>
+    <string name="capability_notes">Notes</string>
+    <string name="value_supported">Supported</string>
+    <string name="value_unsupported">Not supported</string>
+    <string name="value_none">None</string>
+
+    <string name="pro_manual_focus">Manual focus</string>
+    <string name="pro_speed_normal">Normal</string>
+    <string name="pro_speed_slow_motion">Slow motion</string>
+    <string name="pro_output_spec">Output spec</string>
+
+    <string name="composition_hint_center">Move the subject to a thirds intersection</string>
+    <string name="composition_hint_left">Subject is right, adjust left</string>
+    <string name="composition_hint_right">Subject is left, adjust right</string>
+    <string name="composition_hint_up">Subject is low, adjust up</string>
+    <string name="composition_hint_down">Subject is high, adjust down</string>
+    <string name="composition_aligned">Framing looks good</string>
+
+    <string name="gallery_title">Captures</string>
+    <string name="gallery_empty">Nothing here yet</string>
+    <string name="gallery_interpolate">Generate high frame rate</string>
+    <string name="gallery_upscale">Upscale to 4K</string>
+    <string name="processing_title">Processing</string>
+    <string name="processing_done">Processing finished</string>
+    <string name="processing_failed">Processing failed</string>
+
+    <string name="zoom_label">Zoom</string>
+    <string name="live_photo">Live Photo</string>
+</resources>

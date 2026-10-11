@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">繁华如梦相机</string>
+
+    <string name="mode_photo">照片</string>
+    <string name="mode_video">视频</string>
+    <string name="mode_pro">专业</string>
+    <string name="mode_superres">超分</string>
+
+    <string name="filter_original">原图</string>
+    <string name="filter_dream">繁华如梦</string>
+    <string name="filter_leica">徕卡一瞬</string>
+
+    <string name="flash_auto">自动</string>
+    <string name="flash_on">开启</string>
+    <string name="flash_off">关闭</string>
+
+    <string name="action_settings">设置</string>
+    <string name="action_close">关闭</string>
+    <string name="action_switch_camera">切换镜头</string>
+    <string name="action_confirm">确定</string>
+    <string name="action_cancel">取消</string>
+
+    <string name="permission_title">需要相机权限</string>
+    <string name="permission_message">请允许访问相机与麦克风，以使用拍摄与录像功能</string>
+    <string name="permission_grant">授予权限</string>
+
+    <string name="message_photo_saved">照片已保存</string>
+    <string name="message_video_saved">视频已保存</string>
+    <string name="message_recording_started">正在录制</string>
+    <string name="message_recording_stopped">录制已结束</string>
+    <string name="message_saving">正在保存</string>
+    <string name="message_processing">正在处理</string>
+    <string name="message_error_camera">相机不可用</string>
+    <string name="message_filter_degraded">实时滤镜不可用，已切换为直通预览</string>
+    <string name="message_error_record">录制失败</string>
+    <string name="message_error_save">保存失败</string>
+    <string name="message_high_speed_unavailable">当前设备不支持高帧率录制</string>
+    <string name="message_superres_unavailable">当前设备不支持超分输出</string>
+    <string name="message_stabilization_unavailable">当前设备不支持该防抖设置</string>
+
+    <string name="settings_title">设置</string>
+    <string name="settings_language">界面语言</string>
+    <string name="settings_language_system">跟随系统</string>
+    <string name="settings_filter_intensity">滤镜强度</string>
+    <string name="settings_stabilization">视频防抖</string>
+    <string name="settings_stabilization_desc">优先使用硬件防抖，超分录制时启用陀螺仪补偿</string>
+    <string name="settings_superres">拍照超分</string>
+    <string name="settings_superres_desc">拍摄后将照片放大至更高分辨率</string>
+    <string name="settings_autocomposition">自动构图</string>
+    <string name="settings_autocomposition_desc">检测主体位置并给出构图引导与裁切建议</string>
+    <string name="settings_capability">设备能力</string>
+    <string name="settings_capability_desc">查看当前设备真实支持的录制规格</string>
+    <string name="settings_about">关于</string>
+    <string name="settings_about_desc">繁华如梦相机 · 多语种摄影</string>
+
+    <string name="capability_title">设备能力报告</string>
+    <string name="capability_max_video">最大录像规格</string>
+    <string name="capability_encode_4k30">4K 30FPS 编码</string>
+    <string name="capability_encode_4k60">4K 60FPS 编码</string>
+    <string name="capability_encode_4k120">4K 120FPS 编码</string>
+    <string name="capability_hevc">HEVC 编码</string>
+    <string name="capability_highspeed">高帧率采集</string>
+    <string name="capability_superres">超分输出目标</string>
+    <string name="capability_stabilization">可用防抖模式</string>
+    <string name="capability_slow_motion">慢动作档位</string>
+    <string name="capability_notes">说明</string>
+    <string name="value_supported">支持</string>
+    <string name="value_unsupported">不支持</string>
+    <string name="value_none">无</string>
+
+    <string name="pro_manual_focus">手动对焦</string>
+    <string name="pro_speed_normal">常规</string>
+    <string name="pro_speed_slow_motion">慢动作</string>
+    <string name="pro_output_spec">输出规格</string>
+
+    <string name="composition_hint_center">将主体移至三分线交点</string>
+    <string name="composition_hint_left">主体偏右，向左调整</string>
+    <string name="composition_hint_right">主体偏左，向右调整</string>
+    <string name="composition_hint_up">主体偏下，向上调整</string>
+    <string name="composition_hint_down">主体偏上，向下调整</string>
+    <string name="composition_aligned">构图良好</string>
+
+    <string name="gallery_title">拍摄结果</string>
+    <string name="gallery_empty">暂无内容</string>
+    <string name="gallery_interpolate">生成高帧率</string>
+    <string name="gallery_upscale">超分至 4K</string>
+    <string name="processing_title">正在处理</string>
+    <string name="processing_done">处理完成</string>
+    <string name="processing_failed">处理失败</string>
+
+    <string name="zoom_label">变焦</string>
+    <string name="live_photo">实况</string>
+</resources>

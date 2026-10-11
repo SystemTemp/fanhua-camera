@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">번화여몽 카메라</string>
+
+    <string name="mode_photo">사진</string>
+    <string name="mode_video">동영상</string>
+    <string name="mode_pro">프로</string>
+    <string name="mode_superres">초해상도</string>
+
+    <string name="filter_original">원본</string>
+    <string name="filter_dream">번화여몽</string>
+    <string name="filter_leica">라이카의 순간</string>
+
+    <string name="flash_auto">자동</string>
+    <string name="flash_on">켜기</string>
+    <string name="flash_off">끄기</string>
+
+    <string name="action_settings">설정</string>
+    <string name="action_close">닫기</string>
+    <string name="action_switch_camera">카메라 전환</string>
+    <string name="action_confirm">확인</string>
+    <string name="action_cancel">취소</string>
+
+    <string name="permission_title">카메라 권한이 필요합니다</string>
+    <string name="permission_message">촬영과 녹화를 위해 카메라와 마이크 접근을 허용해 주세요</string>
+    <string name="permission_grant">권한 허용</string>
+
+    <string name="message_photo_saved">사진이 저장되었습니다</string>
+    <string name="message_video_saved">동영상이 저장되었습니다</string>
+    <string name="message_recording_started">녹화 중</string>
+    <string name="message_recording_stopped">녹화가 종료되었습니다</string>
+    <string name="message_saving">저장 중</string>
+    <string name="message_processing">처리 중</string>
+    <string name="message_error_camera">카메라를 사용할 수 없습니다</string>
+    <string name="message_filter_degraded">실시간 필터를 사용할 수 없어 직접 미리보기로 전환했습니다</string>
+    <string name="message_error_record">녹화에 실패했습니다</string>
+    <string name="message_error_save">저장에 실패했습니다</string>
+    <string name="message_high_speed_unavailable">이 기기는 고프레임 녹화를 지원하지 않습니다</string>
+    <string name="message_superres_unavailable">이 기기는 초해상도 출력을 지원하지 않습니다</string>
+    <string name="message_stabilization_unavailable">이 기기는 해당 손떨림 보정 설정을 지원하지 않습니다</string>
+
+    <string name="settings_title">설정</string>
+    <string name="settings_language">표시 언어</string>
+    <string name="settings_language_system">시스템 설정 따르기</string>
+    <string name="settings_filter_intensity">필터 강도</string>
+    <string name="settings_stabilization">동영상 손떨림 보정</string>
+    <string name="settings_stabilization_desc">하드웨어 보정을 우선하고 초해상도 녹화 시 자이로 보정을 사용합니다</string>
+    <string name="settings_superres">사진 초해상도</string>
+    <string name="settings_superres_desc">촬영 후 사진을 더 높은 해상도로 확대합니다</string>
+    <string name="settings_autocomposition">자동 구도</string>
+    <string name="settings_autocomposition_desc">피사체 위치를 감지해 구도 안내와 자르기 제안을 제공합니다</string>
+    <string name="settings_capability">기기 성능</string>
+    <string name="settings_capability_desc">이 기기가 실제로 지원하는 녹화 사양을 확인합니다</string>
+    <string name="settings_about">정보</string>
+    <string name="settings_about_desc">번화여몽 카메라 · 다국어 촬영</string>
+
+    <string name="capability_title">기기 성능 보고서</string>
+    <string name="capability_max_video">최대 녹화 사양</string>
+    <string name="capability_encode_4k30">4K 30FPS 인코딩</string>
+    <string name="capability_encode_4k60">4K 60FPS 인코딩</string>
+    <string name="capability_encode_4k120">4K 120FPS 인코딩</string>
+    <string name="capability_hevc">HEVC 인코딩</string>
+    <string name="capability_highspeed">고프레임 촬영</string>
+    <string name="capability_superres">초해상도 출력 목표</string>
+    <string name="capability_stabilization">사용 가능한 손떨림 보정</string>
+    <string name="capability_slow_motion">슬로모션 단계</string>
+    <string name="capability_notes">설명</string>
+    <string name="value_supported">지원</string>
+    <string name="value_unsupported">미지원</string>
+    <string name="value_none">없음</string>
+
+    <string name="pro_manual_focus">수동 초점</string>
+    <string name="pro_speed_normal">일반</string>
+    <string name="pro_speed_slow_motion">슬로모션</string>
+    <string name="pro_output_spec">출력 사양</string>
+
+    <string name="composition_hint_center">피사체를 삼분할 교차점으로 이동</string>
+    <string name="composition_hint_left">피사체가 오른쪽, 왼쪽으로 조정</string>
+    <string name="composition_hint_right">피사체가 왼쪽, 오른쪽으로 조정</string>
+    <string name="composition_hint_up">피사체가 아래쪽, 위로 조정</string>
+    <string name="composition_hint_down">피사체가 위쪽, 아래로 조정</string>
+    <string name="composition_aligned">구도가 좋습니다</string>
+
+    <string name="gallery_title">촬영 결과</string>
+    <string name="gallery_empty">아직 없음</string>
+    <string name="gallery_interpolate">고프레임 생성</string>
+    <string name="gallery_upscale">4K로 초해상도</string>
+    <string name="processing_title">처리 중</string>
+    <string name="processing_done">처리 완료</string>
+    <string name="processing_failed">처리 실패</string>
+
+    <string name="zoom_label">줌</string>
+    <string name="live_photo">라이브 포토</string>
+</resources>

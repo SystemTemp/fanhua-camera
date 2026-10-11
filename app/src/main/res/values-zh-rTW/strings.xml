@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">繁華如夢相機</string>
+
+    <string name="mode_photo">照片</string>
+    <string name="mode_video">影片</string>
+    <string name="mode_pro">專業</string>
+    <string name="mode_superres">超解析</string>
+
+    <string name="filter_original">原圖</string>
+    <string name="filter_dream">繁華如夢</string>
+    <string name="filter_leica">徠卡一瞬</string>
+
+    <string name="flash_auto">自動</string>
+    <string name="flash_on">開啟</string>
+    <string name="flash_off">關閉</string>
+
+    <string name="action_settings">設定</string>
+    <string name="action_close">關閉</string>
+    <string name="action_switch_camera">切換鏡頭</string>
+    <string name="action_confirm">確定</string>
+    <string name="action_cancel">取消</string>
+
+    <string name="permission_title">需要相機權限</string>
+    <string name="permission_message">請允許存取相機與麥克風，以使用拍攝與錄影功能</string>
+    <string name="permission_grant">授予權限</string>
+
+    <string name="message_photo_saved">照片已儲存</string>
+    <string name="message_video_saved">影片已儲存</string>
+    <string name="message_recording_started">正在錄影</string>
+    <string name="message_recording_stopped">錄影已結束</string>
+    <string name="message_saving">正在儲存</string>
+    <string name="message_processing">正在處理</string>
+    <string name="message_error_camera">相機無法使用</string>
+    <string name="message_filter_degraded">即時濾鏡不可用，已切換為直通預覽</string>
+    <string name="message_error_record">錄影失敗</string>
+    <string name="message_error_save">儲存失敗</string>
+    <string name="message_high_speed_unavailable">目前裝置不支援高幀率錄影</string>
+    <string name="message_superres_unavailable">目前裝置不支援超解析輸出</string>
+    <string name="message_stabilization_unavailable">目前裝置不支援此防手震設定</string>
+
+    <string name="settings_title">設定</string>
+    <string name="settings_language">介面語言</string>
+    <string name="settings_language_system">跟隨系統</string>
+    <string name="settings_filter_intensity">濾鏡強度</string>
+    <string name="settings_stabilization">影片防手震</string>
+    <string name="settings_stabilization_desc">優先使用硬體防手震，超解析錄影時啟用陀螺儀補償</string>
+    <string name="settings_superres">拍照超解析</string>
+    <string name="settings_superres_desc">拍攝後將照片放大至更高解析度</string>
+    <string name="settings_autocomposition">自動構圖</string>
+    <string name="settings_autocomposition_desc">偵測主體位置並提供構圖引導與裁切建議</string>
+    <string name="settings_capability">裝置能力</string>
+    <string name="settings_capability_desc">查看目前裝置實際支援的錄影規格</string>
+    <string name="settings_about">關於</string>
+    <string name="settings_about_desc">繁華如夢相機 · 多語系攝影</string>
+
+    <string name="capability_title">裝置能力報告</string>
+    <string name="capability_max_video">最大錄影規格</string>
+    <string name="capability_encode_4k30">4K 30FPS 編碼</string>
+    <string name="capability_encode_4k60">4K 60FPS 編碼</string>
+    <string name="capability_encode_4k120">4K 120FPS 編碼</string>
+    <string name="capability_hevc">HEVC 編碼</string>
+    <string name="capability_highspeed">高幀率擷取</string>
+    <string name="capability_superres">超解析輸出目標</string>
+    <string name="capability_stabilization">可用防手震模式</string>
+    <string name="capability_slow_motion">慢動作檔位</string>
+    <string name="capability_notes">說明</string>
+    <string name="value_supported">支援</string>
+    <string name="value_unsupported">不支援</string>
+    <string name="value_none">無</string>
+
+    <string name="pro_manual_focus">手動對焦</string>
+    <string name="pro_speed_normal">一般</string>
+    <string name="pro_speed_slow_motion">慢動作</string>
+    <string name="pro_output_spec">輸出規格</string>
+
+    <string name="composition_hint_center">將主體移至三分線交點</string>
+    <string name="composition_hint_left">主體偏右，向左調整</string>
+    <string name="composition_hint_right">主體偏左，向右調整</string>
+    <string name="composition_hint_up">主體偏下，向上調整</string>
+    <string name="composition_hint_down">主體偏上，向下調整</string>
+    <string name="composition_aligned">構圖良好</string>
+
+    <string name="gallery_title">拍攝結果</string>
+    <string name="gallery_empty">尚無內容</string>
+    <string name="gallery_interpolate">產生高幀率</string>
+    <string name="gallery_upscale">超解析至 4K</string>
+    <string name="processing_title">正在處理</string>
+    <string name="processing_done">處理完成</string>
+    <string name="processing_failed">處理失敗</string>
+
+    <string name="zoom_label">變焦</string>
+    <string name="live_photo">實況</string>
+</resources>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Камера Фаньхуа</string>
+
+    <string name="mode_photo">Фото</string>
+    <string name="mode_video">Видео</string>
+    <string name="mode_pro">Про</string>
+    <string name="mode_superres">Супер</string>
+
+    <string name="filter_original">Оригинал</string>
+    <string name="filter_dream">Цветочный сон</string>
+    <string name="filter_leica">Мгновение Leica</string>
+
+    <string name="flash_auto">Авто</string>
+    <string name="flash_on">Вкл</string>
+    <string name="flash_off">Выкл</string>
+
+    <string name="action_settings">Настройки</string>
+    <string name="action_close">Закрыть</string>
+    <string name="action_switch_camera">Сменить камеру</string>
+    <string name="action_confirm">ОК</string>
+    <string name="action_cancel">Отмена</string>
+
+    <string name="permission_title">Требуется доступ к камере</string>
+    <string name="permission_message">Разрешите доступ к камере и микрофону для съёмки фото и видео</string>
+    <string name="permission_grant">Разрешить</string>
+
+    <string name="message_photo_saved">Фото сохранено</string>
+    <string name="message_video_saved">Видео сохранено</string>
+    <string name="message_recording_started">Идёт запись</string>
+    <string name="message_recording_stopped">Запись завершена</string>
+    <string name="message_saving">Сохранение</string>
+    <string name="message_processing">Обработка</string>
+    <string name="message_error_camera">Камера недоступна</string>
+    <string name="message_filter_degraded">Живой фильтр недоступен, переключено на прямой предпросмотр</string>
+    <string name="message_error_record">Ошибка записи</string>
+    <string name="message_error_save">Ошибка сохранения</string>
+    <string name="message_high_speed_unavailable">Это устройство не поддерживает высокоскоростную запись</string>
+    <string name="message_superres_unavailable">Это устройство не поддерживает вывод сверхвысокого разрешения</string>
+    <string name="message_stabilization_unavailable">Это устройство не поддерживает эту настройку стабилизации</string>
+
+    <string name="settings_title">Настройки</string>
+    <string name="settings_language">Язык интерфейса</string>
+    <string name="settings_language_system">Как в системе</string>
+    <string name="settings_filter_intensity">Интенсивность фильтра</string>
+    <string name="settings_stabilization">Стабилизация видео</string>
+    <string name="settings_stabilization_desc">Использовать аппаратную стабилизацию и гироскопическую компенсацию при суперразрешении</string>
+    <string name="settings_superres">Суперразрешение фото</string>
+    <string name="settings_superres_desc">Увеличить фото до более высокого разрешения после съёмки</string>
+    <string name="settings_autocomposition">Автокомпозиция</string>
+    <string name="settings_autocomposition_desc">Определять объект и давать подсказки по кадрированию</string>
+    <string name="settings_capability">Возможности устройства</string>
+    <string name="settings_capability_desc">Просмотр реально поддерживаемых параметров записи</string>
+    <string name="settings_about">О программе</string>
+    <string name="settings_about_desc">Камера Фаньхуа · Многоязычная фотография</string>
+
+    <string name="capability_title">Отчёт о возможностях</string>
+    <string name="capability_max_video">Максимальная запись</string>
+    <string name="capability_encode_4k30">Кодирование 4K 30FPS</string>
+    <string name="capability_encode_4k60">Кодирование 4K 60FPS</string>
+    <string name="capability_encode_4k120">Кодирование 4K 120FPS</string>
+    <string name="capability_hevc">Кодирование HEVC</string>
+    <string name="capability_highspeed">Высокоскоростная съёмка</string>
+    <string name="capability_superres">Цель суперразрешения</string>
+    <string name="capability_stabilization">Режимы стабилизации</string>
+    <string name="capability_slow_motion">Уровни замедления</string>
+    <string name="capability_notes">Примечания</string>
+    <string name="value_supported">Поддерживается</string>
+    <string name="value_unsupported">Не поддерживается</string>
+    <string name="value_none">Нет</string>
+
+    <string name="pro_manual_focus">Ручная фокусировка</string>
+    <string name="pro_speed_normal">Обычная</string>
+    <string name="pro_speed_slow_motion">Замедление</string>
+    <string name="pro_output_spec">Параметры вывода</string>
+
+    <string name="composition_hint_center">Переместите объект на пересечение третей</string>
+    <string name="composition_hint_left">Объект справа, сдвиньте влево</string>
+    <string name="composition_hint_right">Объект слева, сдвиньте вправо</string>
+    <string name="composition_hint_up">Объект снизу, сдвиньте вверх</string>
+    <string name="composition_hint_down">Объект сверху, сдвиньте вниз</string>
+    <string name="composition_aligned">Хорошая композиция</string>
+
+    <string name="gallery_title">Результаты</string>
+    <string name="gallery_empty">Нет содержимого</string>
+    <string name="gallery_interpolate">Создать высокую частоту</string>
+    <string name="gallery_upscale">Суперразрешение до 4K</string>
+    <string name="processing_title">Обработка</string>
+    <string name="processing_done">Обработка завершена</string>
+    <string name="processing_failed">Обработка не удалась</string>
+
+    <string name="zoom_label">Зум</string>
+    <string name="live_photo">Живое фото</string>
+</resources>

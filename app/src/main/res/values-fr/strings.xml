@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Appareil Fanhua</string>
+
+    <string name="mode_photo">Photo</string>
+    <string name="mode_video">Vidéo</string>
+    <string name="mode_pro">Pro</string>
+    <string name="mode_superres">Super</string>
+
+    <string name="filter_original">Original</string>
+    <string name="filter_dream">Rêve floral</string>
+    <string name="filter_leica">Instant Leica</string>
+
+    <string name="flash_auto">Auto</string>
+    <string name="flash_on">Activé</string>
+    <string name="flash_off">Désactivé</string>
+
+    <string name="action_settings">Réglages</string>
+    <string name="action_close">Fermer</string>
+    <string name="action_switch_camera">Changer d\'objectif</string>
+    <string name="action_confirm">Confirmer</string>
+    <string name="action_cancel">Annuler</string>
+
+    <string name="permission_title">Autorisation caméra requise</string>
+    <string name="permission_message">Autorisez l\'accès à la caméra et au micro pour prendre des photos et filmer</string>
+    <string name="permission_grant">Accorder l\'autorisation</string>
+
+    <string name="message_photo_saved">Photo enregistrée</string>
+    <string name="message_video_saved">Vidéo enregistrée</string>
+    <string name="message_recording_started">Enregistrement en cours</string>
+    <string name="message_recording_stopped">Enregistrement terminé</string>
+    <string name="message_saving">Enregistrement</string>
+    <string name="message_processing">Traitement</string>
+    <string name="message_error_camera">Caméra indisponible</string>
+    <string name="message_filter_degraded">Filtre en temps réel indisponible, passage à l\'aperçu direct</string>
+    <string name="message_error_record">Échec de l\'enregistrement</string>
+    <string name="message_error_save">Échec de la sauvegarde</string>
+    <string name="message_high_speed_unavailable">Cet appareil ne prend pas en charge l\'enregistrement à cadence élevée</string>
+    <string name="message_superres_unavailable">Cet appareil ne prend pas en charge la sortie super-résolution</string>
+    <string name="message_stabilization_unavailable">Cet appareil ne prend pas en charge ce réglage de stabilisation</string>
+
+    <string name="settings_title">Réglages</string>
+    <string name="settings_language">Langue de l\'interface</string>
+    <string name="settings_language_system">Suivre le système</string>
+    <string name="settings_filter_intensity">Intensité du filtre</string>
+    <string name="settings_stabilization">Stabilisation vidéo</string>
+    <string name="settings_stabilization_desc">Utiliser la stabilisation matérielle et la compensation gyroscopique en super-résolution</string>
+    <string name="settings_superres">Super-résolution photo</string>
+    <string name="settings_superres_desc">Agrandir la photo à une résolution supérieure après la prise de vue</string>
+    <string name="settings_autocomposition">Cadrage automatique</string>
+    <string name="settings_autocomposition_desc">Détecter le sujet et proposer un guide de cadrage et de recadrage</string>
+    <string name="settings_capability">Capacités de l\'appareil</string>
+    <string name="settings_capability_desc">Consulter les spécifications d\'enregistrement réellement prises en charge</string>
+    <string name="settings_about">À propos</string>
+    <string name="settings_about_desc">Appareil Fanhua · Photographie multilingue</string>
+
+    <string name="capability_title">Rapport de capacités</string>
+    <string name="capability_max_video">Enregistrement maximal</string>
+    <string name="capability_encode_4k30">Encodage 4K 30FPS</string>
+    <string name="capability_encode_4k60">Encodage 4K 60FPS</string>
+    <string name="capability_encode_4k120">Encodage 4K 120FPS</string>
+    <string name="capability_hevc">Encodage HEVC</string>
+    <string name="capability_highspeed">Capture à cadence élevée</string>
+    <string name="capability_superres">Cible super-résolution</string>
+    <string name="capability_stabilization">Modes de stabilisation</string>
+    <string name="capability_slow_motion">Niveaux de ralenti</string>
+    <string name="capability_notes">Remarques</string>
+    <string name="value_supported">Pris en charge</string>
+    <string name="value_unsupported">Non pris en charge</string>
+    <string name="value_none">Aucun</string>
+
+    <string name="pro_manual_focus">Mise au point manuelle</string>
+    <string name="pro_speed_normal">Normal</string>
+    <string name="pro_speed_slow_motion">Ralenti</string>
+    <string name="pro_output_spec">Spécification de sortie</string>
+
+    <string name="composition_hint_center">Placez le sujet sur une intersection des tiers</string>
+    <string name="composition_hint_left">Sujet à droite, déplacez vers la gauche</string>
+    <string name="composition_hint_right">Sujet à gauche, déplacez vers la droite</string>
+    <string name="composition_hint_up">Sujet en bas, remontez</string>
+    <string name="composition_hint_down">Sujet en haut, descendez</string>
+    <string name="composition_aligned">Cadrage correct</string>
+
+    <string name="gallery_title">Résultats</string>
+    <string name="gallery_empty">Aucun contenu</string>
+    <string name="gallery_interpolate">Générer haute cadence</string>
+    <string name="gallery_upscale">Super-résolution 4K</string>
+    <string name="processing_title">Traitement</string>
+    <string name="processing_done">Traitement terminé</string>
+    <string name="processing_failed">Échec du traitement</string>
+
+    <string name="zoom_label">Zoom</string>
+    <string name="live_photo">Photo live</string>
+</resources>
