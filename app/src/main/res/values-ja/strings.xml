@@ -114,6 +114,7 @@
     <string name="update_available">新しいバージョンがあります</string>
     <string name="update_latest">最新バージョンです</string>
     <string name="update_failed">更新の確認に失敗</string>
+    <string name="download_failed">ダウンロードに失敗しました。ネットワークを確認してください</string>
     <string name="download_update">更新をダウンロード</string>
     <string name="downloading">ダウンロード中</string>
     <string name="download_done">ダウンロード完了</string>

@@ -114,6 +114,7 @@
     <string name="update_available">Neue Version verfügbar</string>
     <string name="update_latest">Sie sind auf dem neuesten Stand</string>
     <string name="update_failed">Suche fehlgeschlagen</string>
+    <string name="download_failed">Download fehlgeschlagen, Netzwerk prüfen</string>
     <string name="download_update">Update herunterladen</string>
     <string name="downloading">Wird heruntergeladen</string>
     <string name="download_done">Download abgeschlossen</string>

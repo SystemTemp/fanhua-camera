@@ -87,7 +87,7 @@ class UpdateController(
             state = if (file != null) {
                 UpdateUiState.Ready(file)
             } else {
-                toast(R.string.update_failed)
+                toast(R.string.download_failed)
                 UpdateUiState.Failed
             }
         }

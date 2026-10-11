@@ -43,8 +43,8 @@ class UpdateManager(
 
     suspend fun checkLatest(): UpdateInfo? = withContext(Dispatchers.IO) {
         try {
-            val json = httpGet(RELEASE_API)
-            parseLatest(json)
+            parseGitee(httpGet(GITEE_VERSION_URL))
+                ?: parseLatest(httpGet(RELEASE_API))
         } catch (e: Exception) {
             null
         }
@@ -58,37 +58,44 @@ class UpdateManager(
         withContext(Dispatchers.IO) {
             val dir = File(context.cacheDir, "updates").apply { mkdirs() }
             val file = File(dir, "fanhua-camera-update.apk")
-            try {
-                val conn = URL(info.url).openConnection() as HttpURLConnection
-                conn.connectTimeout = 15000
-                conn.readTimeout = 30000
-                conn.setRequestProperty("User-Agent", "FanhuaCamera")
-                val total = conn.contentLength.toLong()
-                conn.inputStream.use { input ->
-                    file.outputStream().use { output ->
-                        val buffer = ByteArray(8192)
-                        var read: Int
-                        var downloaded = 0L
-                        while (input.read(buffer).also { read = it } != -1) {
-                            output.write(buffer, 0, read)
-                            downloaded += read
-                            if (total > 0) {
-                                onProgress(
-                                    DownloadProgress(
-                                        progressPercent = ((downloaded * 100) / total).toInt(),
-                                        downloadedBytes = downloaded,
-                                        totalBytes = total
+            var lastError: String? = null
+            for (attempt in 1..2) {
+                try {
+                    val conn = URL(info.url).openConnection() as HttpURLConnection
+                    conn.connectTimeout = 20000
+                    conn.readTimeout = 60000
+                    conn.setRequestProperty("User-Agent", "FanhuaCamera")
+                    val total = conn.contentLength.toLong()
+                    conn.inputStream.use { input ->
+                        file.outputStream().use { output ->
+                            val buffer = ByteArray(8192)
+                            var read: Int
+                            var downloaded = 0L
+                            while (input.read(buffer).also { read = it } != -1) {
+                                output.write(buffer, 0, read)
+                                downloaded += read
+                                if (total > 0) {
+                                    onProgress(
+                                        DownloadProgress(
+                                            progressPercent = ((downloaded * 100) / total).toInt(),
+                                            downloadedBytes = downloaded,
+                                            totalBytes = total
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
                     }
+                    if (file.length() > 0) {
+                        return@withContext file
+                    }
+                    file.delete()
+                } catch (e: Exception) {
+                    lastError = e.message
+                    file.delete()
                 }
-                file
-            } catch (e: Exception) {
-                file.delete()
-                null
             }
+            null
         }
 
     fun install(file: File): Boolean {
@@ -165,6 +172,23 @@ class UpdateManager(
         }
     }
 
+    private fun parseGitee(json: String): UpdateInfo? {
+        if (json.isBlank()) return null
+        return try {
+            val root = JSONObject(json)
+            val version = root.optString("version", "").removePrefix("v")
+            val apk = root.optString("apk", "")
+            val notes = root.optString("notes", "")
+            if (version.isEmpty() || apk.isEmpty()) {
+                null
+            } else {
+                UpdateInfo(tag = version, versionName = version, url = apk, notes = notes)
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private fun httpGet(url: String): String {
         val conn = URL(url).openConnection() as HttpURLConnection
         try {
@@ -184,5 +208,7 @@ class UpdateManager(
     companion object {
         private const val REPO = "SystemTemp/fanhua-camera"
         private const val RELEASE_API = "https://api.github.com/repos/$REPO/releases/latest"
+        private const val GITEE_VERSION_URL =
+            "https://gitee.com/TDSI/file/raw/master/fanhua/version.json"
     }
 }

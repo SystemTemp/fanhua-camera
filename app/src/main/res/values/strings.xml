@@ -114,6 +114,7 @@
     <string name="update_available">发现新版本</string>
     <string name="update_latest">已是最新版本</string>
     <string name="update_failed">检查更新失败</string>
+    <string name="download_failed">下载失败，请检查网络</string>
     <string name="download_update">下载更新</string>
     <string name="downloading">正在下载</string>
     <string name="download_done">下载完成</string>

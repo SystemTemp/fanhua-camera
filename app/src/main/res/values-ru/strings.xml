@@ -114,6 +114,7 @@
     <string name="update_available">Доступна новая версия</string>
     <string name="update_latest">У вас актуальная версия</string>
     <string name="update_failed">Не удалось проверить</string>
+    <string name="download_failed">Ошибка загрузки, проверьте сеть</string>
     <string name="download_update">Скачать обновление</string>
     <string name="downloading">Загрузка</string>
     <string name="download_done">Загрузка завершена</string>

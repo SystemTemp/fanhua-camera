@@ -114,6 +114,7 @@
     <string name="update_available">새 버전이 있습니다</string>
     <string name="update_latest">최신 버전입니다</string>
     <string name="update_failed">업데이트 확인 실패</string>
+    <string name="download_failed">다운로드 실패, 네트워크를 확인하세요</string>
     <string name="download_update">업데이트 다운로드</string>
     <string name="downloading">다운로드 중</string>
     <string name="download_done">다운로드 완료</string>

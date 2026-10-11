@@ -114,6 +114,7 @@
     <string name="update_available">New version available</string>
     <string name="update_latest">You are up to date</string>
     <string name="update_failed">Update check failed</string>
+    <string name="download_failed">Download failed, check your network</string>
     <string name="download_update">Download update</string>
     <string name="downloading">Downloading</string>
     <string name="download_done">Download finished</string>
