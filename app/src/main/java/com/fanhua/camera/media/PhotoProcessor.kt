@@ -4,7 +4,11 @@ import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.net.Uri
 import android.opengl.GLES20
 import android.os.Build
@@ -69,6 +73,9 @@ class PhotoProcessor(private val context: Context) {
             processed = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
             buffer.rewind()
             processed.setPixels(pixels, 0, targetWidth, 0, 0, targetWidth, targetHeight)
+            if (preset == FilterPreset.LEICA_MOMENT) {
+                drawLeicaWatermark(processed)
+            }
             return save(processed, preset)
         } catch (e: Exception) {
             return null
@@ -77,6 +84,31 @@ class PhotoProcessor(private val context: Context) {
             eglCore?.release()
             bitmap?.recycle()
             processed?.recycle()
+        }
+    }
+
+    private fun drawLeicaWatermark(bitmap: Bitmap) {
+        try {
+            val canvas = Canvas(bitmap)
+            val width = bitmap.width.toFloat()
+            val height = bitmap.height.toFloat()
+            val dotRadius = width * 0.012f
+            val margin = width * 0.03f
+            val dotX = margin + dotRadius
+            val dotY = height - margin - dotRadius
+            val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.rgb(200, 16, 46)
+            }
+            canvas.drawCircle(dotX, dotY, dotRadius, dotPaint)
+            val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.WHITE
+                textSize = width * 0.045f
+                typeface = Typeface.create("sans-serif", Typeface.BOLD)
+                textAlign = Paint.Align.LEFT
+                setShadowLayer(width * 0.004f, 0f, 0f, Color.argb(180, 0, 0, 0))
+            }
+            canvas.drawText("LEICA", dotX + dotRadius * 2.4f, dotY + textPaint.textSize * 0.34f, textPaint)
+        } catch (e: Exception) {
         }
     }
 

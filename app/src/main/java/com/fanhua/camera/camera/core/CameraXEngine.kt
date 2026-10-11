@@ -525,12 +525,10 @@ class CameraXEngine(
 
     private fun buildViewPort(): ViewPort? {
         val rotation = displayRotation()
-        val view: View? = if (useProSurface()) proSurfaceView else previewView
-        val width = view?.width ?: 0
-        val height = view?.height ?: 0
-        if (width <= 0 || height <= 0) return null
+        val isPortrait = rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180
+        val ratio = if (isPortrait) Rational(9, 16) else Rational(16, 9)
         return try {
-            ViewPort.Builder(Rational(width, height), rotation).build()
+            ViewPort.Builder(ratio, rotation).build()
         } catch (e: Exception) {
             null
         }
