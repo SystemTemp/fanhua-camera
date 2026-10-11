@@ -10,6 +10,9 @@
     <string name="filter_original">Original</string>
     <string name="filter_dream">Sueño Floral</string>
     <string name="filter_leica">Instante Leica</string>
+    <string name="filter_leica_mono">Leica Mono</string>
+    <string name="filter_leica_portrait">Leica Retrato</string>
+    <string name="filter_apple_log">Apple Log</string>
 
     <string name="flash_auto">Auto</string>
     <string name="flash_on">Activado</string>

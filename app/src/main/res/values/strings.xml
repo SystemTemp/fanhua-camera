@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">繁华如梦相机</string>
+    <string name="app_name">繁花如梦相机</string>
 
     <string name="mode_photo">照片</string>
     <string name="mode_video">视频</string>
@@ -8,8 +8,11 @@
     <string name="mode_superres">超分</string>
 
     <string name="filter_original">原图</string>
-    <string name="filter_dream">繁华如梦</string>
+    <string name="filter_dream">繁花如梦</string>
     <string name="filter_leica">徕卡一瞬</string>
+    <string name="filter_leica_mono">徕卡黑白</string>
+    <string name="filter_leica_portrait">徕卡人像</string>
+    <string name="filter_apple_log">Apple Log</string>
 
     <string name="flash_auto">自动</string>
     <string name="flash_on">开启</string>
@@ -52,7 +55,7 @@
     <string name="settings_capability">设备能力</string>
     <string name="settings_capability_desc">查看当前设备真实支持的录制规格</string>
     <string name="settings_about">关于</string>
-    <string name="settings_about_desc">繁华如梦相机 · 多语种摄影</string>
+    <string name="settings_about_desc">繁花如梦相机 · 多语种摄影</string>
 
     <string name="capability_title">设备能力报告</string>
     <string name="capability_max_video">最大录像规格</string>

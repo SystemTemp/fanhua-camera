@@ -92,9 +92,9 @@ class PhotoProcessor(private val context: Context) {
             val canvas = Canvas(bitmap)
             val width = bitmap.width.toFloat()
             val height = bitmap.height.toFloat()
-            val dotRadius = width * 0.012f
+            val dotRadius = width * 0.011f
             val margin = width * 0.03f
-            val dotX = margin + dotRadius
+            val dotX = width - margin - dotRadius
             val dotY = height - margin - dotRadius
             val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = Color.rgb(200, 16, 46)
@@ -102,12 +102,13 @@ class PhotoProcessor(private val context: Context) {
             canvas.drawCircle(dotX, dotY, dotRadius, dotPaint)
             val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = Color.WHITE
-                textSize = width * 0.045f
+                textSize = width * 0.040f
                 typeface = Typeface.create("sans-serif", Typeface.BOLD)
-                textAlign = Paint.Align.LEFT
+                textAlign = Paint.Align.RIGHT
+                letterSpacing = 0.08f
                 setShadowLayer(width * 0.004f, 0f, 0f, Color.argb(180, 0, 0, 0))
             }
-            canvas.drawText("LEICA", dotX + dotRadius * 2.4f, dotY + textPaint.textSize * 0.34f, textPaint)
+            canvas.drawText("LEICA", dotX - dotRadius * 2.2f, dotY + textPaint.textSize * 0.34f, textPaint)
         } catch (e: Exception) {
         }
     }

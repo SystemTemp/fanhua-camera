@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
+import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -343,7 +344,15 @@ class CameraXEngine(
     ): List<UseCase> {
         val useCases = mutableListOf<UseCase>()
 
-        val previewUseCase = Preview.Builder().setTargetRotation(rotation).build()
+        val previewBuilder = Preview.Builder().setTargetRotation(rotation)
+        val previewHost = if (useProSurface()) proSurfaceView else previewView
+        if (previewHost != null && previewHost.width > 0 && previewHost.height > 0) {
+            try {
+                previewBuilder.setTargetResolution(Size(previewHost.width, previewHost.height))
+            } catch (e: Exception) {
+            }
+        }
+        val previewUseCase = previewBuilder.build()
         attachPreviewProvider(previewUseCase)
         preview = previewUseCase
         useCases += previewUseCase
@@ -524,14 +533,7 @@ class CameraXEngine(
     }
 
     private fun buildViewPort(): ViewPort? {
-        val rotation = displayRotation()
-        val isPortrait = rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180
-        val ratio = if (isPortrait) Rational(9, 16) else Rational(16, 9)
-        return try {
-            ViewPort.Builder(ratio, rotation).build()
-        } catch (e: Exception) {
-            null
-        }
+        return null
     }
 
     private fun displayRotation(): Int {
@@ -727,6 +729,7 @@ class CameraXEngine(
         }
         val capture = imageCapture ?: return
         if (_state.value.busy) return
+        playShutterSound()
         _state.update { it.copy(busy = true) }
         setStatus(R.string.message_saving, false)
         val file = File(context.cacheDir, "fanhua_capture_" + System.currentTimeMillis() + ".jpg")
@@ -742,6 +745,25 @@ class CameraXEngine(
                 setStatus(R.string.message_error_save, true)
             }
         })
+    }
+
+    private fun playShutterSound() {
+        try {
+            val candidates = arrayOf(
+                "/system/media/audio/ui/camera_click.ogg",
+                "/system/media/audio/ui/camera_click_48k.ogg",
+                "/system/media/audio/ui/camera_shutter.ogg",
+                "/system/media/audio/ui/Shutter_01.ogg"
+            )
+            val path = candidates.firstOrNull { File(it).exists() } ?: return
+            val player = MediaPlayer()
+            player.setDataSource(path)
+            player.setOnCompletionListener { p -> p.release() }
+            player.setOnErrorListener { p, _, _ -> p.release(); true }
+            player.prepare()
+            player.start()
+        } catch (e: Exception) {
+        }
     }
 
     private fun savePhotoFile(file: File) {
@@ -767,6 +789,7 @@ class CameraXEngine(
         if (_state.value.busy || _state.value.recording || recording != null) return
         val capture = videoCapture ?: return
         val photo = imageCapture ?: return
+        playShutterSound()
         _state.update { it.copy(busy = true) }
         val file = File(context.cacheDir, "fanhua_live_" + System.currentTimeMillis() + ".jpg")
         try {

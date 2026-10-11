@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">繁華如夢カメラ</string>
+    <string name="app_name">繁花如夢カメラ</string>
 
     <string name="mode_photo">写真</string>
     <string name="mode_video">動画</string>
@@ -8,8 +8,11 @@
     <string name="mode_superres">超解像</string>
 
     <string name="filter_original">オリジナル</string>
-    <string name="filter_dream">繁華如夢</string>
+    <string name="filter_dream">繁花如夢</string>
     <string name="filter_leica">ライカの瞬間</string>
+    <string name="filter_leica_mono">ライカモノクロ</string>
+    <string name="filter_leica_portrait">ライカポートレート</string>
+    <string name="filter_apple_log">Apple Log</string>
 
     <string name="flash_auto">自動</string>
     <string name="flash_on">オン</string>
@@ -52,7 +55,7 @@
     <string name="settings_capability">端末の性能</string>
     <string name="settings_capability_desc">この端末が実際に対応する録画仕様を確認します</string>
     <string name="settings_about">アプリ情報</string>
-    <string name="settings_about_desc">繁華如夢カメラ · 多言語撮影</string>
+    <string name="settings_about_desc">繁花如夢カメラ · 多言語撮影</string>
 
     <string name="capability_title">端末性能レポート</string>
     <string name="capability_max_video">最大録画仕様</string>

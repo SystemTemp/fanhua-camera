@@ -63,6 +63,51 @@ data class FilterGrade(
                 grain = 0.018f,
                 vignette = 0.34f
             )
+
+            FilterPreset.LEICA_MONO -> FilterGrade(
+                contrast = 1.28f,
+                saturation = 0f,
+                temperature = 0f,
+                fade = 0.10f,
+                lift = floatArrayOf(-0.008f, -0.008f, -0.008f),
+                gain = floatArrayOf(1.035f, 1.035f, 1.035f),
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0.08f,
+                bloomThreshold = 0.85f,
+                grain = 0.050f,
+                vignette = 0.36f
+            )
+
+            FilterPreset.LEICA_PORTRAIT -> FilterGrade(
+                contrast = 0.90f,
+                saturation = 0.80f,
+                temperature = 0.28f,
+                fade = 0.24f,
+                lift = floatArrayOf(0.024f, 0.012f, 0.006f),
+                gain = floatArrayOf(1.018f, 1.008f, 1.004f),
+                shadowTint = floatArrayOf(-0.004f, 0.002f, 0.012f),
+                highlightTint = floatArrayOf(0.030f, 0.024f, 0.016f),
+                bloomStrength = 0.28f,
+                bloomThreshold = 0.72f,
+                grain = 0.016f,
+                vignette = 0.16f
+            )
+
+            FilterPreset.APPLE_LOG -> FilterGrade(
+                contrast = 0.70f,
+                saturation = 0.86f,
+                temperature = 0f,
+                fade = 0.55f,
+                lift = floatArrayOf(0.035f, 0.035f, 0.035f),
+                gain = floatArrayOf(0.965f, 0.965f, 0.965f),
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0.04f,
+                bloomThreshold = 0.96f,
+                grain = 0f,
+                vignette = 0.04f
+            )
         }
     }
 }

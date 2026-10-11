@@ -10,6 +10,9 @@
     <string name="filter_original">Оригинал</string>
     <string name="filter_dream">Цветочный сон</string>
     <string name="filter_leica">Мгновение Leica</string>
+    <string name="filter_leica_mono">Leica Mono</string>
+    <string name="filter_leica_portrait">Leica Портрет</string>
+    <string name="filter_apple_log">Apple Log</string>
 
     <string name="flash_auto">Авто</string>
     <string name="flash_on">Вкл</string>

@@ -1,8 +1,8 @@
-# 繁华如梦相机 · Fanhua Camera
+# 繁花如梦相机 · Fanhua Camera
 
 An open-source Android photography app featuring Mi-style dream filters, Leica M9-inspired color grading, a real-time GLES super-resolution pipeline, hardware/gyroscope stabilization, ML Kit powered auto-composition and Live Photo capture. Built with Kotlin, Jetpack Compose and CameraX — no third-party filter libraries.
 
-小米「繁华如梦」风格滤镜、徕卡 M9「一瞬」色彩近似、GPU 实时超分（1080p 采集 → 4K 输出）、硬件/陀螺仪防抖、ML Kit 自动构图、实况照片，9 语种界面。
+小米「繁花如梦」风格滤镜、徕卡 M9「一瞬」色彩近似、GPU 实时超分（1080p 采集 → 4K 输出）、硬件/陀螺仪防抖、ML Kit 自动构图、实况照片，9 语种界面。
 
 ## Features
 

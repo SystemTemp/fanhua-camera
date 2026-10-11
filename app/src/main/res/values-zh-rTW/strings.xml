@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">繁華如夢相機</string>
+    <string name="app_name">繁花如夢相機</string>
 
     <string name="mode_photo">照片</string>
     <string name="mode_video">影片</string>
@@ -8,8 +8,11 @@
     <string name="mode_superres">超解析</string>
 
     <string name="filter_original">原圖</string>
-    <string name="filter_dream">繁華如夢</string>
+    <string name="filter_dream">繁花如夢</string>
     <string name="filter_leica">徠卡一瞬</string>
+    <string name="filter_leica_mono">徠卡黑白</string>
+    <string name="filter_leica_portrait">徠卡人像</string>
+    <string name="filter_apple_log">Apple Log</string>
 
     <string name="flash_auto">自動</string>
     <string name="flash_on">開啟</string>
@@ -52,7 +55,7 @@
     <string name="settings_capability">裝置能力</string>
     <string name="settings_capability_desc">查看目前裝置實際支援的錄影規格</string>
     <string name="settings_about">關於</string>
-    <string name="settings_about_desc">繁華如夢相機 · 多語系攝影</string>
+    <string name="settings_about_desc">繁花如夢相機 · 多語系攝影</string>
 
     <string name="capability_title">裝置能力報告</string>
     <string name="capability_max_video">最大錄影規格</string>

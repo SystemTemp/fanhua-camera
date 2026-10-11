@@ -10,6 +10,9 @@
     <string name="filter_original">원본</string>
     <string name="filter_dream">번화여몽</string>
     <string name="filter_leica">라이카의 순간</string>
+    <string name="filter_leica_mono">라이카 모노</string>
+    <string name="filter_leica_portrait">라이카 인물</string>
+    <string name="filter_apple_log">Apple Log</string>
 
     <string name="flash_auto">자동</string>
     <string name="flash_on">켜기</string>

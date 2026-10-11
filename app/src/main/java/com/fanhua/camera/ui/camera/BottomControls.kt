@@ -272,7 +272,8 @@ private fun ShutterButton(
 ) {
     val haptic = LocalHapticFeedback.current
     Crossfade(
-        targetState = state.mode == CaptureMode.PHOTO && !state.recording,
+        targetState = (state.mode == CaptureMode.PHOTO || state.mode == CaptureMode.SUPER_RES) &&
+            !state.recording,
         animationSpec = tween(durationMillis = 240),
         label = "shutterMode"
     ) { isPhoto ->
