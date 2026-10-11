@@ -48,6 +48,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -109,9 +110,29 @@ fun BottomControls(
         }
         AnimatedVisibility(visible = !landscape) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                FilterStrip(state = state, onSelect = controller::setPreset)
-                Spacer(modifier = Modifier.height(14.dp))
+                var filtersExpanded by rememberSaveable { mutableStateOf(true) }
+                AnimatedVisibility(visible = filtersExpanded) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        FilterStrip(state = state, onSelect = controller::setPreset)
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .clickable { filtersExpanded = !filtersExpanded },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (filtersExpanded) FanhuaIcons.ArrowUp else FanhuaIcons.ArrowDown,
+                        contentDescription = null,
+                        tint = FanhuaTextDim,
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
             }
+            Spacer(modifier = Modifier.height(10.dp))
         }
 
         ModeCarousel(state = state, onSelect = controller::setMode)

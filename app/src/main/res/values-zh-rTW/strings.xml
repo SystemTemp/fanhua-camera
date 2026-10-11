@@ -110,6 +110,7 @@
     <string name="confirm_delete_title">刪除這張照片？</string>
     <string name="confirm_delete_message">刪除後無法復原</string>
     <string name="open_with_system">在系統中開啟</string>
+    <string name="camera_starting">正在啟動相機…</string>
     <string name="check_update">檢查更新</string>
     <string name="update_available">發現新版本</string>
     <string name="update_latest">已是最新版本</string>

@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,6 +65,7 @@ import com.fanhua.camera.ui.settings.UpdateController
 import com.fanhua.camera.ui.settings.UpdateDialog
 import com.fanhua.camera.ui.theme.FanhuaGold
 import com.fanhua.camera.ui.theme.FanhuaInk
+import com.fanhua.camera.ui.theme.FanhuaOutline
 import com.fanhua.camera.ui.theme.FanhuaRose
 import com.fanhua.camera.ui.theme.FanhuaText
 import com.fanhua.camera.ui.theme.FanhuaTextDim
@@ -106,6 +108,10 @@ fun FanhuaCameraApp(controller: CameraController) {
 
     Box(modifier = Modifier.fillMaxSize().background(FanhuaInk)) {
         Viewfinder(controller = controller, state = state, modifier = Modifier.fillMaxSize())
+
+        if (state.permissionGranted && !state.ready && state.cameraAvailable) {
+            CameraStartingOverlay(modifier = Modifier.fillMaxSize())
+        }
 
         TopBar(
             state = state,
@@ -200,6 +206,34 @@ fun FanhuaCameraApp(controller: CameraController) {
         onInstall = updateController::install,
         onDismiss = updateController::dismiss
     )
+}
+
+@Composable
+private fun CameraStartingOverlay(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.background(Color(0x7308090B)),
+        contentAlignment = Alignment.Center
+    ) {
+        FrostedPanel(
+            cornerRadius = 20.dp,
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 18.dp)
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator(
+                    color = FanhuaGold,
+                    trackColor = FanhuaOutline,
+                    strokeWidth = 3.dp,
+                    modifier = Modifier.size(30.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.camera_starting),
+                    color = FanhuaText,
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
+        }
+    }
 }
 
 @Composable

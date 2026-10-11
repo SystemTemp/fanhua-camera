@@ -110,6 +110,7 @@
     <string name="confirm_delete_title">Delete this photo?</string>
     <string name="confirm_delete_message">This cannot be undone</string>
     <string name="open_with_system">Open in system</string>
+    <string name="camera_starting">Starting camera…</string>
     <string name="check_update">Check for updates</string>
     <string name="update_available">New version available</string>
     <string name="update_latest">You are up to date</string>

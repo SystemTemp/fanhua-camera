@@ -110,6 +110,7 @@
     <string name="confirm_delete_title">Supprimer cette photo ?</string>
     <string name="confirm_delete_message">Impossible à annuler</string>
     <string name="open_with_system">Ouvrir dans le système</string>
+    <string name="camera_starting">Démarrage de la caméra…</string>
     <string name="check_update">Vérifier les mises à jour</string>
     <string name="update_available">Nouvelle version disponible</string>
     <string name="update_latest">Vous êtes à jour</string>

@@ -110,6 +110,7 @@
     <string name="confirm_delete_title">이 사진을 삭제할까요?</string>
     <string name="confirm_delete_message">되돌릴 수 없습니다</string>
     <string name="open_with_system">시스템에서 열기</string>
+    <string name="camera_starting">카메라 시작 중…</string>
     <string name="check_update">업데이트 확인</string>
     <string name="update_available">새 버전이 있습니다</string>
     <string name="update_latest">최신 버전입니다</string>

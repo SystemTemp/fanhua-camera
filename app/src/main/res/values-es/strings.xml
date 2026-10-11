@@ -110,6 +110,7 @@
     <string name="confirm_delete_title">¿Eliminar esta foto?</string>
     <string name="confirm_delete_message">No se puede deshacer</string>
     <string name="open_with_system">Abrir en el sistema</string>
+    <string name="camera_starting">Iniciando cámara…</string>
     <string name="check_update">Buscar actualizaciones</string>
     <string name="update_available">Nueva versión disponible</string>
     <string name="update_latest">Ya está actualizado</string>

@@ -110,6 +110,7 @@
     <string name="confirm_delete_title">この写真を削除しますか？</string>
     <string name="confirm_delete_message">元に戻せません</string>
     <string name="open_with_system">システムで開く</string>
+    <string name="camera_starting">カメラを起動中…</string>
     <string name="check_update">更新を確認</string>
     <string name="update_available">新しいバージョンがあります</string>
     <string name="update_latest">最新バージョンです</string>

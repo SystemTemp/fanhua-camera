@@ -110,6 +110,7 @@
     <string name="confirm_delete_title">Dieses Foto löschen?</string>
     <string name="confirm_delete_message">Nicht rückgängig machbar</string>
     <string name="open_with_system">Im System öffnen</string>
+    <string name="camera_starting">Kamera wird gestartet…</string>
     <string name="check_update">Nach Updates suchen</string>
     <string name="update_available">Neue Version verfügbar</string>
     <string name="update_latest">Sie sind auf dem neuesten Stand</string>

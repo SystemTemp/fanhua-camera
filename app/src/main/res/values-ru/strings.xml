@@ -110,6 +110,7 @@
     <string name="confirm_delete_title">Удалить это фото?</string>
     <string name="confirm_delete_message">Нельзя отменить</string>
     <string name="open_with_system">Открыть в системе</string>
+    <string name="camera_starting">Запуск камеры…</string>
     <string name="check_update">Проверить обновления</string>
     <string name="update_available">Доступна новая версия</string>
     <string name="update_latest">У вас актуальная версия</string>

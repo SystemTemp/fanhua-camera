@@ -74,7 +74,7 @@ class PhotoProcessor(private val context: Context) {
             buffer.rewind()
             processed.setPixels(pixels, 0, targetWidth, 0, 0, targetWidth, targetHeight)
             if (preset == FilterPreset.LEICA_MOMENT) {
-                drawLeicaWatermark(processed)
+                drawLeicaWatermark(processed, source)
             }
             return save(processed, preset)
         } catch (e: Exception) {
@@ -87,29 +87,104 @@ class PhotoProcessor(private val context: Context) {
         }
     }
 
-    private fun drawLeicaWatermark(bitmap: Bitmap) {
+    private fun drawLeicaWatermark(bitmap: Bitmap, source: File?) {
         try {
             val canvas = Canvas(bitmap)
             val width = bitmap.width.toFloat()
             val height = bitmap.height.toFloat()
-            val dotRadius = width * 0.011f
-            val margin = width * 0.03f
-            val dotX = width - margin - dotRadius
-            val dotY = height - margin - dotRadius
+            val barHeight = height * 0.062f
+            val barTop = height - barHeight
+            val background = Paint().apply {
+                color = Color.argb(240, 255, 255, 255)
+            }
+            canvas.drawRect(0f, barTop, width, height, background)
+
+            val margin = width * 0.036f
+            val dotRadius = barHeight * 0.20f
             val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = Color.rgb(200, 16, 46)
             }
-            canvas.drawCircle(dotX, dotY, dotRadius, dotPaint)
-            val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.WHITE
-                textSize = width * 0.040f
+            val centerY = barTop + barHeight / 2f
+            canvas.drawCircle(margin + dotRadius, centerY, dotRadius, dotPaint)
+
+            val leicaPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.BLACK
+                textSize = barHeight * 0.40f
+                typeface = Typeface.create("sans-serif", Typeface.BOLD)
+                letterSpacing = 0.07f
+            }
+            canvas.drawText("LEICA", margin + dotRadius * 2.9f, barTop + barHeight * 0.69f, leicaPaint)
+
+            val focal = readFocalLength(source)
+            val fnum = readFNumber(source)
+            val megapixels = (bitmap.width.toLong() * bitmap.height.toLong() / 1_000_000L).toInt()
+            val params = buildList {
+                add("${megapixels}MP")
+                if (focal.isNotEmpty()) add(focal)
+                if (fnum.isNotEmpty()) add(fnum)
+            }.joinToString("  ")
+
+            val modelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.BLACK
+                textSize = barHeight * 0.24f
                 typeface = Typeface.create("sans-serif", Typeface.BOLD)
                 textAlign = Paint.Align.RIGHT
-                letterSpacing = 0.08f
-                setShadowLayer(width * 0.004f, 0f, 0f, Color.argb(180, 0, 0, 0))
             }
-            canvas.drawText("LEICA", dotX - dotRadius * 2.2f, dotY + textPaint.textSize * 0.34f, textPaint)
+            val paramPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.argb(220, 30, 30, 30)
+                textSize = barHeight * 0.21f
+                typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+                textAlign = Paint.Align.RIGHT
+            }
+            val right = width - margin
+            val deviceModel = Build.MANUFACTURER + " " + Build.MODEL
+            canvas.drawText(deviceModel, right, barTop + barHeight * 0.36f, modelPaint)
+            canvas.drawText(params, right, barTop + barHeight * 0.66f, paramPaint)
         } catch (e: Exception) {
+        }
+    }
+
+    private fun readFocalLength(source: File?): String {
+        if (source == null) return ""
+        return try {
+            val exif = ExifInterface(source.absolutePath)
+            val raw = exif.getAttribute(ExifInterface.TAG_FOCAL_LENGTH) ?: return ""
+            val parts = raw.split("/")
+            if (parts.size == 2) {
+                val numerator = parts[0].toDoubleOrNull() ?: return ""
+                val denominator = parts[1].toDoubleOrNull() ?: return ""
+                if (denominator != 0.0) {
+                    val mm = numerator / denominator
+                    return if (mm == mm.toLong().toDouble()) {
+                        "${mm.toLong()}mm"
+                    } else {
+                        "%.1fmm".format(mm)
+                    }
+                }
+            }
+            ""
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
+    private fun readFNumber(source: File?): String {
+        if (source == null) return ""
+        return try {
+            val exif = ExifInterface(source.absolutePath)
+            val raw = exif.getAttribute(ExifInterface.TAG_F_NUMBER) ?: return ""
+            val parts = raw.split("/")
+            if (parts.size == 2) {
+                val numerator = parts[0].toDoubleOrNull() ?: return ""
+                val denominator = parts[1].toDoubleOrNull() ?: return ""
+                if (denominator != 0.0) {
+                    val f = numerator / denominator
+                    return "f/%.1f".format(f)
+                }
+            }
+            ""
+        } catch (e: Exception) {
+            ""
         }
     }
 
