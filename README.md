@@ -46,3 +46,7 @@ app/src/main/java/com/fanhua/camera/
 ## Author
 
 [SystemTemp](https://github.com/SystemTemp)
+
+## License
+
+[Apache-2.0](LICENSE)

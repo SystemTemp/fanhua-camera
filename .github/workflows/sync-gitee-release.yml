@@ -1,0 +1,58 @@
+name: Sync Release to Gitee
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release assets
+        run: |
+          mkdir -p release-tmp
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --dir release-tmp
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync release to Gitee
+        run: |
+          set -e
+          EXISTS=$(curl -s "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases/tags/$GITHUB_REF_NAME?access_token=$GITEE_TOKEN")
+          RID=$(echo "$EXISTS" | python3 -c "import json,sys
+try:
+    print(json.load(sys.stdin)['id'])
+except Exception:
+    print('')")
+          if [ -z "$RID" ]; then
+            BODY=$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json body -q .body)
+            export BODY
+            python3 -c "
+import json, urllib.request, urllib.error, os
+tok = os.environ['GITEE_TOKEN']
+ref = os.environ['GITHUB_REF_NAME']
+body = os.environ.get('BODY', '')
+data = json.dumps({'access_token': tok, 'tag_name': ref, 'target_commitish': 'main', 'name': ref, 'body': body, 'prerelease': False}).encode()
+req = urllib.request.Request('https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases', data=data, headers={'Content-Type': 'application/json;charset=UTF-8'}, method='POST')
+try:
+    r = json.loads(urllib.request.urlopen(req).read())
+    print(r['id'])
+except urllib.error.HTTPError as e:
+    print(e.read().decode()[:300])
+" > rid.txt
+            RID=$(cat rid.txt)
+          fi
+          echo "Gitee release id: $RID"
+          for f in release-tmp/*.apk; do
+            [ -f "$f" ] || continue
+            echo "uploading $f"
+            curl -s -X POST "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases/$RID/attach_files" \
+              -F "access_token=$GITEE_TOKEN" \
+              -F "file=@$f"
+            echo
+          done
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
