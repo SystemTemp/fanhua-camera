@@ -91,4 +91,29 @@
 
     <string name="zoom_label">Зум</string>
     <string name="live_photo">Живое фото</string>
+    <string name="bug_feedback">Сообщить об ошибке</string>
+    <string name="bug_feedback_desc">Скопировать журналы одним касанием для поиска проблемы</string>
+    <string name="copy_log">Копировать журналы</string>
+    <string name="copied">Скопировано</string>
+    <string name="report_issue">Сообщить на GitHub</string>
+    <string name="author">Автор</string>
+    <string name="open_homepage">Открыть главную</string>
+    <string name="device_info">Информация об устройстве</string>
+    <string name="app_log">Журнал приложения</string>
+    <string name="open_source">Исходный код</string>
+    <string name="delete">Удалить</string>
+    <string name="reprocess">Обработать заново</string>
+    <string name="reprocess_done">Новое фото создано</string>
+    <string name="confirm_delete_title">Удалить это фото?</string>
+    <string name="confirm_delete_message">Нельзя отменить</string>
+    <string name="open_with_system">Открыть в системе</string>
+    <string name="check_update">Проверить обновления</string>
+    <string name="update_available">Доступна новая версия</string>
+    <string name="update_latest">У вас актуальная версия</string>
+    <string name="update_failed">Не удалось проверить</string>
+    <string name="download_update">Скачать обновление</string>
+    <string name="downloading">Загрузка</string>
+    <string name="download_done">Загрузка завершена</string>
+    <string name="install_update">Установить обновление</string>
+    <string name="message_quality_reduced">Качество снижено, камера работает</string>
 </resources>

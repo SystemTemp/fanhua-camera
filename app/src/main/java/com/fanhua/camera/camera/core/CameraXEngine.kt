@@ -8,7 +8,9 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import android.util.Rational
+import android.util.Size
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -142,6 +144,7 @@ class CameraXEngine(
                 provider = future.get()
                 bind()
             } catch (e: Exception) {
+                Log.e(TAG, "ProcessCameraProvider init failed", e)
                 _state.update { it.copy(cameraAvailable = false) }
                 setStatus(R.string.message_error_camera, true)
             }
@@ -200,8 +203,14 @@ class CameraXEngine(
         val stabilization = _state.value.stabilizationEnabled &&
             capability.stabilizationModes.contains("ON")
         val softwareStabilization = _state.value.stabilizationEnabled
-        val useEffect = (mode == CaptureMode.VIDEO || mode == CaptureMode.PRO) &&
-            !glFilterDowngraded
+        val useEffect = !glFilterDowngraded
+        val view = if (useProSurface()) proSurfaceView else previewView
+        Log.d(
+            TAG,
+            "bind mode=$mode rotation=$rotation livePhoto=$livePhoto needsVideo=$needsVideo " +
+                "useEffect=$useEffect stabilization=$stabilization " +
+                "viewSize=${view?.width}x${view?.height} lensFacing=$lensFacing"
+        )
 
         stopRecordingInternal()
         detachAnalysis()
@@ -219,74 +228,14 @@ class CameraXEngine(
             setStatus(R.string.message_error_camera, true)
         }
 
-        val useCases = mutableListOf<UseCase>()
-
-        val previewBuilder = Preview.Builder().setTargetRotation(rotation)
-        if (stabilization && !useEffect) {
-            try {
-                previewBuilder.setPreviewStabilizationEnabled(true)
-            } catch (e: Exception) {
-            }
-        }
-        val previewUseCase = previewBuilder.build()
-        attachPreviewProvider(previewUseCase)
-        preview = previewUseCase
-        useCases += previewUseCase
-
-        if (needsVideo) {
-            val recorder = Recorder.Builder()
-                .setQualitySelector(buildQualitySelector())
-                .build()
-            val videoBuilder = VideoCapture.Builder(recorder).setTargetRotation(rotation)
-            if (stabilization) {
-                try {
-                    videoBuilder.setVideoStabilizationEnabled(true)
-                } catch (e: Exception) {
-                }
-            }
-            val videoUseCase = videoBuilder.build()
-            videoCapture = videoUseCase
-            useCases += videoUseCase
-            if (livePhoto) {
-                val captureBuilder = ImageCapture.Builder()
-                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                    .setTargetRotation(rotation)
-                val captureUseCase = captureBuilder.build()
-                captureUseCase.flashMode = flashModeValue(_state.value.flashMode)
-                imageCapture = captureUseCase
-                useCases += captureUseCase
-            } else {
-                imageCapture = null
-            }
-        } else {
-            val captureBuilder = ImageCapture.Builder()
-                .setCaptureMode(
-                    if (mode == CaptureMode.SUPER_RES) {
-                        ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
-                    } else {
-                        ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY
-                    }
-                )
-                .setTargetRotation(rotation)
-            val captureUseCase = captureBuilder.build()
-            captureUseCase.flashMode = flashModeValue(_state.value.flashMode)
-            imageCapture = captureUseCase
-            videoCapture = null
-            useCases += captureUseCase
-        }
-
-        imageAnalysis = null
-        if (_state.value.autoCompositionEnabled) {
-            val analysisBuilder = ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .setTargetRotation(rotation)
-            val analysis = analysisBuilder.build()
-            val analyzer = FaceAnalyzer { faces, _, _ -> onFaces(faces) }
-            analysis.setAnalyzer(analysisExecutor, analyzer)
-            faceAnalyzer = analyzer
-            imageAnalysis = analysis
-            useCases += analysis
-        }
+        val useCases = buildUseCases(
+            mode,
+            rotation,
+            needsVideo,
+            livePhoto,
+            stabilization,
+            IMAGE_FULL_RES
+        )
 
         val surfaceProcessor: FilterSurfaceProcessor? = if (useEffect) {
             FilterSurfaceProcessor(
@@ -305,7 +254,11 @@ class CameraXEngine(
         }
         val effect: FilterCameraEffect? = surfaceProcessor?.let {
             FilterCameraEffect(
-                CameraEffect.PREVIEW or CameraEffect.VIDEO_CAPTURE,
+                if (needsVideo) {
+                    CameraEffect.PREVIEW or CameraEffect.VIDEO_CAPTURE
+                } else {
+                    CameraEffect.PREVIEW
+                },
                 glExecutor,
                 it,
                 Consumer { error -> setStatus(R.string.message_error_camera, true) }
@@ -330,8 +283,29 @@ class CameraXEngine(
                 setStatus(R.string.message_filter_degraded, false)
             }
         }
+        if (camera == null) {
+            processor?.release()
+            processor = null
+            val lowCases = buildUseCases(
+                mode,
+                rotation,
+                needsVideo,
+                livePhoto,
+                stabilization,
+                IMAGE_FALLBACK_RES
+            )
+            camera = tryBind(cameraProvider, selector, lowCases, null, viewPort)
+            if (camera == null) {
+                camera = tryBind(cameraProvider, selector, lowCases, null, null)
+            }
+            if (camera != null) {
+                Log.d(TAG, "bind ok with reduced image resolution")
+                setStatus(R.string.message_quality_reduced, true)
+            }
+        }
 
         if (camera == null) {
+            Log.e(TAG, "bind failed for mode=$mode, camera is null")
             _state.update {
                 it.copy(cameraAvailable = false, ready = false, filterPreviewActive = false)
             }
@@ -339,6 +313,7 @@ class CameraXEngine(
             return
         }
 
+        Log.d(TAG, "bind ok mode=$mode filterPreviewActive=$useEffect")
         _state.update { it.copy(filterPreviewActive = useEffect) }
 
         if (viewPort == null) {
@@ -356,6 +331,80 @@ class CameraXEngine(
                 compositionHint = if (it.autoCompositionEnabled) it.compositionHint else null
             )
         }
+    }
+
+    private fun buildUseCases(
+        mode: CaptureMode,
+        rotation: Int,
+        needsVideo: Boolean,
+        livePhoto: Boolean,
+        stabilization: Boolean,
+        imageResolution: Size?
+    ): List<UseCase> {
+        val useCases = mutableListOf<UseCase>()
+
+        val previewUseCase = Preview.Builder().setTargetRotation(rotation).build()
+        attachPreviewProvider(previewUseCase)
+        preview = previewUseCase
+        useCases += previewUseCase
+
+        if (needsVideo) {
+            val recorder = Recorder.Builder()
+                .setQualitySelector(buildQualitySelector())
+                .build()
+            val videoBuilder = VideoCapture.Builder(recorder).setTargetRotation(rotation)
+            if (stabilization) {
+                try {
+                    videoBuilder.setVideoStabilizationEnabled(true)
+                } catch (e: Exception) {
+                }
+            }
+            val videoUseCase = videoBuilder.build()
+            videoCapture = videoUseCase
+            useCases += videoUseCase
+            if (livePhoto) {
+                val captureBuilder = ImageCapture.Builder()
+                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                    .setTargetRotation(rotation)
+                imageResolution?.let { captureBuilder.setTargetResolution(it) }
+                val captureUseCase = captureBuilder.build()
+                captureUseCase.flashMode = flashModeValue(_state.value.flashMode)
+                imageCapture = captureUseCase
+                useCases += captureUseCase
+            } else {
+                imageCapture = null
+            }
+        } else {
+            val captureBuilder = ImageCapture.Builder()
+                .setCaptureMode(
+                    if (mode == CaptureMode.SUPER_RES) {
+                        ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
+                    } else {
+                        ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY
+                    }
+                )
+                .setTargetRotation(rotation)
+            imageResolution?.let { captureBuilder.setTargetResolution(it) }
+            val captureUseCase = captureBuilder.build()
+            captureUseCase.flashMode = flashModeValue(_state.value.flashMode)
+            imageCapture = captureUseCase
+            videoCapture = null
+            useCases += captureUseCase
+        }
+
+        imageAnalysis = null
+        if (_state.value.autoCompositionEnabled) {
+            val analysisBuilder = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .setTargetRotation(rotation)
+            val analysis = analysisBuilder.build()
+            val analyzer = FaceAnalyzer { faces, _, _ -> onFaces(faces) }
+            analysis.setAnalyzer(analysisExecutor, analyzer)
+            faceAnalyzer = analyzer
+            imageAnalysis = analysis
+            useCases += analysis
+        }
+        return useCases
     }
 
     private fun tryBind(
@@ -376,6 +425,11 @@ class CameraXEngine(
         return try {
             cameraProvider.bindToLifecycle(lifecycleOwner, selector, builder.build())
         } catch (e: Exception) {
+            Log.e(
+                TAG,
+                "bindToLifecycle failed: useCases=${useCases.size} effect=${effect != null} viewPort=${viewPort != null} mode=${_state.value.mode}",
+                e
+            )
             null
         }
     }
@@ -929,6 +983,9 @@ class CameraXEngine(
     }
 
     private companion object {
+        const val TAG = "FanhuaCamera"
         const val LIVE_PHOTO_DURATION_MS = 3000L
+        val IMAGE_FULL_RES = Size(3840, 2160)
+        val IMAGE_FALLBACK_RES = Size(1920, 1080)
     }
 }

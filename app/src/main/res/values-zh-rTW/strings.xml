@@ -91,4 +91,29 @@
 
     <string name="zoom_label">變焦</string>
     <string name="live_photo">實況</string>
+    <string name="bug_feedback">回報 Bug</string>
+    <string name="bug_feedback_desc">一鍵複製日誌，方便定位問題</string>
+    <string name="copy_log">一鍵複製日誌</string>
+    <string name="copied">已複製</string>
+    <string name="report_issue">去 GitHub 回報</string>
+    <string name="author">作者</string>
+    <string name="open_homepage">開啟首頁</string>
+    <string name="device_info">裝置資訊</string>
+    <string name="app_log">應用日誌</string>
+    <string name="open_source">開源倉庫</string>
+    <string name="delete">刪除</string>
+    <string name="reprocess">重新處理</string>
+    <string name="reprocess_done">已產生新照片</string>
+    <string name="confirm_delete_title">刪除這張照片？</string>
+    <string name="confirm_delete_message">刪除後無法復原</string>
+    <string name="open_with_system">在系統中開啟</string>
+    <string name="check_update">檢查更新</string>
+    <string name="update_available">發現新版本</string>
+    <string name="update_latest">已是最新版本</string>
+    <string name="update_failed">檢查更新失敗</string>
+    <string name="download_update">下載更新</string>
+    <string name="downloading">正在下載</string>
+    <string name="download_done">下載完成</string>
+    <string name="install_update">安裝更新</string>
+    <string name="message_quality_reduced">畫質已降級，相機仍可用</string>
 </resources>

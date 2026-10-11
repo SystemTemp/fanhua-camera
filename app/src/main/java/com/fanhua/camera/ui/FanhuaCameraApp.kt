@@ -33,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -58,6 +59,8 @@ import com.fanhua.camera.ui.common.FanhuaButtonStyle
 import com.fanhua.camera.ui.common.FrostedPanel
 import com.fanhua.camera.ui.gallery.GallerySheet
 import com.fanhua.camera.ui.settings.SettingsSheet
+import com.fanhua.camera.ui.settings.UpdateController
+import com.fanhua.camera.ui.settings.UpdateDialog
 import com.fanhua.camera.ui.theme.FanhuaGold
 import com.fanhua.camera.ui.theme.FanhuaInk
 import com.fanhua.camera.ui.theme.FanhuaRose
@@ -76,6 +79,9 @@ fun FanhuaCameraApp(controller: CameraController) {
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var showGallery by rememberSaveable { mutableStateOf(false) }
 
+    val scope = rememberCoroutineScope()
+    val updateController = remember { UpdateController(context, scope) }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { result ->
@@ -93,6 +99,7 @@ fun FanhuaCameraApp(controller: CameraController) {
                 arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
             )
         }
+        updateController.check(silent = true)
     }
 
     Box(modifier = Modifier.fillMaxSize().background(FanhuaInk)) {
@@ -175,7 +182,15 @@ fun FanhuaCameraApp(controller: CameraController) {
 
     GallerySheet(
         visible = showGallery,
+        controller = controller,
         onDismiss = { showGallery = false }
+    )
+
+    UpdateDialog(
+        state = updateController.state,
+        onDownload = updateController::download,
+        onInstall = updateController::install,
+        onDismiss = updateController::dismiss
     )
 }
 

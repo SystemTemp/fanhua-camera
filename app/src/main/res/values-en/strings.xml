@@ -91,4 +91,29 @@
 
     <string name="zoom_label">Zoom</string>
     <string name="live_photo">Live Photo</string>
+    <string name="bug_feedback">Report Bug</string>
+    <string name="bug_feedback_desc">Copy logs with one tap to help locate the issue</string>
+    <string name="copy_log">Copy logs</string>
+    <string name="copied">Copied</string>
+    <string name="report_issue">Report on GitHub</string>
+    <string name="author">Author</string>
+    <string name="open_homepage">Open homepage</string>
+    <string name="device_info">Device info</string>
+    <string name="app_log">App log</string>
+    <string name="open_source">Source code</string>
+    <string name="delete">Delete</string>
+    <string name="reprocess">Reprocess</string>
+    <string name="reprocess_done">New photo created</string>
+    <string name="confirm_delete_title">Delete this photo?</string>
+    <string name="confirm_delete_message">This cannot be undone</string>
+    <string name="open_with_system">Open in system</string>
+    <string name="check_update">Check for updates</string>
+    <string name="update_available">New version available</string>
+    <string name="update_latest">You are up to date</string>
+    <string name="update_failed">Update check failed</string>
+    <string name="download_update">Download update</string>
+    <string name="downloading">Downloading</string>
+    <string name="download_done">Download finished</string>
+    <string name="install_update">Install update</string>
+    <string name="message_quality_reduced">Quality reduced, camera still works</string>
 </resources>

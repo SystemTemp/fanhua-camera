@@ -1,5 +1,7 @@
 package com.fanhua.camera.ui.settings
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +48,8 @@ import com.fanhua.camera.R
 import com.fanhua.camera.camera.core.CameraController
 import com.fanhua.camera.camera.core.CapabilityReport
 import com.fanhua.camera.data.LocaleManager
+import com.fanhua.camera.ui.common.FanhuaButton
+import com.fanhua.camera.ui.common.FanhuaButtonStyle
 import com.fanhua.camera.ui.common.FanhuaDivider
 import com.fanhua.camera.ui.common.FanhuaIcons
 import com.fanhua.camera.ui.theme.FanhuaGold
@@ -67,7 +72,10 @@ fun SettingsSheet(
     val state by controller.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
     var language by remember { mutableStateOf(LocaleManager.storedTag(context)) }
+    var showBugReport by remember { mutableStateOf(false) }
+    val updateController = remember { UpdateController(context, scope) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -186,8 +194,90 @@ fun SettingsSheet(
                 color = FanhuaTextDim,
                 style = MaterialTheme.typography.bodyMedium
             )
+
+            Spacer(modifier = Modifier.height(14.dp))
+            AboutRow(
+                label = stringResource(R.string.author),
+                value = "SystemTemp",
+                onClick = { openUrl(context, "https://github.com/SystemTemp") }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            AboutRow(
+                label = stringResource(R.string.open_source),
+                value = "fanhua-camera",
+                onClick = { openUrl(context, "https://github.com/SystemTemp/fanhua-camera") }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            AboutRow(
+                label = stringResource(R.string.check_update),
+                value = updateController.currentVersion,
+                onClick = { updateController.check() }
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+            FanhuaButton(
+                text = stringResource(R.string.bug_feedback),
+                onClick = { showBugReport = true },
+                style = FanhuaButtonStyle.Solid,
+                modifier = Modifier.fillMaxWidth()
+            )
             Spacer(modifier = Modifier.height(28.dp))
         }
+    }
+
+    BugReportSheet(
+        visible = showBugReport,
+        onDismiss = { showBugReport = false }
+    )
+
+    UpdateDialog(
+        state = updateController.state,
+        onDownload = updateController::download,
+        onInstall = updateController::install,
+        onDismiss = updateController::dismiss
+    )
+}
+
+@Composable
+private fun AboutRow(
+    label: String,
+    value: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0x14FFFFFF))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            color = FanhuaTextDim,
+            style = MaterialTheme.typography.labelMedium
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = value,
+            color = FanhuaGold,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Icon(
+            imageVector = FanhuaIcons.ArrowRight,
+            contentDescription = null,
+            tint = FanhuaTextDim,
+            modifier = Modifier.size(14.dp)
+        )
+    }
+}
+
+private fun openUrl(context: android.content.Context, url: String) {
+    try {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    } catch (e: Exception) {
     }
 }
 

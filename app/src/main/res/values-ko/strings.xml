@@ -91,4 +91,29 @@
 
     <string name="zoom_label">줌</string>
     <string name="live_photo">라이브 포토</string>
+    <string name="bug_feedback">버그 신고</string>
+    <string name="bug_feedback_desc">로그를 한 번에 복사하여 문제 해결에 활용</string>
+    <string name="copy_log">로그 복사</string>
+    <string name="copied">복사됨</string>
+    <string name="report_issue">GitHub에서 신고</string>
+    <string name="author">작성자</string>
+    <string name="open_homepage">홈페이지 열기</string>
+    <string name="device_info">기기 정보</string>
+    <string name="app_log">앱 로그</string>
+    <string name="open_source">소스 코드</string>
+    <string name="delete">삭제</string>
+    <string name="reprocess">재처리</string>
+    <string name="reprocess_done">새 사진 생성됨</string>
+    <string name="confirm_delete_title">이 사진을 삭제할까요?</string>
+    <string name="confirm_delete_message">되돌릴 수 없습니다</string>
+    <string name="open_with_system">시스템에서 열기</string>
+    <string name="check_update">업데이트 확인</string>
+    <string name="update_available">새 버전이 있습니다</string>
+    <string name="update_latest">최신 버전입니다</string>
+    <string name="update_failed">업데이트 확인 실패</string>
+    <string name="download_update">업데이트 다운로드</string>
+    <string name="downloading">다운로드 중</string>
+    <string name="download_done">다운로드 완료</string>
+    <string name="install_update">업데이트 설치</string>
+    <string name="message_quality_reduced">화질이 낮아졌지만 카메라는 사용할 수 있습니다</string>
 </resources>

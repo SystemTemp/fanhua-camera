@@ -91,4 +91,29 @@
 
     <string name="zoom_label">ズーム</string>
     <string name="live_photo">ライブフォト</string>
+    <string name="bug_feedback">バグを報告</string>
+    <string name="bug_feedback_desc">ログをワンタップでコピーして問題の特定に役立てる</string>
+    <string name="copy_log">ログをコピー</string>
+    <string name="copied">コピーしました</string>
+    <string name="report_issue">GitHubで報告</string>
+    <string name="author">作者</string>
+    <string name="open_homepage">ホームページを開く</string>
+    <string name="device_info">端末情報</string>
+    <string name="app_log">アプリログ</string>
+    <string name="open_source">ソースコード</string>
+    <string name="delete">削除</string>
+    <string name="reprocess">再処理</string>
+    <string name="reprocess_done">新しい写真を生成しました</string>
+    <string name="confirm_delete_title">この写真を削除しますか？</string>
+    <string name="confirm_delete_message">元に戻せません</string>
+    <string name="open_with_system">システムで開く</string>
+    <string name="check_update">更新を確認</string>
+    <string name="update_available">新しいバージョンがあります</string>
+    <string name="update_latest">最新バージョンです</string>
+    <string name="update_failed">更新の確認に失敗</string>
+    <string name="download_update">更新をダウンロード</string>
+    <string name="downloading">ダウンロード中</string>
+    <string name="download_done">ダウンロード完了</string>
+    <string name="install_update">更新をインストール</string>
+    <string name="message_quality_reduced">画質が低下しましたが、カメラは使用できます</string>
 </resources>

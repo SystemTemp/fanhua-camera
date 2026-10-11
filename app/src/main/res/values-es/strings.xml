@@ -91,4 +91,29 @@
 
     <string name="zoom_label">Zoom</string>
     <string name="live_photo">Foto en vivo</string>
+    <string name="bug_feedback">Informar de un error</string>
+    <string name="bug_feedback_desc">Copia los registros de un toque para localizar el problema</string>
+    <string name="copy_log">Copiar registros</string>
+    <string name="copied">Copiado</string>
+    <string name="report_issue">Informar en GitHub</string>
+    <string name="author">Autor</string>
+    <string name="open_homepage">Abrir página principal</string>
+    <string name="device_info">Información del dispositivo</string>
+    <string name="app_log">Registro de la app</string>
+    <string name="open_source">Código fuente</string>
+    <string name="delete">Eliminar</string>
+    <string name="reprocess">Reprocesar</string>
+    <string name="reprocess_done">Nueva foto creada</string>
+    <string name="confirm_delete_title">¿Eliminar esta foto?</string>
+    <string name="confirm_delete_message">No se puede deshacer</string>
+    <string name="open_with_system">Abrir en el sistema</string>
+    <string name="check_update">Buscar actualizaciones</string>
+    <string name="update_available">Nueva versión disponible</string>
+    <string name="update_latest">Ya está actualizado</string>
+    <string name="update_failed">Error al buscar actualizaciones</string>
+    <string name="download_update">Descargar actualización</string>
+    <string name="downloading">Descargando</string>
+    <string name="download_done">Descarga completada</string>
+    <string name="install_update">Instalar actualización</string>
+    <string name="message_quality_reduced">Calidad reducida, la cámara sigue funcionando</string>
 </resources>

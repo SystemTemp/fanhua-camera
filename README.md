@@ -42,3 +42,7 @@ app/src/main/java/com/fanhua/camera/
   media/        # photo processor (offline filter + upscale), MediaStore
   data/         # DataStore settings, locale manager
 ```
+
+## Author
+
+[SystemTemp](https://github.com/SystemTemp)

@@ -327,6 +327,34 @@ object FanhuaIcons {
         path(fill = SolidColor(Color.Black)) { circle(9f, 12f, 1.5f) }
     }
 
+    val Feedback: ImageVector = vector("Feedback") {
+        path(
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.6f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round
+        ) {
+            circle(9f, 13f, 4.8f)
+            circle(14.8f, 9f, 1.9f)
+            moveTo(15.8f, 7.4f)
+            lineTo(17.8f, 5.4f)
+            moveTo(14f, 7f)
+            lineTo(13.8f, 4.8f)
+            moveTo(5.6f, 10.6f)
+            lineTo(3.8f, 9f)
+            moveTo(5.6f, 13f)
+            lineTo(3.6f, 13f)
+            moveTo(5.6f, 15.4f)
+            lineTo(3.8f, 17f)
+            moveTo(12.4f, 10.6f)
+            lineTo(14.2f, 9f)
+            moveTo(12.4f, 13f)
+            lineTo(14.4f, 13f)
+            moveTo(12.4f, 15.4f)
+            lineTo(14.2f, 17f)
+        }
+    }
+
     val Gallery: ImageVector = vector("Gallery") {
         path(
             stroke = SolidColor(Color.Black),
