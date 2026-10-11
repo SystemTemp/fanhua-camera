@@ -78,7 +78,7 @@ class PhotoProcessor(private val context: Context) {
             }
             return save(processed, preset)
         } catch (e: Exception) {
-            return null
+            return saveOriginal(source)
         } finally {
             pipeline.release()
             eglCore?.release()

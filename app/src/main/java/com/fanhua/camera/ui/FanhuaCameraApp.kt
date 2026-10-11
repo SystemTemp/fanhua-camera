@@ -58,6 +58,7 @@ import com.fanhua.camera.ui.common.FanhuaButton
 import com.fanhua.camera.ui.common.FanhuaButtonStyle
 import com.fanhua.camera.ui.common.FrostedPanel
 import com.fanhua.camera.ui.gallery.GallerySheet
+import com.fanhua.camera.ui.settings.BugReportSheet
 import com.fanhua.camera.ui.settings.SettingsSheet
 import com.fanhua.camera.ui.settings.UpdateController
 import com.fanhua.camera.ui.settings.UpdateDialog
@@ -78,6 +79,7 @@ fun FanhuaCameraApp(controller: CameraController) {
     }
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var showGallery by rememberSaveable { mutableStateOf(false) }
+    var showBugReport by rememberSaveable { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
     val updateController = remember { UpdateController(context, scope) }
@@ -177,6 +179,7 @@ fun FanhuaCameraApp(controller: CameraController) {
         visible = showSettings,
         controller = controller,
         capability = capability,
+        onBugReport = { showBugReport = true },
         onDismiss = { showSettings = false }
     )
 
@@ -184,6 +187,11 @@ fun FanhuaCameraApp(controller: CameraController) {
         visible = showGallery,
         controller = controller,
         onDismiss = { showGallery = false }
+    )
+
+    BugReportSheet(
+        visible = showBugReport,
+        onDismiss = { showBugReport = false }
     )
 
     UpdateDialog(

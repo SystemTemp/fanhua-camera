@@ -26,6 +26,12 @@ class UpdateManager(
         val notes: String
     )
 
+    data class DownloadProgress(
+        val progressPercent: Int,
+        val downloadedBytes: Long,
+        val totalBytes: Long
+    )
+
     fun currentVersionName(): String {
         return try {
             val info = context.packageManager.getPackageInfo(context.packageName, 0)
@@ -48,7 +54,7 @@ class UpdateManager(
         return remote.versionName.isNotEmpty() && remote.versionName != currentVersionName()
     }
 
-    suspend fun download(info: UpdateInfo, onProgress: (Int) -> Unit): File? =
+    suspend fun download(info: UpdateInfo, onProgress: (DownloadProgress) -> Unit): File? =
         withContext(Dispatchers.IO) {
             val dir = File(context.cacheDir, "updates").apply { mkdirs() }
             val file = File(dir, "fanhua-camera-update.apk")
@@ -67,7 +73,13 @@ class UpdateManager(
                             output.write(buffer, 0, read)
                             downloaded += read
                             if (total > 0) {
-                                onProgress(((downloaded * 100) / total).toInt())
+                                onProgress(
+                                    DownloadProgress(
+                                        progressPercent = ((downloaded * 100) / total).toInt(),
+                                        downloadedBytes = downloaded,
+                                        totalBytes = total
+                                    )
+                                )
                             }
                         }
                     }

@@ -720,6 +720,7 @@ class CameraXEngine(
     }
 
     override fun takePhoto() {
+        Log.d(TAG, "takePhoto called mode=${_state.value.mode} busy=${_state.value.busy} livePhoto=${_state.value.livePhotoEnabled} capture=${imageCapture != null}")
         if (_state.value.livePhotoEnabled && _state.value.mode == CaptureMode.PHOTO) {
             startLivePhoto()
             return

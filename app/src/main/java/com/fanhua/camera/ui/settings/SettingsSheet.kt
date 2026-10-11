@@ -66,6 +66,7 @@ fun SettingsSheet(
     visible: Boolean,
     controller: CameraController,
     capability: CapabilityReport,
+    onBugReport: () -> Unit,
     onDismiss: () -> Unit
 ) {
     if (!visible) return
@@ -74,7 +75,6 @@ fun SettingsSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     var language by remember { mutableStateOf(LocaleManager.storedTag(context)) }
-    var showBugReport by remember { mutableStateOf(false) }
     val updateController = remember { UpdateController(context, scope) }
 
     ModalBottomSheet(
@@ -217,18 +217,13 @@ fun SettingsSheet(
             Spacer(modifier = Modifier.height(14.dp))
             FanhuaButton(
                 text = stringResource(R.string.bug_feedback),
-                onClick = { showBugReport = true },
+                onClick = onBugReport,
                 style = FanhuaButtonStyle.Solid,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(28.dp))
         }
     }
-
-    BugReportSheet(
-        visible = showBugReport,
-        onDismiss = { showBugReport = false }
-    )
 
     UpdateDialog(
         state = updateController.state,
