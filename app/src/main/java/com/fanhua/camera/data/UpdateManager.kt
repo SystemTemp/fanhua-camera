@@ -81,7 +81,6 @@ class UpdateManager(
         withContext(Dispatchers.IO) {
             val dir = File(context.cacheDir, "updates").apply { mkdirs() }
             val file = File(dir, "fanhua-camera-update.apk")
-            var lastError: String? = null
             for (attempt in 1..2) {
                 try {
                     val conn = URL(info.url).openConnection() as HttpURLConnection
@@ -94,17 +93,22 @@ class UpdateManager(
                             val buffer = ByteArray(8192)
                             var read: Int
                             var downloaded = 0L
+                            var lastReport = 0L
                             while (input.read(buffer).also { read = it } != -1) {
                                 output.write(buffer, 0, read)
                                 downloaded += read
                                 if (total > 0) {
-                                    onProgress(
-                                        DownloadProgress(
-                                            progressPercent = ((downloaded * 100) / total).toInt(),
-                                            downloadedBytes = downloaded,
-                                            totalBytes = total
+                                    val now = System.currentTimeMillis()
+                                    if (now - lastReport >= 100 || downloaded >= total) {
+                                        lastReport = now
+                                        onProgress(
+                                            DownloadProgress(
+                                                progressPercent = ((downloaded * 100) / total).toInt(),
+                                                downloadedBytes = downloaded,
+                                                totalBytes = total
+                                            )
                                         )
-                                    )
+                                    }
                                 }
                             }
                         }
@@ -114,7 +118,6 @@ class UpdateManager(
                     }
                     file.delete()
                 } catch (e: Exception) {
-                    lastError = e.message
                     file.delete()
                 }
             }

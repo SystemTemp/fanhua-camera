@@ -75,14 +75,20 @@ class UpdateController(
         scope.launch {
             state = UpdateUiState.Downloading(0, 0L)
             var lastBytes = 0L
-            var lastTime = System.currentTimeMillis()
+            var lastTime = 0L
+            var avgSpeed = 0L
+            var samples = 0
             val file = manager.download(info) { progress ->
                 val now = System.currentTimeMillis()
-                val dt = (now - lastTime).coerceAtLeast(1L)
-                val speed = ((progress.downloadedBytes - lastBytes) * 1000L) / dt
+                if (lastTime > 0) {
+                    val dt = (now - lastTime).coerceAtLeast(1L)
+                    val instant = ((progress.downloadedBytes - lastBytes) * 1000L) / dt
+                    avgSpeed = if (samples == 0) instant else (avgSpeed * 3 + instant) / 4
+                    samples++
+                }
                 lastBytes = progress.downloadedBytes
                 lastTime = now
-                state = UpdateUiState.Downloading(progress.progressPercent, speed)
+                state = UpdateUiState.Downloading(progress.progressPercent, avgSpeed)
             }
             state = if (file != null) {
                 UpdateUiState.Ready(file)
