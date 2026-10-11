@@ -19,7 +19,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Sync release to Gitee
-        continue-on-error: true
         run: |
           set -e
           EXISTS=$(curl -s "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases/tags/$GITHUB_REF_NAME?access_token=$GITEE_TOKEN")
