@@ -3,6 +3,11 @@ name: Sync Release to Gitee
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "要同步的 Release tag（例如 v0.1.12-beta）"
+        required: true
 
 permissions:
   contents: read
@@ -10,18 +15,22 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    env:
+      TAG_NAME: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Download release assets
         run: |
           mkdir -p release-tmp
-          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --dir release-tmp
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          gh release download "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --dir release-tmp
+          ls -la release-tmp
 
       - name: Sync release to Gitee
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
           set -e
-          EXISTS=$(curl -s "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases/tags/$GITHUB_REF_NAME?access_token=$GITEE_TOKEN")
+          EXISTS=$(curl -s "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases/tags/$TAG_NAME?access_token=$GITEE_TOKEN")
           RID=$(echo "$EXISTS" | python3 -c "
           import json,sys
           try:
@@ -30,12 +39,12 @@ jobs:
               print('')
           ")
           if [ -z "$RID" ]; then
-            BODY=$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json body -q .body)
-            export BODY
+            BODY=$(gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --json body -q .body)
+            export BODY GITEE_TOKEN TAG_NAME
             python3 -c "
             import json, urllib.request, urllib.error, os
             tok = os.environ['GITEE_TOKEN']
-            ref = os.environ['GITHUB_REF_NAME']
+            ref = os.environ['TAG_NAME']
             body = os.environ.get('BODY', '')
             data = json.dumps({'access_token': tok, 'tag_name': ref, 'target_commitish': 'main', 'name': ref, 'body': body, 'prerelease': False}).encode()
             req = urllib.request.Request('https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases', data=data, headers={'Content-Type': 'application/json;charset=UTF-8'}, method='POST')
@@ -54,17 +63,18 @@ jobs:
             curl -s -X POST "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases/$RID/attach_files" -F "access_token=$GITEE_TOKEN" -F "file=@$f"
             echo
           done
-        env:
-          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
 
       - name: Update Gitee version.json
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
           APK_NAME=$(basename "$(ls release-tmp/*.apk | head -1)")
           echo "apk file: $APK_NAME"
+          NOTES=$(gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --json body -q .body)
           git clone --depth 1 "https://TDSI:$GITEE_TOKEN@gitee.com/TDSI/file.git" version-repo
-          APK_NAME="$APK_NAME" python3 -c "
+          APK_NAME="$APK_NAME" NOTES="$NOTES" TAG_NAME="$TAG_NAME" python3 -c "
           import json, os
-          ref = os.environ['GITHUB_REF_NAME']
+          ref = os.environ['TAG_NAME']
           notes = os.environ['NOTES']
           apk = os.environ['APK_NAME']
           v = {'version': ref.lstrip('v'), 'notes': notes, 'apk': f'https://gitee.com/TDSI/fanhua-camera/releases/download/{ref}/{apk}'}
@@ -74,8 +84,5 @@ jobs:
           git config user.name "TDSI"
           git config user.email "TDSI@gitee.local"
           git add fanhua/version.json
-          git commit -m "update version channel to $GITHUB_REF_NAME" || true
+          git commit -m "update version channel to $TAG_NAME" || true
           git push origin master
-        env:
-          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
-          NOTES: ${{ github.event.release.body }}
