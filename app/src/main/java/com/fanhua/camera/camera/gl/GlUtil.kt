@@ -3,9 +3,12 @@ package com.fanhua.camera.camera.gl
 import android.graphics.Bitmap
 import android.opengl.GLES20
 import android.opengl.GLUtils
+import com.fanhua.camera.lut.LutData
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
+import kotlin.math.ceil
+import kotlin.math.sqrt
 
 class GlProgram(
     val id: Int,
@@ -177,6 +180,52 @@ object GlUtil {
         val texture = createTexture()
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture)
         GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+        return texture
+    }
+
+    /**
+     * 把 3D LUT 编码为 2D 网格纹理（GLES2 兼容）。
+     * 网格布局：grid = ceil(sqrt(size))，纹理尺寸 = grid*size 见方。
+     * 每个网格 = 一个 B 层（NxN），网格内 X=R、Y=G。
+     */
+    fun createLutTexture(lut: LutData): Int {
+        val grid = ceil(sqrt(lut.size.toFloat())).toInt()
+        val side = grid * lut.size
+        val bytes = ByteBuffer.allocateDirect(side * side * 4).order(ByteOrder.nativeOrder())
+        val n1 = (lut.size - 1).coerceAtLeast(1)
+        for (gy in 0 until grid) {
+            for (gx in 0 until grid) {
+                val b = gy * grid + gx
+                if (b >= lut.size) continue
+                for (y in 0 until lut.size) {
+                    val g = y.toDouble() / n1
+                    for (x in 0 until lut.size) {
+                        val r = x.toDouble() / n1
+                        val idx = ((b * lut.size + y) * lut.size + x) * 3
+                        val rv = (lut.data[idx].toDouble().coerceIn(0.0, 1.0) * 255.0).toInt()
+                        val gv = (lut.data[idx + 1].toDouble().coerceIn(0.0, 1.0) * 255.0).toInt()
+                        val bv = (lut.data[idx + 2].toDouble().coerceIn(0.0, 1.0) * 255.0).toInt()
+                        bytes.put(rv.toByte())
+                        bytes.put(gv.toByte())
+                        bytes.put(bv.toByte())
+                        bytes.put((-1).toByte()) // A=255
+                    }
+                }
+            }
+        }
+        bytes.rewind()
+
+        val texture = createTexture()
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
+        GLES20.glTexImage2D(
+            GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA,
+            side, side, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, bytes
+        )
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
         return texture
     }

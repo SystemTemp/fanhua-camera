@@ -53,6 +53,8 @@ import com.fanhua.camera.camera.capture.RenderState
 import com.fanhua.camera.camera.filters.FilterPreset
 import com.fanhua.camera.camera.stabilize.GyroStabilizer
 import com.fanhua.camera.data.SettingsRepository
+import com.fanhua.camera.debug.DebugLog
+import com.fanhua.camera.lut.LutStore
 import com.fanhua.camera.media.PhotoProcessor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -119,7 +121,20 @@ class CameraXEngine(
     init {
         scope.launch {
             val stored = settings.settings.first()
-            renderState = RenderState(FilterPreset.fromKey(stored.presetKey), stored.filterIntensity, false)
+            DebugLog.enabled = stored.debugEnabled
+            if (stored.lutPath.isNotBlank()) {
+                LutStore.select(context, stored.lutPath)
+            }
+            renderState = RenderState(
+                FilterPreset.fromKey(stored.presetKey),
+                stored.filterIntensity,
+                false,
+                lut = if (FilterPreset.fromKey(stored.presetKey) == FilterPreset.CUSTOM_LUT) {
+                    LutStore.cached
+                } else {
+                    null
+                }
+            )
             _state.update {
                 it.copy(
                     preset = renderState.preset,
@@ -129,6 +144,11 @@ class CameraXEngine(
                     autoCompositionEnabled = stored.autoCompositionEnabled
                 )
             }
+            DebugLog.log(
+                "Engine",
+                "init preset=${renderState.preset} intensity=${renderState.intensity} debug=${DebugLog.enabled} " +
+                    "lut=${stored.lutPath.ifBlank { "(none)" }}"
+            )
         }
         if (ContextCompat.checkSelfPermission(
                 context, Manifest.permission.CAMERA
@@ -219,8 +239,9 @@ class CameraXEngine(
     }
 
     private fun useProSurface(): Boolean {
-        val mode = _state.value.mode
-        return mode == CaptureMode.PRO || mode == CaptureMode.SUPER_RES
+        // 所有模式统一使用 PreviewView（CameraX 官方预览），
+        // 避免 PRO/SUPER_RES 走 SurfaceView 时预览黑屏/不实时渲染的问题
+        return false
     }
 
     private fun bind() {
@@ -239,6 +260,12 @@ class CameraXEngine(
             TAG,
             "bind mode=$mode rotation=$rotation livePhoto=$livePhoto needsVideo=$needsVideo " +
                 "useEffect=$useEffect stabilization=$stabilization " +
+                "viewSize=${view?.width}x${view?.height} lensFacing=$lensFacing"
+        )
+        DebugLog.log(
+            "Engine",
+            "bind mode=$mode rotation=$rotation livePhoto=$livePhoto needsVideo=$needsVideo " +
+                "useEffect=$useEffect stabilization=$stabilization superRes=${_state.value.superResEnabled} " +
                 "viewSize=${view?.width}x${view?.height} lensFacing=$lensFacing"
         )
 
@@ -412,7 +439,7 @@ class CameraXEngine(
         } else {
             val captureBuilder = ImageCapture.Builder()
                 .setCaptureMode(
-                    if (mode == CaptureMode.SUPER_RES) {
+                    if (mode == CaptureMode.SUPER_RES || mode == CaptureMode.PHOTO) {
                         ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
                     } else {
                         ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY
@@ -674,7 +701,10 @@ class CameraXEngine(
     }
 
     override fun setPreset(preset: FilterPreset) {
-        renderState = renderState.copy(preset = preset)
+        renderState = renderState.copy(
+            preset = preset,
+            lut = if (preset == FilterPreset.CUSTOM_LUT) LutStore.cached else null
+        )
         _state.update { it.copy(preset = preset) }
         scope.launch { settings.setPreset(preset.name) }
     }
@@ -796,6 +826,18 @@ class CameraXEngine(
         val preset = _state.value.preset
         val intensity = _state.value.filterIntensity
         val upscale = _state.value.superResEnabled || _state.value.mode == CaptureMode.SUPER_RES
+        val srcSize = try {
+            val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            android.graphics.BitmapFactory.decodeFile(file.absolutePath, bounds)
+            "${bounds.outWidth}x${bounds.outHeight}"
+        } catch (e: Exception) {
+            "unknown"
+        }
+        DebugLog.log(
+            "Engine",
+            "capture saved file=${file.absolutePath} size=$srcSize preset=${preset.name} " +
+                "intensity=$intensity upscale=$upscale mode=${_state.value.mode}"
+        )
         scope.launch {
             val uri = withContext(Dispatchers.IO) {
                 photoProcessor.process(file, preset, intensity, upscale)

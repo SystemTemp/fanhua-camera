@@ -145,8 +145,10 @@ fun BottomControls(
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                     ModeCarousel(state = state, onSelect = controller::setMode, compact = true)
                 }
-                ShutterButton(state = state, controller = controller)
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                // 快门与画廊固定在屏幕右端，避免遮挡取景主体
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    ShutterButton(state = state, controller = controller)
+                    Spacer(modifier = Modifier.height(6.dp))
                     GalleryButton(onClick = onOpenGallery)
                 }
             }
@@ -195,6 +197,15 @@ private fun FilterStrip(
     state: CameraUiState,
     onSelect: (FilterPreset) -> Unit
 ) {
+    val leicaGroup = listOf(
+        FilterPreset.LEICA_MOMENT,
+        FilterPreset.LEICA_MONO,
+        FilterPreset.LEICA_PORTRAIT
+    )
+    val singles = FilterPreset.entries.filter { it !in leicaGroup }
+    var leicaExpanded by rememberSaveable { mutableStateOf(state.preset in leicaGroup) }
+    val activeLeica = state.preset in leicaGroup
+
     FrostedPanel(
         modifier = Modifier
             .fillMaxWidth()
@@ -202,51 +213,117 @@ private fun FilterStrip(
         cornerRadius = 18.dp,
         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp)
     ) {
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(FilterPreset.entries) { preset ->
-                val selected = state.preset == preset
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.clickable { onSelect(preset) }
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(width = 66.dp, height = 44.dp)
-                            .clip(RoundedCornerShape(9.dp))
-                            .background(if (selected) Color(0x33E8C39E) else Color(0x14FFFFFF))
-                            .border(
-                                width = 1.dp,
-                                color = if (selected) FanhuaGold else FanhuaOutline,
-                                shape = RoundedCornerShape(9.dp)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = FanhuaIcons.Aperture,
-                            contentDescription = null,
-                            tint = if (selected) FanhuaGold else FanhuaTextDim,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = stringResource(preset.labelRes),
-                        color = if (selected) FanhuaGold else FanhuaTextDim,
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                    Spacer(modifier = Modifier.height(3.dp))
-                    Box(
-                        modifier = Modifier
-                            .width(if (selected) 20.dp else 0.dp)
-                            .height(2.dp)
-                            .background(FanhuaGold, RoundedCornerShape(1.dp))
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(singles) { preset ->
+                    FilterCell(
+                        preset = preset,
+                        selected = state.preset == preset,
+                        onSelect = {
+                            onSelect(preset)
+                            if (preset == FilterPreset.CUSTOM_LUT) {
+                                leicaExpanded = false
+                            }
+                        }
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            // 徕卡系列折叠组
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable { leicaExpanded = !leicaExpanded }
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (activeLeica) {
+                        stringResource(state.preset.labelRes)
+                    } else {
+                        stringResource(R.string.filter_leica_group)
+                    },
+                    color = if (activeLeica) FanhuaGold else FanhuaTextDim,
+                    style = MaterialTheme.typography.labelMedium
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    imageVector = if (leicaExpanded) FanhuaIcons.ArrowUp else FanhuaIcons.ArrowDown,
+                    contentDescription = null,
+                    tint = FanhuaTextDim,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+            AnimatedVisibility(visible = leicaExpanded) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    leicaGroup.forEach { preset ->
+                        FilterCell(
+                            preset = preset,
+                            selected = state.preset == preset,
+                            onSelect = {
+                                onSelect(preset)
+                                leicaExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun FilterCell(
+    preset: FilterPreset,
+    selected: Boolean,
+    onSelect: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable(onClick = onSelect)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 66.dp, height = 44.dp)
+                .clip(RoundedCornerShape(9.dp))
+                .background(if (selected) Color(0x33E8C39E) else Color(0x14FFFFFF))
+                .border(
+                    width = 1.dp,
+                    color = if (selected) FanhuaGold else FanhuaOutline,
+                    shape = RoundedCornerShape(9.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = FanhuaIcons.Aperture,
+                contentDescription = null,
+                tint = if (selected) FanhuaGold else FanhuaTextDim,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = stringResource(preset.labelRes),
+            color = if (selected) FanhuaGold else FanhuaTextDim,
+            style = MaterialTheme.typography.labelSmall
+        )
+        Spacer(modifier = Modifier.height(3.dp))
+        Box(
+            modifier = Modifier
+                .width(if (selected) 20.dp else 0.dp)
+                .height(2.dp)
+                .background(FanhuaGold, RoundedCornerShape(1.dp))
+        )
     }
 }
 

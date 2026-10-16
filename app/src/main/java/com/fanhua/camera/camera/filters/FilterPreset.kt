@@ -9,7 +9,8 @@ enum class FilterPreset(@StringRes val labelRes: Int) {
     LEICA_MOMENT(R.string.filter_leica),
     LEICA_MONO(R.string.filter_leica_mono),
     LEICA_PORTRAIT(R.string.filter_leica_portrait),
-    APPLE_LOG(R.string.filter_apple_log);
+    APPLE_LOG(R.string.filter_apple_log),
+    CUSTOM_LUT(R.string.filter_custom_lut);
 
     companion object {
         fun fromKey(key: String?): FilterPreset = entries.firstOrNull { it.name == key } ?: DREAM

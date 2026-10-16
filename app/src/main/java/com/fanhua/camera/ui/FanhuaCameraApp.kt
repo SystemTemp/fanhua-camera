@@ -13,6 +13,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -57,6 +59,7 @@ import com.fanhua.camera.ui.camera.TopBar
 import com.fanhua.camera.ui.camera.Viewfinder
 import com.fanhua.camera.ui.common.FanhuaButton
 import com.fanhua.camera.ui.common.FanhuaButtonStyle
+import com.fanhua.camera.ui.common.FanhuaIcons
 import com.fanhua.camera.ui.common.FrostedPanel
 import com.fanhua.camera.ui.gallery.GallerySheet
 import com.fanhua.camera.ui.settings.BugReportSheet
@@ -82,6 +85,7 @@ fun FanhuaCameraApp(controller: CameraController) {
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var showGallery by rememberSaveable { mutableStateOf(false) }
     var showBugReport by rememberSaveable { mutableStateOf(false) }
+    var controlsVisible by rememberSaveable { mutableStateOf(true) }
 
     val scope = rememberCoroutineScope()
     val updateController = remember { UpdateController(context, scope) }
@@ -113,26 +117,33 @@ fun FanhuaCameraApp(controller: CameraController) {
             CameraStartingOverlay(modifier = Modifier.fillMaxSize())
         }
 
-        TopBar(
-            state = state,
-            landscape = isLandscape,
-            onFlashToggle = {
-                val next = when (state.flashMode) {
-                    FlashMode.AUTO -> FlashMode.ON
-                    FlashMode.ON -> FlashMode.OFF
-                    FlashMode.OFF -> FlashMode.AUTO
-                }
-                controller.setFlashMode(next)
-            },
-            onAutoCompositionToggle = {
-                controller.setAutoCompositionEnabled(!state.autoCompositionEnabled)
-            },
-            onSuperResToggle = {
-                controller.setSuperResEnabled(!state.superResEnabled)
-            },
-            onSettings = { showSettings = true },
-            modifier = Modifier.align(Alignment.TopCenter)
-        )
+        AnimatedVisibility(
+            visible = controlsVisible,
+            enter = fadeIn(animationSpec = tween(180)),
+            exit = fadeOut(animationSpec = tween(160))
+        ) {
+            TopBar(
+                state = state,
+                landscape = isLandscape,
+                onFlashToggle = {
+                    val next = when (state.flashMode) {
+                        FlashMode.AUTO -> FlashMode.ON
+                        FlashMode.ON -> FlashMode.OFF
+                        FlashMode.OFF -> FlashMode.AUTO
+                    }
+                    controller.setFlashMode(next)
+                },
+                onAutoCompositionToggle = {
+                    controller.setAutoCompositionEnabled(!state.autoCompositionEnabled)
+                },
+                onSuperResToggle = {
+                    controller.setSuperResEnabled(!state.superResEnabled)
+                },
+                onSettings = { showSettings = true },
+                onHideControls = { controlsVisible = false },
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+        }
 
         StatusOverlay(
             messageRes = state.statusMessage?.resId,
@@ -157,14 +168,41 @@ fun FanhuaCameraApp(controller: CameraController) {
             modifier = Modifier.fillMaxSize()
         )
 
-        BottomControls(
-            controller = controller,
-            state = state,
-            capability = capability,
-            landscape = isLandscape,
-            onOpenGallery = { showGallery = true },
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
+        AnimatedVisibility(
+            visible = controlsVisible,
+            enter = fadeIn(animationSpec = tween(180)),
+            exit = fadeOut(animationSpec = tween(160))
+        ) {
+            BottomControls(
+                controller = controller,
+                state = state,
+                capability = capability,
+                landscape = isLandscape,
+                onOpenGallery = { showGallery = true },
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
+        }
+
+        if (!controlsVisible) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(24.dp)
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color(0x66000000))
+                    .clickable { controlsVisible = true },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = FanhuaIcons.Visibility,
+                    contentDescription = stringResource(R.string.show_controls),
+                    tint = FanhuaText,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
 
         if (!state.permissionGranted) {
             PermissionGate(

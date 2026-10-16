@@ -128,7 +128,9 @@ internal class BrightPass : GlPass(GlUtil.VERT_PLAIN, FRAGMENT, arrayOf("uTextur
             void main() {
                 vec3 c = texture2D(uTexture, vTexCoord).rgb;
                 float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
-                float w = smoothstep(uThreshold, min(uThreshold + 0.28, 1.0), l);
+                // 柔和高光提取：权重上限 0.72，避免太阳等极亮区域被放大成光球
+                float w = smoothstep(uThreshold, min(uThreshold + 0.38, 1.0), l);
+                w = min(w, 0.72);
                 gl_FragColor = vec4(c * w, 1.0);
             }
         """.trimIndent()
@@ -316,5 +318,61 @@ internal class CopyPass : GlPass(
         GLES20.glUseProgram(program.id)
         bindTexture(0, GLES20.GL_TEXTURE_2D, textureId, 0)
         drawQuad()
+    }
+}
+
+internal class LutPass : GlPass(
+    GlUtil.VERT_PLAIN,
+    FRAGMENT,
+    arrayOf("uTexture", "uLut", "uLutSize", "uGrid", "uInvTotal", "uIntensity")
+) {
+    fun draw(
+        textureId: Int,
+        lutTextureId: Int,
+        lutSize: Float,
+        grid: Float,
+        invTotal: Float,
+        intensity: Float
+    ) {
+        GLES20.glUseProgram(program.id)
+        bindTexture(0, GLES20.GL_TEXTURE_2D, textureId, 0)
+        bindTexture(1, GLES20.GL_TEXTURE_2D, lutTextureId, 1)
+        GLES20.glUniform1f(program.uniforms[2], lutSize)
+        GLES20.glUniform1f(program.uniforms[3], grid)
+        GLES20.glUniform1f(program.uniforms[4], invTotal)
+        GLES20.glUniform1f(program.uniforms[5], intensity)
+        drawQuad()
+    }
+
+    private companion object {
+        val FRAGMENT = GlUtil.FRAG_HEAD_2D_HIGH + GlUtil.SAMPLER_2D + """
+            uniform sampler2D uLut;
+            uniform float uLutSize;
+            uniform float uGrid;
+            uniform float uInvTotal;
+            uniform float uIntensity;
+            varying vec2 vTexCoord;
+            vec3 lutLookup(vec3 c) {
+                float bsel = clamp(c.b, 0.0, 1.0) * (uLutSize - 1.0);
+                float gi = floor(bsel);
+                float fb = bsel - gi;
+                float px = (clamp(c.r, 0.0, 1.0) * (uLutSize - 1.0) + 0.5) * uInvTotal;
+                float py = (clamp(c.g, 0.0, 1.0) * (uLutSize - 1.0) + 0.5) * uInvTotal;
+                float gx = mod(gi, uGrid);
+                float gy = floor(gi / uGrid);
+                vec2 base = vec2(gx, gy) * (uLutSize * uInvTotal);
+                vec3 a = texture2D(uLut, base + vec2(px, py)).rgb;
+                float gx2 = mod(gi + 1.0, uGrid);
+                float gy2 = floor((gi + 1.0) / uGrid);
+                vec2 base2 = vec2(gx2, gy2) * (uLutSize * uInvTotal);
+                vec3 b2 = texture2D(uLut, base2 + vec2(px, py)).rgb;
+                return mix(a, b2, fb);
+            }
+            void main() {
+                vec3 src = texture2D(uTexture, vTexCoord).rgb;
+                vec3 mapped = lutLookup(src);
+                gl_FragColor = vec4(mix(src, mapped, uIntensity), 1.0);
+            }
+        """.trimIndent()
     }
 }

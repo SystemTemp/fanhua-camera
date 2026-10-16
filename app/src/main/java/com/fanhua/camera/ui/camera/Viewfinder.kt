@@ -54,18 +54,6 @@ fun Viewfinder(
     state: CameraUiState,
     modifier: Modifier = Modifier
 ) {
-    val showCameraX = state.mode == CaptureMode.PHOTO || state.mode == CaptureMode.VIDEO
-    val cameraXAlpha by animateFloatAsState(
-        targetValue = if (showCameraX) 1f else 0f,
-        animationSpec = tween(durationMillis = 320),
-        label = "viewfinderCameraXAlpha"
-    )
-    val proAlpha by animateFloatAsState(
-        targetValue = if (showCameraX) 0f else 1f,
-        animationSpec = tween(durationMillis = 320),
-        label = "viewfinderProAlpha"
-    )
-
     val scope = rememberCoroutineScope()
     val focusProgress = remember { Animatable(0f) }
     var focusPoint by remember { mutableStateOf<Offset?>(null) }
@@ -76,22 +64,11 @@ fun Viewfinder(
             factory = { context ->
                 PreviewView(context).apply {
                     implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                    scaleType = PreviewView.ScaleType.FILL_CENTER
+                    scaleType = PreviewView.ScaleType.FIT_CENTER
                     controller.attachCameraXPreview(this)
                 }
             },
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer { alpha = cameraXAlpha }
-        )
-
-        AndroidView(
-            factory = { context ->
-                SurfaceView(context).also { controller.attachProPreview(it) }
-            },
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer { alpha = proAlpha }
+            modifier = Modifier.fillMaxSize()
         )
 
         Box(

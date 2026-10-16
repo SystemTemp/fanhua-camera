@@ -12,6 +12,7 @@
     <string name="filter_leica">Leica Moment</string>
     <string name="filter_leica_mono">Leica Mono</string>
     <string name="filter_leica_portrait">Leica Portrait</string>
+<string name="filter_leica_group">Leica</string>
     <string name="filter_apple_log">Apple Log</string>
 
     <string name="flash_auto">Auto</string>
@@ -121,4 +122,24 @@
     <string name="download_done">Download finished</string>
     <string name="install_update">Install update</string>
     <string name="message_quality_reduced">Quality reduced, camera still works</string>
+
+    <string name="settings_debug">Debug mode</string>
+    <string name="settings_debug_desc">Only records debug logs, does not affect normal use; copy and send the log to the developer when done</string>
+    <string name="debug_copy_log">Copy debug log</string>
+    <string name="debug_clear_log">Clear log</string>
+    <string name="debug_log_empty">Log is empty. Enable debug mode and take a few photos first</string>
+    <string name="debug_log_copied">Debug log copied</string>
+
+    <string name="filter_custom_lut">Custom LUT</string>
+    <string name="settings_lut">LUT filters</string>
+    <string name="settings_lut_desc">Import .cube 3D LUT files (Blackmagic, PhotonCamera, etc.); select the "Custom LUT" filter to apply</string>
+    <string name="lut_import">Import LUT (.cube)</string>
+    <string name="lut_none">No LUT imported</string>
+    <string name="lut_imported">LUT imported</string>
+    <string name="lut_invalid">Invalid or unparseable LUT file</string>
+    <string name="lut_removed">LUT removed</string>
+    <string name="lut_remove">Remove</string>
+    <string name="lut_use_tip">Applies when the "Custom LUT" filter is selected</string>
+    <string name="hide_controls">Hide controls</string>
+    <string name="show_controls">Show controls</string>
 </resources>

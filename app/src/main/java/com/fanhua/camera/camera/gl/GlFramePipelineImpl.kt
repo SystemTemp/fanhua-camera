@@ -10,7 +10,11 @@ import com.fanhua.camera.camera.gl.passes.CopyPass
 import com.fanhua.camera.camera.gl.passes.EasuPass
 import com.fanhua.camera.camera.gl.passes.FinishPass
 import com.fanhua.camera.camera.gl.passes.GradePass
+import com.fanhua.camera.camera.gl.passes.LutPass
 import com.fanhua.camera.camera.gl.passes.RcasPass
+import com.fanhua.camera.lut.LutData
+import kotlin.math.ceil
+import kotlin.math.sqrt
 
 class GlFramePipelineImpl : GlFramePipeline {
 
@@ -22,6 +26,7 @@ class GlFramePipelineImpl : GlFramePipeline {
     private var easuPass: EasuPass? = null
     private var rcasPass: RcasPass? = null
     private var copyPass: CopyPass? = null
+    private var lutPass: LutPass? = null
 
     private var gradeBuffer: GlUtil.Framebuffer? = null
     private var easuBuffer: GlUtil.Framebuffer? = null
@@ -29,6 +34,12 @@ class GlFramePipelineImpl : GlFramePipeline {
     private var bloomBufferA: GlUtil.Framebuffer? = null
     private var bloomBufferB: GlUtil.Framebuffer? = null
     private var finishBuffer: GlUtil.Framebuffer? = null
+    private var lutBuffer: GlUtil.Framebuffer? = null
+
+    private var lutTextureId = 0
+    private var lutActive = false
+    private var currentLutSize = 0
+    private var currentLutRef: LutData? = null
 
     private val identityMatrix = floatArrayOf(
         1f, 0f, 0f, 0f,
@@ -43,6 +54,7 @@ class GlFramePipelineImpl : GlFramePipeline {
     private var intensity = 1f
     private var superResolution = false
     private var stabilizationEnabled = false
+    private var sharpen = false
     private var frameSeed = 0f
 
     override fun setPreset(preset: FilterPreset, intensity: Float) {
@@ -68,6 +80,27 @@ class GlFramePipelineImpl : GlFramePipeline {
         stabilizationEnabled = true
     }
 
+    override fun setLut(lut: LutData?) {
+        if (lut === currentLutRef) return
+        if (lut == null) {
+            if (lutTextureId != 0) {
+                GlUtil.deleteTexture(lutTextureId)
+                lutTextureId = 0
+            }
+            lutActive = false
+            currentLutSize = 0
+            currentLutRef = null
+            return
+        }
+        if (lutTextureId != 0) {
+            GlUtil.deleteTexture(lutTextureId)
+        }
+        lutTextureId = GlUtil.createLutTexture(lut)
+        lutActive = true
+        currentLutSize = lut.size
+        currentLutRef = lut
+    }
+
     override fun drawOesFrame(
         textureId: Int,
         textureMatrix: FloatArray,
@@ -79,6 +112,7 @@ class GlFramePipelineImpl : GlFramePipeline {
     ) {
         if (inputWidth <= 0 || inputHeight <= 0 || outputWidth <= 0 || outputHeight <= 0) return
         frameSeed = (timestampNs % 997L).toFloat() * 0.001f
+        sharpen = false
         render(textureId, true, textureMatrix, inputWidth, inputHeight, outputWidth, outputHeight)
     }
 
@@ -90,6 +124,7 @@ class GlFramePipelineImpl : GlFramePipeline {
         outputHeight: Int
     ) {
         if (inputWidth <= 0 || inputHeight <= 0 || outputWidth <= 0 || outputHeight <= 0) return
+        sharpen = true
         render(textureId, false, identityMatrix, inputWidth, inputHeight, outputWidth, outputHeight)
     }
 
@@ -124,6 +159,24 @@ class GlFramePipelineImpl : GlFramePipeline {
         var baseWidth = inputWidth
         var baseHeight = inputHeight
 
+        if (lutActive) {
+            val lutTarget = GlUtil.ensureFramebuffer(lutBuffer, inputWidth, inputHeight)
+            lutBuffer = lutTarget
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, lutTarget.framebufferId)
+            GLES20.glViewport(0, 0, inputWidth, inputHeight)
+            val lutSize = currentLutSize
+            val grid = ceil(sqrt(lutSize.toDouble())).toInt()
+            ensureLut().draw(
+                gradeTarget.textureId,
+                lutTextureId,
+                lutSize.toFloat(),
+                grid.toFloat(),
+                1f / (grid * lutSize),
+                intensity
+            )
+            baseTexture = lutTarget.textureId
+        }
+
         if (superResolution && (outputWidth > inputWidth || outputHeight > inputHeight)) {
             val easuTarget = GlUtil.ensureFramebuffer(easuBuffer, outputWidth, outputHeight)
             easuBuffer = easuTarget
@@ -140,6 +193,15 @@ class GlFramePipelineImpl : GlFramePipeline {
             baseTexture = rcasTarget.textureId
             baseWidth = outputWidth
             baseHeight = outputHeight
+        } else if (sharpen) {
+            // 照片保存路径（未超分时）也做轻锐化，接近系统相机锐度
+            val rcasTarget = GlUtil.ensureFramebuffer(rcasBuffer, inputWidth, inputHeight)
+            rcasBuffer = rcasTarget
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, rcasTarget.framebufferId)
+            GLES20.glViewport(0, 0, inputWidth, inputHeight)
+            ensureRcas().draw(baseTexture, 1f / inputWidth, 1f / inputHeight, SAVE_SHARPNESS)
+
+            baseTexture = rcasTarget.textureId
         }
 
         val bloomWidth = maxOf(8, baseWidth / 4)
@@ -199,6 +261,8 @@ class GlFramePipelineImpl : GlFramePipeline {
 
     private fun ensureCopy(): CopyPass = copyPass ?: CopyPass().also { copyPass = it }
 
+    private fun ensureLut(): LutPass = lutPass ?: LutPass().also { lutPass = it }
+
     override fun createTextureFromBitmap(bitmap: Bitmap): Int = GlUtil.createTextureFromBitmap(bitmap)
 
     override fun deleteTexture(textureId: Int) = GlUtil.deleteTexture(textureId)
@@ -210,12 +274,20 @@ class GlFramePipelineImpl : GlFramePipeline {
         GlUtil.deleteFramebuffer(bloomBufferA)
         GlUtil.deleteFramebuffer(bloomBufferB)
         GlUtil.deleteFramebuffer(finishBuffer)
+        GlUtil.deleteFramebuffer(lutBuffer)
         gradeBuffer = null
         easuBuffer = null
         rcasBuffer = null
         bloomBufferA = null
         bloomBufferB = null
         finishBuffer = null
+        lutBuffer = null
+
+        if (lutTextureId != 0) {
+            GlUtil.deleteTexture(lutTextureId)
+            lutTextureId = 0
+        }
+        lutActive = false
 
         gradeOesPass?.release()
         grade2dPass?.release()
@@ -225,6 +297,7 @@ class GlFramePipelineImpl : GlFramePipeline {
         easuPass?.release()
         rcasPass?.release()
         copyPass?.release()
+        lutPass?.release()
         gradeOesPass = null
         grade2dPass = null
         brightPass = null
@@ -233,11 +306,13 @@ class GlFramePipelineImpl : GlFramePipeline {
         easuPass = null
         rcasPass = null
         copyPass = null
+        lutPass = null
     }
 
     private companion object {
         const val STABILIZATION_CROP = 0.85f
         const val SHARPNESS = 0.30f
+        const val SAVE_SHARPNESS = 0.22f
         const val ORIGINAL_BLOOM = 0f
     }
 }

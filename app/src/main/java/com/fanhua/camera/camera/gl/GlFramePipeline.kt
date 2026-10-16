@@ -2,11 +2,13 @@ package com.fanhua.camera.camera.gl
 
 import android.graphics.Bitmap
 import com.fanhua.camera.camera.filters.FilterPreset
+import com.fanhua.camera.lut.LutData
 
 interface GlFramePipeline {
     fun setPreset(preset: FilterPreset, intensity: Float)
     fun setSuperResolutionEnabled(enabled: Boolean)
     fun setStabilizationMatrix(matrix: FloatArray?)
+    fun setLut(lut: LutData?)
     fun drawOesFrame(
         textureId: Int,
         textureMatrix: FloatArray,

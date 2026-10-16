@@ -17,7 +17,9 @@ data class AppSettings(
     val stabilizationEnabled: Boolean = true,
     val superResEnabled: Boolean = false,
     val autoCompositionEnabled: Boolean = false,
-    val selectedSpecLabel: String = ""
+    val selectedSpecLabel: String = "",
+    val debugEnabled: Boolean = false,
+    val lutPath: String = ""
 )
 
 class SettingsRepository(private val context: Context) {
@@ -28,6 +30,8 @@ class SettingsRepository(private val context: Context) {
     private val keySuperRes = booleanPreferencesKey("super_res")
     private val keyAutoComposition = booleanPreferencesKey("auto_composition")
     private val keySpec = stringPreferencesKey("output_spec")
+    private val keyDebug = booleanPreferencesKey("debug_mode")
+    private val keyLut = stringPreferencesKey("lut_path")
 
     val settings: Flow<AppSettings> = context.settingsDataStore.data.map { prefs ->
         AppSettings(
@@ -36,7 +40,9 @@ class SettingsRepository(private val context: Context) {
             stabilizationEnabled = prefs[keyStabilization] ?: true,
             superResEnabled = prefs[keySuperRes] ?: false,
             autoCompositionEnabled = prefs[keyAutoComposition] ?: false,
-            selectedSpecLabel = prefs[keySpec] ?: ""
+            selectedSpecLabel = prefs[keySpec] ?: "",
+            debugEnabled = prefs[keyDebug] ?: false,
+            lutPath = prefs[keyLut] ?: ""
         )
     }
 
@@ -62,5 +68,13 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setSelectedSpecLabel(value: String) {
         context.settingsDataStore.edit { it[keySpec] = value }
+    }
+
+    suspend fun setDebugEnabled(value: Boolean) {
+        context.settingsDataStore.edit { it[keyDebug] = value }
+    }
+
+    suspend fun setLutPath(value: String) {
+        context.settingsDataStore.edit { it[keyLut] = value }
     }
 }

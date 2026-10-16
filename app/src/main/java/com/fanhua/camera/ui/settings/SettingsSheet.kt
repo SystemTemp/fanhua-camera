@@ -2,6 +2,10 @@ package com.fanhua.camera.ui.settings
 
 import android.content.Intent
 import android.net.Uri
+import android.provider.OpenableColumns
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,14 +44,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fanhua.camera.R
 import com.fanhua.camera.camera.core.CameraController
 import com.fanhua.camera.camera.core.CapabilityReport
+import com.fanhua.camera.camera.filters.FilterPreset
 import com.fanhua.camera.data.LocaleManager
+import com.fanhua.camera.data.SettingsRepository
+import com.fanhua.camera.debug.DebugLog
+import com.fanhua.camera.lut.LutLoader
+import com.fanhua.camera.lut.LutStore
 import com.fanhua.camera.ui.common.FanhuaButton
 import com.fanhua.camera.ui.common.FanhuaButtonStyle
 import com.fanhua.camera.ui.common.FanhuaDivider
@@ -58,6 +69,10 @@ import com.fanhua.camera.ui.theme.FanhuaRose
 import com.fanhua.camera.ui.theme.FanhuaSurface
 import com.fanhua.camera.ui.theme.FanhuaText
 import com.fanhua.camera.ui.theme.FanhuaTextDim
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,6 +91,34 @@ fun SettingsSheet(
     val scope = rememberCoroutineScope()
     var language by remember { mutableStateOf(LocaleManager.storedTag(context)) }
     val updateController = remember { UpdateController(context, scope) }
+    val settingsRepository = remember { SettingsRepository(context) }
+    val clipboard = LocalClipboardManager.current
+    var debugEnabled by remember { mutableStateOf(DebugLog.enabled) }
+    var debugNote by remember { mutableStateOf<String?>(null) }
+
+    var lutNames by remember { mutableStateOf(LutStore.listNames(context)) }
+    var selectedLut by remember { mutableStateOf(LutStore.path) }
+    var lutNote by remember { mutableStateOf<String?>(null) }
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val savedName = withContext(Dispatchers.IO) { importLut(context, uri) }
+                if (savedName != null) {
+                    LutStore.select(context, savedName)
+                    settingsRepository.setLutPath(savedName)
+                    // 若当前正使用自定义 LUT，刷新实时预览
+                    controller.setPreset(FilterPreset.CUSTOM_LUT)
+                    lutNames = LutStore.listNames(context)
+                    selectedLut = LutStore.path
+                    lutNote = context.getString(R.string.lut_imported)
+                } else {
+                    lutNote = context.getString(R.string.lut_invalid)
+                }
+            }
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -187,6 +230,127 @@ fun SettingsSheet(
             CapabilityBlock(capability)
 
             Spacer(modifier = Modifier.height(22.dp))
+            SectionTitle(stringResource(R.string.settings_lut))
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.settings_lut_desc),
+                color = FanhuaTextDim,
+                style = MaterialTheme.typography.labelSmall
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            if (lutNames.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.lut_none),
+                    color = FanhuaTextDim,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    lutNames.forEach { name ->
+                        LutRow(
+                            name = name,
+                            selected = name == selectedLut,
+                            onClick = {
+                                LutStore.select(context, name)
+                                scope.launch { settingsRepository.setLutPath(name) }
+                                controller.setPreset(FilterPreset.CUSTOM_LUT)
+                                selectedLut = LutStore.path
+                                lutNote = null
+                            },
+                            onRemove = {
+                                val file = LutStore.fileOf(context, name)
+                                file.delete()
+                                if (LutStore.path == name) {
+                                    LutStore.clear()
+                                    scope.launch { settingsRepository.setLutPath("") }
+                                }
+                                lutNames = LutStore.listNames(context)
+                                selectedLut = LutStore.path
+                                lutNote = stringResource(R.string.lut_removed)
+                            }
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            FanhuaButton(
+                text = stringResource(R.string.lut_import),
+                onClick = {
+                    importLauncher.launch(
+                        arrayOf("application/octet-stream", "application/x-cube", "*/*")
+                    )
+                },
+                style = FanhuaButtonStyle.Outline,
+                modifier = Modifier.fillMaxWidth()
+            )
+            lutNote?.let { note ->
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = note,
+                    color = FanhuaGold,
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = stringResource(R.string.lut_use_tip),
+                color = FanhuaTextDim,
+                style = MaterialTheme.typography.labelSmall
+            )
+
+            Spacer(modifier = Modifier.height(22.dp))
+            SectionTitle(stringResource(R.string.settings_debug))
+            Spacer(modifier = Modifier.height(4.dp))
+            ToggleRow(
+                title = stringResource(R.string.settings_debug),
+                description = stringResource(R.string.settings_debug_desc),
+                checked = debugEnabled,
+                onCheckedChange = { value ->
+                    debugEnabled = value
+                    DebugLog.enabled = value
+                    debugNote = null
+                    scope.launch { settingsRepository.setDebugEnabled(value) }
+                }
+            )
+            debugNote?.let { note ->
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = note,
+                    color = FanhuaGold,
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                FanhuaButton(
+                    text = stringResource(R.string.debug_copy_log),
+                    onClick = {
+                        val log = DebugLog.snapshot()
+                        if (log.isBlank()) {
+                            debugNote = stringResource(R.string.debug_log_empty)
+                        } else {
+                            clipboard.setText(AnnotatedString(log))
+                            debugNote = stringResource(R.string.debug_log_copied)
+                        }
+                    },
+                    style = FanhuaButtonStyle.Solid,
+                    modifier = Modifier.weight(1f)
+                )
+                FanhuaButton(
+                    text = stringResource(R.string.debug_clear_log),
+                    onClick = {
+                        DebugLog.clear()
+                        debugNote = null
+                    },
+                    style = FanhuaButtonStyle.Outline,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(22.dp))
             SectionTitle(stringResource(R.string.settings_about))
             Spacer(modifier = Modifier.height(4.dp))
             Text(
@@ -265,6 +429,94 @@ private fun AboutRow(
             contentDescription = null,
             tint = FanhuaTextDim,
             modifier = Modifier.size(14.dp)
+        )
+    }
+}
+
+private fun importLut(context: android.content.Context, uri: Uri): String? {
+    return try {
+        val displayName = queryDisplayName(context, uri)
+            ?: (uri.lastPathSegment?.substringAfterLast('/') ?: "lut.cube")
+        val clean = displayName.ifBlank { "lut.cube" }
+        // 先验证文件可解析
+        context.contentResolver.openInputStream(uri)?.use { LutLoader.parse(it) }
+            ?: return null
+        val file = uniqueLutFile(LutStore.dir(context), clean)
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            file.outputStream().use { out -> input.copyTo(out) }
+        }
+        file.name
+    } catch (e: Exception) {
+        null
+    }
+}
+
+private fun queryDisplayName(context: android.content.Context, uri: Uri): String? {
+    return try {
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (idx >= 0) cursor.getString(idx) else null
+            } else {
+                null
+            }
+        }
+    } catch (e: Exception) {
+        null
+    }
+}
+
+private fun uniqueLutFile(dir: File, name: String): File {
+    val base = name.substringBeforeLast('.')
+    val ext = name.substringAfterLast('.', "cube")
+    var candidate = File(dir, "$base.$ext")
+    var i = 1
+    while (candidate.exists()) {
+        candidate = File(dir, "${base}_$i.$ext")
+        i++
+    }
+    return candidate
+}
+
+@Composable
+private fun LutRow(
+    name: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    onRemove: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) Color(0x22E8C39E) else Color(0x0FFFFFFF))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = name,
+            color = if (selected) FanhuaGold else FanhuaText,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f)
+        )
+        if (selected) {
+            Icon(
+                imageVector = FanhuaIcons.Check,
+                contentDescription = null,
+                tint = FanhuaGold,
+                modifier = Modifier.size(15.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            text = stringResource(R.string.lut_remove),
+            color = FanhuaRose,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { onRemove() }
+                .padding(horizontal = 8.dp, vertical = 4.dp)
         )
     }
 }

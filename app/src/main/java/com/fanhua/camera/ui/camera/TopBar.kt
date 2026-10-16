@@ -48,6 +48,7 @@ fun TopBar(
     onAutoCompositionToggle: () -> Unit,
     onSuperResToggle: () -> Unit,
     onSettings: () -> Unit,
+    onHideControls: () -> Unit,
     modifier: Modifier = Modifier,
     landscape: Boolean = false
 ) {
@@ -125,6 +126,12 @@ fun TopBar(
                     active = false,
                     contentDescription = stringResource(R.string.action_settings),
                     onClick = onSettings
+                )
+                TopIconButton(
+                    icon = FanhuaIcons.VisibilityOff,
+                    active = false,
+                    contentDescription = stringResource(R.string.hide_controls),
+                    onClick = onHideControls
                 )
             }
         }

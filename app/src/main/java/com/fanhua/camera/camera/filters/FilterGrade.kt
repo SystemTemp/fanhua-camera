@@ -28,8 +28,8 @@ data class FilterGrade(
                 gain = UNIT,
                 shadowTint = NEUTRAL,
                 highlightTint = NEUTRAL,
-                bloomStrength = 0.05f,
-                bloomThreshold = 0.94f,
+                bloomStrength = 0.02f,
+                bloomThreshold = 0.97f,
                 grain = 0f,
                 vignette = 0f
             )
@@ -43,8 +43,8 @@ data class FilterGrade(
                 gain = floatArrayOf(1.030f, 1.0f, 1.020f),
                 shadowTint = floatArrayOf(0.022f, -0.004f, 0.036f),
                 highlightTint = floatArrayOf(0.058f, 0.021f, 0.012f),
-                bloomStrength = 0.46f,
-                bloomThreshold = 0.60f,
+                bloomStrength = 0.24f,
+                bloomThreshold = 0.82f,
                 grain = 0.030f,
                 vignette = 0.20f
             )
@@ -58,8 +58,8 @@ data class FilterGrade(
                 gain = floatArrayOf(1.042f, 1.018f, 0.976f),
                 shadowTint = floatArrayOf(-0.013f, -0.006f, 0.021f),
                 highlightTint = floatArrayOf(0.046f, 0.029f, 0.011f),
-                bloomStrength = 0.13f,
-                bloomThreshold = 0.80f,
+                bloomStrength = 0.07f,
+                bloomThreshold = 0.88f,
                 grain = 0.018f,
                 vignette = 0.34f
             )
@@ -73,8 +73,8 @@ data class FilterGrade(
                 gain = floatArrayOf(1.035f, 1.035f, 1.035f),
                 shadowTint = NEUTRAL,
                 highlightTint = NEUTRAL,
-                bloomStrength = 0.08f,
-                bloomThreshold = 0.85f,
+                bloomStrength = 0.04f,
+                bloomThreshold = 0.92f,
                 grain = 0.050f,
                 vignette = 0.36f
             )
@@ -88,8 +88,8 @@ data class FilterGrade(
                 gain = floatArrayOf(1.018f, 1.008f, 1.004f),
                 shadowTint = floatArrayOf(-0.004f, 0.002f, 0.012f),
                 highlightTint = floatArrayOf(0.030f, 0.024f, 0.016f),
-                bloomStrength = 0.28f,
-                bloomThreshold = 0.72f,
+                bloomStrength = 0.14f,
+                bloomThreshold = 0.84f,
                 grain = 0.016f,
                 vignette = 0.16f
             )
@@ -103,10 +103,26 @@ data class FilterGrade(
                 gain = floatArrayOf(0.965f, 0.965f, 0.965f),
                 shadowTint = NEUTRAL,
                 highlightTint = NEUTRAL,
-                bloomStrength = 0.04f,
-                bloomThreshold = 0.96f,
+                bloomStrength = 0.02f,
+                bloomThreshold = 0.98f,
                 grain = 0f,
                 vignette = 0.04f
+            )
+
+            // 自定义 LUT：无内置调色，颜色由 3D LUT 决定
+            FilterPreset.CUSTOM_LUT -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0.03f,
+                bloomThreshold = 0.95f,
+                grain = 0f,
+                vignette = 0f
             )
         }
     }

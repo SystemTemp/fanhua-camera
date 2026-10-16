@@ -12,6 +12,7 @@
     <string name="filter_leica">徕卡一瞬</string>
     <string name="filter_leica_mono">徕卡黑白</string>
     <string name="filter_leica_portrait">徕卡人像</string>
+<string name="filter_leica_group">徕卡</string>
     <string name="filter_apple_log">Apple Log</string>
 
     <string name="flash_auto">自动</string>
@@ -121,4 +122,24 @@
     <string name="download_done">下载完成</string>
     <string name="install_update">安装更新</string>
     <string name="message_quality_reduced">画质已降级，相机仍可用</string>
+
+    <string name="settings_debug">调试模式</string>
+    <string name="settings_debug_desc">仅记录调试日志，不影响正常使用；测完复制日志发给开发者即可</string>
+    <string name="debug_copy_log">复制调试日志</string>
+    <string name="debug_clear_log">清空日志</string>
+    <string name="debug_log_empty">日志为空，请先打开调试模式并拍摄几张照片</string>
+    <string name="debug_log_copied">调试日志已复制</string>
+
+    <string name="filter_custom_lut">自定义 LUT</string>
+    <string name="settings_lut">LUT 滤镜</string>
+    <string name="settings_lut_desc">支持导入 .cube 3D LUT（Blackmagic、光子相机等），导入后在滤镜条选择「自定义 LUT」即可使用</string>
+    <string name="lut_import">导入 LUT (.cube)</string>
+    <string name="lut_none">尚未导入 LUT</string>
+    <string name="lut_imported">LUT 导入成功</string>
+    <string name="lut_invalid">LUT 文件无效或解析失败</string>
+    <string name="lut_removed">已移除该 LUT</string>
+    <string name="lut_remove">移除</string>
+    <string name="lut_use_tip">选择「自定义 LUT」滤镜后生效</string>
+    <string name="hide_controls">隐藏控件</string>
+    <string name="show_controls">显示控件</string>
 </resources>

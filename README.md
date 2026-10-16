@@ -8,11 +8,15 @@ An open-source Android photography app featuring Mi-style dream filters, Leica M
 
 - Mi "Flourishing Dream" and Leica M9 "Moment" film-style filters (color curves, soft bloom, grain, vignette)
 - Real-time GLES pipeline: EASU edge-adaptive upsampling + RCAS sharpening (1080p → 4K)
+- Custom 3D LUT import (.cube), compatible with Blackmagic / PhotonCamera LUTs, live preview included
+- Collapsible Leica filter group to keep the filter strip compact
 - Hardware OIS/EIS plus gyroscope software stabilization
 - AI auto-composition via ML Kit face detection (rule-of-thirds scoring, crop suggestions)
 - Live Photo: one shutter press captures a photo plus a 3-second clip
 - CameraX effect pipeline shared between preview and video recording
 - Photo / Video / Pro / SuperRes modes, manual focus, zoom, flash
+- Hideable camera controls for clean viewfinder, landscape shutter docked to the screen edge
+- Debug mode: records pipeline logs, one-tap copy / clear for troubleshooting
 - 9 languages (zh-CN / zh-TW / en / ja / ko / es / fr / de / ru)
 
 ## Requirements

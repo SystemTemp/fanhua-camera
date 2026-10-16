@@ -19,7 +19,8 @@ data class RenderState(
     val preset: FilterPreset,
     val intensity: Float,
     val superResolution: Boolean,
-    val stabilization: FloatArray? = null
+    val stabilization: FloatArray? = null,
+    val lut: com.fanhua.camera.lut.LutData? = null
 )
 
 class FilterSurfaceProcessor(
@@ -128,6 +129,7 @@ class FilterSurfaceProcessor(
             val renderState = stateProvider()
             framePipeline.setPreset(renderState.preset, renderState.intensity)
             framePipeline.setSuperResolutionEnabled(renderState.superResolution)
+            framePipeline.setLut(renderState.lut)
             framePipeline.setStabilizationMatrix(renderState.stabilization)
             val snapshot = outputs.toList()
             for (handle in snapshot) {
