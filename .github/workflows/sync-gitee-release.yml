@@ -41,9 +41,7 @@ jobs:
           if [ -z "$RID" ]; then
             BODY=$(gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --json body -q .body)
             PAYLOAD=$(BODY="$BODY" GITEE_TOKEN="$GITEE_TOKEN" TAG_NAME="$TAG_NAME" python3 -c "import json,os;print(json.dumps({'access_token':os.environ['GITEE_TOKEN'],'tag_name':os.environ['TAG_NAME'],'target_commitish':'main','name':os.environ['TAG_NAME'],'body':os.environ.get('BODY',''),'prerelease':False}))")
-            RID=$(curl -s -X POST "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases" -H "Content-Type: application/json;charset=UTF-8" -d "$PAYLOAD" | python3 -c "import json,sys
-d=json.load(sys.stdin)
-print(d.get('id','') if isinstance(d,dict) else '')")
+            RID=$(curl -s -X POST "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases" -H "Content-Type: application/json;charset=UTF-8" -d "$PAYLOAD" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('id','') if isinstance(d,dict) else '')")
           fi
           echo "Gitee release id: $RID"
           for f in release-tmp/*.apk; do
