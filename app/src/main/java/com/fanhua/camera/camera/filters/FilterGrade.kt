@@ -109,6 +109,22 @@ data class FilterGrade(
                 vignette = 0.04f
             )
 
+            // 标准 SDR 色调：中性自然，高光由 FinishPass 的 SDR 映射柔和压缩
+            FilterPreset.SDR -> FilterGrade(
+                contrast = 1.05f,
+                saturation = 0.98f,
+                temperature = 0f,
+                fade = 0.03f,
+                lift = floatArrayOf(0.008f, 0.008f, 0.008f),
+                gain = floatArrayOf(1.005f, 1.005f, 1.005f),
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0.02f,
+                bloomThreshold = 0.97f,
+                grain = 0.004f,
+                vignette = 0.02f
+            )
+
             // 自定义 LUT：无内置调色，颜色由 3D LUT 决定
             FilterPreset.CUSTOM_LUT -> FilterGrade(
                 contrast = 1f,

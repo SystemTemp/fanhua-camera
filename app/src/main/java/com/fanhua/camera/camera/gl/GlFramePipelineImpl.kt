@@ -233,7 +233,8 @@ class GlFramePipelineImpl : GlFramePipeline {
             if (preset == FilterPreset.ORIGINAL) ORIGINAL_BLOOM else grade.bloomStrength,
             grade.grain,
             grade.vignette,
-            frameSeed
+            frameSeed,
+            preset == FilterPreset.SDR
         )
 
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0)

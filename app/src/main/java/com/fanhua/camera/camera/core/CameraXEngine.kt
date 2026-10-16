@@ -140,6 +140,7 @@ class CameraXEngine(
                     preset = renderState.preset,
                     filterIntensity = renderState.intensity,
                     stabilizationEnabled = stored.stabilizationEnabled,
+                    horizonEnabled = stored.horizonEnabled,
                     superResEnabled = stored.superResEnabled,
                     autoCompositionEnabled = stored.autoCompositionEnabled
                 )
@@ -253,19 +254,20 @@ class CameraXEngine(
         val needsVideo = mode == CaptureMode.VIDEO || mode == CaptureMode.PRO || livePhoto
         val stabilization = _state.value.stabilizationEnabled &&
             capability.stabilizationModes.contains("ON")
-        val softwareStabilization = _state.value.stabilizationEnabled
+        val softwareStabilization = _state.value.stabilizationEnabled || _state.value.horizonEnabled
         val useEffect = !glFilterDowngraded
         val view = if (useProSurface()) proSurfaceView else previewView
         Log.d(
             TAG,
             "bind mode=$mode rotation=$rotation livePhoto=$livePhoto needsVideo=$needsVideo " +
-                "useEffect=$useEffect stabilization=$stabilization " +
+                "useEffect=$useEffect stabilization=$stabilization horizon=${_state.value.horizonEnabled} " +
                 "viewSize=${view?.width}x${view?.height} lensFacing=$lensFacing"
         )
         DebugLog.log(
             "Engine",
             "bind mode=$mode rotation=$rotation livePhoto=$livePhoto needsVideo=$needsVideo " +
-                "useEffect=$useEffect stabilization=$stabilization superRes=${_state.value.superResEnabled} " +
+                "useEffect=$useEffect stabilization=$stabilization horizon=${_state.value.horizonEnabled} " +
+                "superRes=${_state.value.superResEnabled} " +
                 "viewSize=${view?.width}x${view?.height} lensFacing=$lensFacing"
         )
 
@@ -273,6 +275,7 @@ class CameraXEngine(
         detachAnalysis()
         processor?.release()
         processor = null
+        stabilizer.setHorizonMode(_state.value.horizonEnabled)
         if (softwareStabilization) {
             stabilizer.start()
         } else {
@@ -720,6 +723,13 @@ class CameraXEngine(
         if (_state.value.stabilizationEnabled == enabled) return
         _state.update { it.copy(stabilizationEnabled = enabled) }
         scope.launch { settings.setStabilizationEnabled(enabled) }
+        bind()
+    }
+
+    override fun setHorizonEnabled(enabled: Boolean) {
+        if (_state.value.horizonEnabled == enabled) return
+        _state.update { it.copy(horizonEnabled = enabled) }
+        scope.launch { settings.setHorizonEnabled(enabled) }
         bind()
     }
 

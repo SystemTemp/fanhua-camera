@@ -142,4 +142,7 @@
     <string name="lut_use_tip">Applies when the "Custom LUT" filter is selected</string>
     <string name="hide_controls">Hide controls</string>
     <string name="show_controls">Show controls</string>
+    <string name="filter_sdr">SDR</string>
+    <string name="settings_horizon">Horizon leveling</string>
+    <string name="settings_horizon_desc">Auto-rotates the frame with the gyroscope to keep the horizon level (preview / video / photo)</string>
 </resources>

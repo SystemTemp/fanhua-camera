@@ -16,9 +16,11 @@ class GyroStabilizer(
 
     private val manager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private val gyroscope = manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
+    private val rotationVector = manager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
 
     private val matrix = FloatArray(9)
 
+    // 抖动防抖（高通平滑差分）
     private var rawX = 0f
     private var rawY = 0f
     private var rawZ = 0f
@@ -26,6 +28,14 @@ class GyroStabilizer(
     private var smoothY = 0f
     private var smoothZ = 0f
     private var lastTimestamp = 0L
+
+    // 地平线防抖（旋转矢量，无漂移）
+    private var horizonMode = false
+    private val sensorMatrix = FloatArray(9)
+    private val remappedMatrix = FloatArray(9)
+    private val orientation = FloatArray(3)
+    private var horizonRollSmooth = 0f
+
     private var active = false
 
     val available: Boolean
@@ -35,11 +45,23 @@ class GyroStabilizer(
         resetMatrix()
     }
 
+    fun setHorizonMode(enabled: Boolean) {
+        if (horizonMode == enabled) return
+        horizonMode = enabled
+        reset()
+        if (active) {
+            // 重新注册（旋转矢量仅在需要时启用）
+            manager.unregisterListener(this)
+            registerSensors()
+        }
+    }
+
     fun start() {
         if (active) return
-        val sensor = gyroscope ?: return
+        if (gyroscope == null && rotationVector == null) return
         reset()
-        active = manager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_GAME)
+        registerSensors()
+        active = true
     }
 
     fun stop() {
@@ -49,10 +71,23 @@ class GyroStabilizer(
         reset()
     }
 
+    private fun registerSensors() {
+        gyroscope?.let { manager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME) }
+        if (horizonMode) {
+            rotationVector?.let { manager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME) }
+        }
+    }
+
     fun matrix(): FloatArray = matrix
 
     override fun onSensorChanged(event: SensorEvent) {
-        if (event.sensor.type != Sensor.TYPE_GYROSCOPE) return
+        when (event.sensor.type) {
+            Sensor.TYPE_GYROSCOPE -> onGyro(event)
+            Sensor.TYPE_ROTATION_VECTOR -> onRotationVector(event)
+        }
+    }
+
+    private fun onGyro(event: SensorEvent) {
         val now = event.timestamp
         val dt = if (lastTimestamp == 0L) 0f else (now - lastTimestamp) * 1e-9f
         lastTimestamp = now
@@ -92,6 +127,8 @@ class GyroStabilizer(
         smoothY += (rawY - smoothY) * (1f - SMOOTHING)
         smoothZ += (rawZ - smoothZ) * (1f - SMOOTHING)
 
+        if (horizonMode) return
+
         val corrX = rawX - smoothX
         val corrY = rawY - smoothY
         val corrZ = rawZ - smoothZ
@@ -113,6 +150,57 @@ class GyroStabilizer(
         matrix[8] = 1f
     }
 
+    private fun onRotationVector(event: SensorEvent) {
+        if (!horizonMode) return
+        SensorManager.getRotationMatrixFromVector(sensorMatrix, event.values)
+        remapSensorMatrix()
+        SensorManager.getOrientation(remappedMatrix, orientation)
+        // roll：绕屏幕 z 轴的横滚角；反向旋转画面以保持地平线水平
+        val target = -orientation[2]
+        horizonRollSmooth += (target - horizonRollSmooth) * HORIZON_SMOOTH
+
+        val angle = (horizonRollSmooth * HORIZON_GAIN).coerceIn(-HORIZON_MAX, HORIZON_MAX)
+        val c = cos(angle)
+        val s = sin(angle)
+        matrix[0] = c
+        matrix[1] = s
+        matrix[2] = 0f
+        matrix[3] = -s
+        matrix[4] = c
+        matrix[5] = 0f
+        matrix[6] = 0f
+        matrix[7] = 0f
+        matrix[8] = 1f
+    }
+
+    private fun remapSensorMatrix() {
+        val rotation = rotationProvider()
+        when (rotation) {
+            Surface.ROTATION_90 -> SensorManager.remapCoordinateSystem(
+                sensorMatrix,
+                SensorManager.AXIS_Y,
+                SensorManager.AXIS_MINUS_X,
+                remappedMatrix
+            )
+
+            Surface.ROTATION_180 -> SensorManager.remapCoordinateSystem(
+                sensorMatrix,
+                SensorManager.AXIS_MINUS_X,
+                SensorManager.AXIS_MINUS_Y,
+                remappedMatrix
+            )
+
+            Surface.ROTATION_270 -> SensorManager.remapCoordinateSystem(
+                sensorMatrix,
+                SensorManager.AXIS_MINUS_Y,
+                SensorManager.AXIS_X,
+                remappedMatrix
+            )
+
+            else -> sensorMatrix.copyInto(remappedMatrix)
+        }
+    }
+
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
     }
 
@@ -124,6 +212,7 @@ class GyroStabilizer(
         smoothY = 0f
         smoothZ = 0f
         lastTimestamp = 0L
+        horizonRollSmooth = 0f
         resetMatrix()
     }
 
@@ -144,5 +233,8 @@ class GyroStabilizer(
         const val GAIN = 0.90f
         const val ROLL_GAIN = 0.60f
         const val MAX_SHIFT = 0.075f
+        const val HORIZON_SMOOTH = 0.10f
+        const val HORIZON_GAIN = 0.85f
+        const val HORIZON_MAX = 0.20f // 约 ±11.5°
     }
 }

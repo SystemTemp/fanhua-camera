@@ -168,7 +168,8 @@ internal class FinishPass : GlPass(GlUtil.VERT_PLAIN, FRAGMENT, UNIFORMS) {
         bloomStrength: Float,
         grain: Float,
         vignette: Float,
-        seed: Float
+        seed: Float,
+        sdr: Boolean = false
     ) {
         GLES20.glUseProgram(program.id)
         bindTexture(0, GLES20.GL_TEXTURE_2D, baseTextureId, 0)
@@ -177,6 +178,7 @@ internal class FinishPass : GlPass(GlUtil.VERT_PLAIN, FRAGMENT, UNIFORMS) {
         GLES20.glUniform1f(program.uniforms[3], grain)
         GLES20.glUniform1f(program.uniforms[4], vignette)
         GLES20.glUniform1f(program.uniforms[5], seed)
+        GLES20.glUniform1f(program.uniforms[6], if (sdr) 1f else 0f)
         drawQuad()
     }
 
@@ -187,7 +189,8 @@ internal class FinishPass : GlPass(GlUtil.VERT_PLAIN, FRAGMENT, UNIFORMS) {
             "uBloomStrength",
             "uGrain",
             "uVignette",
-            "uSeed"
+            "uSeed",
+            "uSdr"
         )
 
         val FRAGMENT = GlUtil.FRAG_HEAD_2D_HIGH + GlUtil.SAMPLER_2D + """
@@ -196,6 +199,7 @@ internal class FinishPass : GlPass(GlUtil.VERT_PLAIN, FRAGMENT, UNIFORMS) {
             uniform float uGrain;
             uniform float uVignette;
             uniform float uSeed;
+            uniform float uSdr;
             varying vec2 vTexCoord;
             void main() {
                 vec3 base = texture2D(uTexture, vTexCoord).rgb;
@@ -209,6 +213,14 @@ internal class FinishPass : GlPass(GlUtil.VERT_PLAIN, FRAGMENT, UNIFORMS) {
                     vec2 d = vTexCoord - 0.5;
                     float v = smoothstep(0.18, 0.62, dot(d, d) * 2.2);
                     c *= mix(1.0, 1.0 - uVignette, v);
+                }
+                if (uSdr > 0.5) {
+                    // 标准 SDR（广电/显示）色调：柔和高光压缩 + 轻微伽马，高光不溢出
+                    c = clamp(c, 0.0, 1.0);
+                    c = 1.0 - exp(-c * 2.6);
+                    c = pow(c, vec3(0.97));
+                    float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+                    c = mix(c, vec3(l), 0.05);
                 }
                 gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
             }

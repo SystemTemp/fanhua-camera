@@ -18,6 +18,7 @@ interface CameraController {
     fun setPreset(preset: FilterPreset)
     fun setFilterIntensity(intensity: Float)
     fun setStabilizationEnabled(enabled: Boolean)
+    fun setHorizonEnabled(enabled: Boolean)
     fun setSuperResEnabled(enabled: Boolean)
     fun setLivePhotoEnabled(enabled: Boolean)
     fun setAutoCompositionEnabled(enabled: Boolean)

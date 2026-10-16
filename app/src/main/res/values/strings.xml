@@ -142,4 +142,7 @@
     <string name="lut_use_tip">选择「自定义 LUT」滤镜后生效</string>
     <string name="hide_controls">隐藏控件</string>
     <string name="show_controls">显示控件</string>
+    <string name="filter_sdr">SDR 标准</string>
+    <string name="settings_horizon">地平线防抖</string>
+    <string name="settings_horizon_desc">利用陀螺仪自动旋转画面，倾斜拍摄时保持地平线水平（预览/录像/拍照均生效）</string>
 </resources>

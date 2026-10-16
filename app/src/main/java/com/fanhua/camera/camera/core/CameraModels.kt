@@ -88,6 +88,7 @@ data class CameraUiState(
     val preset: FilterPreset = FilterPreset.DREAM,
     val filterIntensity: Float = 1f,
     val stabilizationEnabled: Boolean = true,
+    val horizonEnabled: Boolean = false,
     val superResEnabled: Boolean = false,
     val livePhotoEnabled: Boolean = false,
     val autoCompositionEnabled: Boolean = false,

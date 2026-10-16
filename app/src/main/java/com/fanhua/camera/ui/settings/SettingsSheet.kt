@@ -206,6 +206,12 @@ fun SettingsSheet(
                 onCheckedChange = controller::setStabilizationEnabled
             )
             ToggleRow(
+                title = stringResource(R.string.settings_horizon),
+                description = stringResource(R.string.settings_horizon_desc),
+                checked = state.horizonEnabled,
+                onCheckedChange = controller::setHorizonEnabled
+            )
+            ToggleRow(
                 title = stringResource(R.string.settings_superres),
                 description = stringResource(R.string.settings_superres_desc),
                 checked = state.superResEnabled,

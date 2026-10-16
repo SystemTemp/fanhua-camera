@@ -15,6 +15,7 @@ data class AppSettings(
     val presetKey: String = "DREAM",
     val filterIntensity: Float = 1f,
     val stabilizationEnabled: Boolean = true,
+    val horizonEnabled: Boolean = false,
     val superResEnabled: Boolean = false,
     val autoCompositionEnabled: Boolean = false,
     val selectedSpecLabel: String = "",
@@ -32,12 +33,14 @@ class SettingsRepository(private val context: Context) {
     private val keySpec = stringPreferencesKey("output_spec")
     private val keyDebug = booleanPreferencesKey("debug_mode")
     private val keyLut = stringPreferencesKey("lut_path")
+    private val keyHorizon = booleanPreferencesKey("horizon")
 
     val settings: Flow<AppSettings> = context.settingsDataStore.data.map { prefs ->
         AppSettings(
             presetKey = prefs[keyPreset] ?: "DREAM",
             filterIntensity = prefs[keyIntensity] ?: 1f,
             stabilizationEnabled = prefs[keyStabilization] ?: true,
+            horizonEnabled = prefs[keyHorizon] ?: false,
             superResEnabled = prefs[keySuperRes] ?: false,
             autoCompositionEnabled = prefs[keyAutoComposition] ?: false,
             selectedSpecLabel = prefs[keySpec] ?: "",
@@ -56,6 +59,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setStabilizationEnabled(value: Boolean) {
         context.settingsDataStore.edit { it[keyStabilization] = value }
+    }
+
+    suspend fun setHorizonEnabled(value: Boolean) {
+        context.settingsDataStore.edit { it[keyHorizon] = value }
     }
 
     suspend fun setSuperResEnabled(value: Boolean) {
