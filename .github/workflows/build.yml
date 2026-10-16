@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -45,3 +45,29 @@ jobs:
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_NOTES: |
+            ## 繁花如梦相机 ${{ github.ref_name }}
+
+            ### 本次更新
+            - 修复照片偏色：保存管线 R/B 通道互换（蓝裤子拍成棕色）已修复
+            - 画质提升：最高画质拍照 + 保存锐化 + JPEG 98 + 8K 解码
+            - 抑制拍太阳时的高光光球（柔化 bloom 高光提取）
+            - 徕卡水印改为圆形徽章 + 徕卡风格字体（Futura 近似）
+            - 新增「电影感」滤镜（绿色 HSL 调整、高光/阴影压暗、暗角、锐化）
+            - 新增「SDR 标准」色调滤镜（柔和高光压缩）
+            - 新增自定义 3D LUT 导入（.cube，支持 Blackmagic / 光子相机）
+            - 新增地平线防抖（陀螺仪自动保持画面水平）
+            - 新增调试模式：一键复制 / 清空日志
+            - 徕卡滤镜组折叠，滤镜条更紧凑
+            - 专业 / 超分模式实时预览修复（统一 CameraX PreviewView）
+            - 拍照控件可隐藏；横屏快门移至屏幕右侧，不再遮挡主体
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk "fanhua-camera-${GITHUB_REF_NAME}.apk"
+          gh release create "$GITHUB_REF_NAME" "fanhua-camera-${GITHUB_REF_NAME}.apk" \
+            --title "$GITHUB_REF_NAME" --notes "$RELEASE_NOTES" \
+            || gh release upload "$GITHUB_REF_NAME" "fanhua-camera-${GITHUB_REF_NAME}.apk" --clobber
