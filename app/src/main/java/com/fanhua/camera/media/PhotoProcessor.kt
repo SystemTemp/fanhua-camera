@@ -31,8 +31,11 @@ class PhotoProcessor(private val context: Context) {
     private val leicaTypeface: Typeface by lazy {
         try {
             val base = androidx.core.content.res.ResourcesCompat.getFont(context, R.font.jost_variable)
-                ?: Typeface.DEFAULT
-            Typeface.Builder(base).setFontVariationSettings("'wght' 720").build()
+            if (base != null) {
+                Typeface.create(base, Typeface.BOLD)
+            } else {
+                Typeface.create("sans-serif", Typeface.BOLD)
+            }
         } catch (e: Exception) {
             Typeface.create("sans-serif", Typeface.BOLD)
         }

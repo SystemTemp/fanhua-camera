@@ -272,7 +272,7 @@ fun SettingsSheet(
                                 }
                                 lutNames = LutStore.listNames(context)
                                 selectedLut = LutStore.path
-                                lutNote = stringResource(R.string.lut_removed)
+                                lutNote = context.getString(R.string.lut_removed)
                             }
                         )
                     }
@@ -336,10 +336,10 @@ fun SettingsSheet(
                     onClick = {
                         val log = DebugLog.snapshot()
                         if (log.isBlank()) {
-                            debugNote = stringResource(R.string.debug_log_empty)
+                            debugNote = context.getString(R.string.debug_log_empty)
                         } else {
                             clipboard.setText(AnnotatedString(log))
-                            debugNote = stringResource(R.string.debug_log_copied)
+                            debugNote = context.getString(R.string.debug_log_copied)
                         }
                     },
                     style = FanhuaButtonStyle.Solid,
