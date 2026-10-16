@@ -56,6 +56,11 @@ internal class GradePass(private val oes: Boolean) : GlPass(
         GLES20.glUniform3fv(program.uniforms[10], 1, grade.gain, 0)
         GLES20.glUniform3fv(program.uniforms[11], 1, grade.shadowTint, 0)
         GLES20.glUniform3fv(program.uniforms[12], 1, grade.highlightTint, 0)
+        GLES20.glUniform1f(program.uniforms[13], grade.highlights)
+        GLES20.glUniform1f(program.uniforms[14], grade.shadows)
+        GLES20.glUniform1f(program.uniforms[15], grade.greenHue)
+        GLES20.glUniform1f(program.uniforms[16], grade.greenSat)
+        GLES20.glUniform1f(program.uniforms[17], grade.greenLum)
         drawQuad()
     }
 
@@ -73,7 +78,12 @@ internal class GradePass(private val oes: Boolean) : GlPass(
             "uLift",
             "uGain",
             "uShadowTint",
-            "uHighlightTint"
+            "uHighlightTint",
+            "uHighlights",
+            "uShadows",
+            "uGreenH",
+            "uGreenS",
+            "uGreenL"
         )
 
         val BODY = """
@@ -86,8 +96,36 @@ internal class GradePass(private val oes: Boolean) : GlPass(
             uniform vec3 uGain;
             uniform vec3 uShadowTint;
             uniform vec3 uHighlightTint;
+            uniform float uHighlights;
+            uniform float uShadows;
+            uniform float uGreenH;
+            uniform float uGreenS;
+            uniform float uGreenL;
             varying vec2 vTexCoord;
             const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
+            vec3 rgb2hsl(vec3 c) {
+                float mx = max(max(c.r, c.g), c.b);
+                float mn = min(min(c.r, c.g), c.b);
+                float h = 0.0;
+                float s = 0.0;
+                float l = (mx + mn) * 0.5;
+                float d = mx - mn;
+                if (d > 0.001) {
+                    s = d / max(1.0 - abs(2.0 * l - 1.0), 0.0001);
+                    if (mx == c.r) {
+                        h = fract(((c.g - c.b) / d + (c.g < c.b ? 6.0 : 0.0)) / 6.0);
+                    } else if (mx == c.g) {
+                        h = fract(((c.b - c.r) / d + 2.0) / 6.0);
+                    } else {
+                        h = fract(((c.r - c.g) / d + 4.0) / 6.0);
+                    }
+                }
+                return vec3(h, s, l);
+            }
+            vec3 hsl2rgb(vec3 c) {
+                vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+                return c.z + c.y * (rgb - 0.5) * (1.0 - abs(2.0 * c.z - 1.0));
+            }
             void main() {
                 vec3 src = texture2D(uTexture, vTexCoord).rgb;
                 vec3 c = (src - 0.5) * uContrast + 0.5;
@@ -97,6 +135,25 @@ internal class GradePass(private val oes: Boolean) : GlPass(
                 c *= uGain;
                 c += uShadowTint * (1.0 - smoothstep(0.0, 0.46, l));
                 c += uHighlightTint * smoothstep(0.54, 1.0, l);
+                // 高光/阴影独立压暗（电影感）
+                if (uHighlights != 0.0) {
+                    c *= 1.0 + uHighlights * smoothstep(0.55, 1.0, l) * 0.40;
+                }
+                if (uShadows != 0.0) {
+                    c *= 1.0 + uShadows * (1.0 - smoothstep(0.0, 0.45, l)) * 0.50;
+                }
+                // HSL 绿色选择性调整
+                if (abs(uGreenH) > 0.001 || abs(uGreenS) > 0.001 || abs(uGreenL) > 0.001) {
+                    vec3 hsl = rgb2hsl(c);
+                    float gd = abs(hsl.x - 0.5);
+                    float gm = 1.0 - smoothstep(0.10, 0.30, gd);
+                    if (gm > 0.001) {
+                        hsl.x = mod(hsl.x + uGreenH / 360.0, 1.0);
+                        hsl.y *= 1.0 + uGreenS * gm;
+                        hsl.z *= 1.0 + uGreenL * gm;
+                        c = hsl2rgb(hsl);
+                    }
+                }
                 float l2 = dot(c, LUMA);
                 c = mix(vec3(l2), c, uSaturation);
                 c = mix(c, vec3(0.5) + (c - 0.5) * 0.82 + 0.055, uFade);

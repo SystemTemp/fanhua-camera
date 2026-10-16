@@ -130,6 +130,7 @@
     <string name="debug_log_empty">Log is empty. Enable debug mode and take a few photos first</string>
     <string name="debug_log_copied">Debug log copied</string>
 
+    <string name="filter_cinematic">Cinematic</string>
     <string name="filter_custom_lut">Custom LUT</string>
     <string name="settings_lut">LUT filters</string>
     <string name="settings_lut_desc">Import .cube 3D LUT files (Blackmagic, PhotonCamera, etc.); select the "Custom LUT" filter to apply</string>

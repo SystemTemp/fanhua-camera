@@ -10,6 +10,7 @@ enum class FilterPreset(@StringRes val labelRes: Int) {
     LEICA_MONO(R.string.filter_leica_mono),
     LEICA_PORTRAIT(R.string.filter_leica_portrait),
     SDR(R.string.filter_sdr),
+    CINEMATIC(R.string.filter_cinematic),
     APPLE_LOG(R.string.filter_apple_log),
     CUSTOM_LUT(R.string.filter_custom_lut);
 

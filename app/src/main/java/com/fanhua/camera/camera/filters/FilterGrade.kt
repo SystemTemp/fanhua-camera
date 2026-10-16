@@ -12,7 +12,12 @@ data class FilterGrade(
     val bloomStrength: Float,
     val bloomThreshold: Float,
     val grain: Float,
-    val vignette: Float
+    val vignette: Float,
+    val highlights: Float = 0f,
+    val shadows: Float = 0f,
+    val greenHue: Float = 0f,
+    val greenSat: Float = 0f,
+    val greenLum: Float = 0f
 ) {
     companion object {
         private val NEUTRAL = floatArrayOf(0f, 0f, 0f)
@@ -123,6 +128,28 @@ data class FilterGrade(
                 bloomThreshold = 0.97f,
                 grain = 0.004f,
                 vignette = 0.02f
+            )
+
+            // 电影感：光感-48/亮度-25/曝光-10 → 整体压暗；对比+35；饱和+15；
+            // 曲线压暗 + 高光-30 + 阴影-15；HSL 绿色(25,38,25)；色温-15；锐化+20；暗角+30
+            FilterPreset.CINEMATIC -> FilterGrade(
+                contrast = 1.35f,
+                saturation = 1.15f,
+                temperature = -0.15f,
+                fade = 0.02f,
+                lift = floatArrayOf(-0.008f, -0.008f, -0.008f),
+                gain = floatArrayOf(0.62f, 0.62f, 0.62f),
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0.03f,
+                bloomThreshold = 0.95f,
+                grain = 0.012f,
+                vignette = 0.30f,
+                highlights = -0.75f,
+                shadows = -0.30f,
+                greenHue = 25f,
+                greenSat = 0.38f,
+                greenLum = 0.25f
             )
 
             // 自定义 LUT：无内置调色，颜色由 3D LUT 决定

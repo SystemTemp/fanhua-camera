@@ -130,6 +130,7 @@
     <string name="debug_log_empty">日志为空，请先打开调试模式并拍摄几张照片</string>
     <string name="debug_log_copied">调试日志已复制</string>
 
+    <string name="filter_cinematic">电影感</string>
     <string name="filter_custom_lut">自定义 LUT</string>
     <string name="settings_lut">LUT 滤镜</string>
     <string name="settings_lut_desc">支持导入 .cube 3D LUT（Blackmagic、光子相机等），导入后在滤镜条选择「自定义 LUT」即可使用</string>
