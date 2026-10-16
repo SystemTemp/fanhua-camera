@@ -43,6 +43,13 @@ app/src/main/java/com/fanhua/camera/
   data/         # DataStore settings, locale manager
 ```
 
+## Repositories
+
+- GitHub（主仓库 / 推送目标）: <https://github.com/SystemTemp/fanhua-camera>
+- Gitee（镜像，自动同步）: <https://gitee.com/TDSI/fanhua-camera>
+
+> 发布新版本时请推送到 GitHub，GitHub Release 会自动同步到 Gitee（代码与 Release 附件）；Gitee 不会反向同步到 GitHub。
+
 ## Author
 
 [SystemTemp](https://github.com/SystemTemp)
