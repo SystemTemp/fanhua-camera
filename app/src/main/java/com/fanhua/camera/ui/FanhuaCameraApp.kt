@@ -122,7 +122,8 @@ fun FanhuaCameraApp(controller: CameraController) {
         AnimatedVisibility(
             visible = controlsVisible,
             enter = fadeIn(animationSpec = tween(180)),
-            exit = fadeOut(animationSpec = tween(160))
+            exit = fadeOut(animationSpec = tween(160)),
+            modifier = Modifier.align(Alignment.TopCenter)
         ) {
             TopBar(
                 state = state,
@@ -142,8 +143,7 @@ fun FanhuaCameraApp(controller: CameraController) {
                     controller.setSuperResEnabled(!state.superResEnabled)
                 },
                 onSettings = { showSettings = true },
-                onHideControls = { controlsVisible = false },
-                modifier = Modifier.align(Alignment.TopCenter)
+                onHideControls = { controlsVisible = false }
             )
         }
 
@@ -173,15 +173,15 @@ fun FanhuaCameraApp(controller: CameraController) {
         AnimatedVisibility(
             visible = controlsVisible,
             enter = fadeIn(animationSpec = tween(180)),
-            exit = fadeOut(animationSpec = tween(160))
+            exit = fadeOut(animationSpec = tween(160)),
+            modifier = Modifier.align(Alignment.BottomCenter)
         ) {
             BottomControls(
                 controller = controller,
                 state = state,
                 capability = capability,
                 landscape = isLandscape,
-                onOpenGallery = { showGallery = true },
-                modifier = Modifier.align(Alignment.BottomCenter)
+                onOpenGallery = { showGallery = true }
             )
         }
 
