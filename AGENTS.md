@@ -26,6 +26,8 @@
 4. **提交并推送**：提交信息按项目惯例写（如 `v0.1.12-beta: <变更摘要>`），push 到 `origin main`。
 5. **发布 GitHub Release**：在 GitHub 上打 tag（如 `v0.1.12-beta`）并创建 Release，附上编译好的 APK，填写更新说明（中文）。
 6. Release 发布后，等待 GitHub Actions 完成 Gitee 同步（代码 + Release + version.json），再告知用户发布完成。
+7. **签名（重要）**：release 构建必须使用固定签名 `signing/fanhua-release.p12`（PKCS12，alias `fanhua`，store/key 密码均为 `fanhua2026`）。禁止使用 debug 签名或让 CI 每次生成新密钥——不同版本签名不一致会导致用户无法覆盖安装升级（INSTALL_FAILED_UPDATE_INCOMPATIBLE）。
+8. **应用内更新**：使用系统安装器（ACTION_VIEW + FileProvider）安装更新，不要用 PackageInstaller 静默会话安装自身（会终止应用进程，表现为点击安装后闪退）。
 
 ## 项目概况
 
