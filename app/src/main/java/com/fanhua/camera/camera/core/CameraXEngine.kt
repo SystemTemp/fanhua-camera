@@ -580,12 +580,24 @@ class CameraXEngine(
                 lastWidth = width
                 lastHeight = height
                 if (changed && kotlin.math.abs(aspect - lastAspect) > 0.1f && !released) {
-                    bind()
+                    applyRotation()
                 }
             }
         }
         view.addOnLayoutChangeListener(listener)
         rotationListener = listener
+    }
+
+    private fun applyRotation() {
+        val rotation = displayRotation()
+        try {
+            preview?.targetRotation = rotation
+            imageCapture?.targetRotation = rotation
+            videoCapture?.targetRotation = rotation
+            imageAnalysis?.targetRotation = rotation
+        } catch (e: Exception) {
+            Log.e(TAG, "applyRotation failed", e)
+        }
     }
 
     private fun buildViewPort(): ViewPort? {

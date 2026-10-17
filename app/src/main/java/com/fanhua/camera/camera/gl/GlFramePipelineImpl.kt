@@ -152,6 +152,7 @@ class GlFramePipelineImpl : GlFramePipeline {
             textureMatrix,
             if (stabilizationEnabled) stabilizationMatrix else GlUtil.IDENTITY_3X3,
             if (stabilizationEnabled) STABILIZATION_CROP else 1f,
+            if (inputHeight > 0) inputWidth.toFloat() / inputHeight.toFloat() else 1f,
             grade,
             intensity
         )

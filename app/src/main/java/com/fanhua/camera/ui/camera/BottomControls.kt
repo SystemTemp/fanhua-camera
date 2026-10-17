@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -92,9 +93,10 @@ fun BottomControls(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .then(if (landscape) Modifier.fillMaxHeight() else Modifier)
             .navigationBarsPadding()
-            .padding(bottom = if (landscape) 10.dp else 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(bottom = if (landscape) 0.dp else 16.dp, end = if (landscape) 10.dp else 0.dp),
+        horizontalAlignment = if (landscape) Alignment.End else Alignment.CenterHorizontally
     ) {
         AnimatedVisibility(visible = !landscape) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -136,21 +138,15 @@ fun BottomControls(
         }
 
         if (landscape) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.Center
             ) {
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                    ModeCarousel(state = state, onSelect = controller::setMode, compact = true)
-                }
-                // 快门与画廊固定在屏幕右端，避免遮挡取景主体
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    ShutterButton(state = state, controller = controller)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    GalleryButton(onClick = onOpenGallery)
-                }
+                ModeCarousel(state = state, onSelect = controller::setMode, compact = true, vertical = true)
+                Spacer(modifier = Modifier.height(14.dp))
+                ShutterButton(state = state, controller = controller)
+                Spacer(modifier = Modifier.height(10.dp))
+                GalleryButton(onClick = onOpenGallery)
             }
         } else {
             ModeCarousel(state = state, onSelect = controller::setMode)
@@ -331,52 +327,62 @@ private fun FilterCell(
 private fun ModeCarousel(
     state: CameraUiState,
     onSelect: (CaptureMode) -> Unit,
-    compact: Boolean = false
+    compact: Boolean = false,
+    vertical: Boolean = false
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        CaptureMode.entries.forEach { mode ->
-            val selected = state.mode == mode
-            val scale by animateFloatAsState(
-                targetValue = if (selected) 1.14f else 1f,
-                animationSpec = spring(dampingRatio = 0.5f, stiffness = 520f),
-                label = "modeScale"
+    @Composable
+    fun ModeItem(mode: CaptureMode) {
+        val selected = state.mode == mode
+        val scale by animateFloatAsState(
+            targetValue = if (selected) 1.14f else 1f,
+            animationSpec = spring(dampingRatio = 0.5f, stiffness = 520f),
+            label = "modeScale"
+        )
+        val color by animateColorAsState(
+            targetValue = if (selected) FanhuaGold else FanhuaTextDim,
+            label = "modeColor"
+        )
+        val underline by animateDpAsState(
+            targetValue = if (selected) 20.dp else 0.dp,
+            animationSpec = spring(dampingRatio = 0.6f, stiffness = 500f),
+            label = "modeUnderline"
+        )
+        Column(
+            horizontalAlignment = if (vertical) Alignment.End else Alignment.CenterHorizontally,
+            modifier = Modifier
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .clickable { onSelect(mode) }
+                .padding(horizontal = if (compact) 8.dp else 14.dp, vertical = 4.dp)
+        ) {
+            Text(
+                text = stringResource(mode.labelRes),
+                color = color,
+                style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge
             )
-            val color by animateColorAsState(
-                targetValue = if (selected) FanhuaGold else FanhuaTextDim,
-                label = "modeColor"
-            )
-            val underline by animateDpAsState(
-                targetValue = if (selected) 20.dp else 0.dp,
-                animationSpec = spring(dampingRatio = 0.6f, stiffness = 500f),
-                label = "modeUnderline"
-            )
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+            Spacer(modifier = Modifier.height(4.dp))
+            Box(
                 modifier = Modifier
-                    .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                    }
-                    .clickable { onSelect(mode) }
-                    .padding(horizontal = if (compact) 8.dp else 14.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = stringResource(mode.labelRes),
-                    color = color,
-                    style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Box(
-                    modifier = Modifier
-                        .width(underline)
-                        .height(2.dp)
-                        .background(FanhuaGold, RoundedCornerShape(1.dp))
-                )
-            }
+                    .width(underline)
+                    .height(2.dp)
+                    .background(FanhuaGold, RoundedCornerShape(1.dp))
+            )
+        }
+    }
+
+    if (vertical) {
+        Column(horizontalAlignment = Alignment.End) {
+            CaptureMode.entries.forEach { ModeItem(it) }
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CaptureMode.entries.forEach { ModeItem(it) }
         }
     }
 }

@@ -174,7 +174,11 @@ fun FanhuaCameraApp(controller: CameraController) {
             visible = controlsVisible,
             enter = fadeIn(animationSpec = tween(180)),
             exit = fadeOut(animationSpec = tween(160)),
-            modifier = Modifier.align(Alignment.BottomCenter)
+            modifier = if (isLandscape) {
+                Modifier.align(Alignment.CenterEnd)
+            } else {
+                Modifier.align(Alignment.BottomCenter)
+            }
         ) {
             BottomControls(
                 controller = controller,

@@ -46,12 +46,18 @@ object GlUtil {
         uniform mat4 uTexMatrix;
         uniform mat3 uStabMatrix;
         uniform float uCrop;
+        uniform float uAspect;
         varying vec2 vTexCoord;
         void main() {
             gl_Position = aPosition;
             vec2 c = (aTexCoord - 0.5) * uCrop;
-            vec3 s = uStabMatrix * vec3(c, 1.0);
-            vTexCoord = (uTexMatrix * vec4(s.xy + 0.5, 0.0, 1.0)).xy;
+            float ang = atan(uStabMatrix[0][1], uStabMatrix[0][0]);
+            float ca = cos(ang);
+            float sa = sin(ang);
+            vec2 p = vec2(c.x * uAspect, c.y);
+            vec2 r = mat2(ca, sa, -sa, ca) * p;
+            vec2 q = vec2(r.x / uAspect, r.y) + vec2(uStabMatrix[2][0], uStabMatrix[2][1]);
+            vTexCoord = (uTexMatrix * vec4(q + 0.5, 0.0, 1.0)).xy;
         }
     """.trimIndent()
 
