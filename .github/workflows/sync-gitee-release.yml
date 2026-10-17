@@ -30,7 +30,8 @@ jobs:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
           set -e
-          EXISTS=$(curl -s "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases/tags/$TAG_NAME?access_token=$GITEE_TOKEN")
+          CURL="curl -s --retry 3 --retry-delay 5 --connect-timeout 20"
+          EXISTS=$($CURL "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases/tags/$TAG_NAME?access_token=$GITEE_TOKEN")
           RID=$(echo "$EXISTS" | python3 -c "
           import json,sys
           try:
@@ -41,13 +42,17 @@ jobs:
           if [ -z "$RID" ]; then
             BODY=$(gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --json body -q .body)
             PAYLOAD=$(BODY="$BODY" GITEE_TOKEN="$GITEE_TOKEN" TAG_NAME="$TAG_NAME" python3 -c "import json,os;print(json.dumps({'access_token':os.environ['GITEE_TOKEN'],'tag_name':os.environ['TAG_NAME'],'target_commitish':'main','name':os.environ['TAG_NAME'],'body':os.environ.get('BODY',''),'prerelease':False}))")
-            RID=$(curl -s -X POST "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases" -H "Content-Type: application/json;charset=UTF-8" -d "$PAYLOAD" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('id','') if isinstance(d,dict) else '')")
+            RID=$($CURL -X POST "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases" -H "Content-Type: application/json;charset=UTF-8" -d "$PAYLOAD" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('id','') if isinstance(d,dict) else '')")
           fi
           echo "Gitee release id: $RID"
+          if [ -z "$RID" ]; then
+            echo "failed to create Gitee release"
+            exit 1
+          fi
           for f in release-tmp/*.apk; do
             [ -f "$f" ] || continue
             echo "uploading $f"
-            curl -s -X POST "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases/$RID/attach_files" -F "access_token=$GITEE_TOKEN" -F "file=@$f"
+            $CURL --max-time 900 -X POST "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases/$RID/attach_files" -F "access_token=$GITEE_TOKEN" -F "file=@$f"
             echo
           done
 
@@ -55,21 +60,35 @@ jobs:
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
+          set -e
+          CURL="curl -s --retry 3 --retry-delay 5 --connect-timeout 20"
           APK_NAME=$(basename "$(ls release-tmp/*.apk | head -1)")
-          echo "apk file: $APK_NAME"
           NOTES=$(gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --json body -q .body)
-          git clone --depth 1 "https://TDSI:$GITEE_TOKEN@gitee.com/TDSI/file.git" version-repo
-          APK_NAME="$APK_NAME" NOTES="$NOTES" TAG_NAME="$TAG_NAME" python3 -c "
-          import json, os
+          echo "apk: $APK_NAME"
+          SHA=$($CURL "https://gitee.com/api/v5/repos/TDSI/file/contents/fanhua/version.json?access_token=$GITEE_TOKEN" | python3 -c "import json,sys
+          try:
+              d = json.load(sys.stdin)
+              print(d.get('sha','') if isinstance(d, dict) else '')
+          except Exception:
+              print('')
+          ")
+          PAYLOAD=$(APK_NAME="$APK_NAME" NOTES="$NOTES" TAG_NAME="$TAG_NAME" SHA="$SHA" GITEE_TOKEN="$GITEE_TOKEN" python3 -c "
+          import base64, json, os
           ref = os.environ['TAG_NAME']
-          notes = os.environ['NOTES']
-          apk = os.environ['APK_NAME']
-          v = {'version': ref.lstrip('v'), 'notes': notes, 'apk': f'https://gitee.com/TDSI/fanhua-camera/releases/download/{ref}/{apk}'}
-          json.dump(v, open('version-repo/fanhua/version.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
-          "
-          cd version-repo
-          git config user.name "TDSI"
-          git config user.email "TDSI@gitee.local"
-          git add fanhua/version.json
-          git commit -m "update version channel to $TAG_NAME" || true
-          git push origin master
+          v = {
+              'version': ref.lstrip('v'),
+              'notes': os.environ['NOTES'],
+              'apk': f\"https://gitee.com/TDSI/fanhua-camera/releases/download/{ref}/{os.environ['APK_NAME']}\"
+          }
+          body = {
+              'access_token': os.environ['GITEE_TOKEN'],
+              'message': f'update version channel to {ref}',
+              'content': base64.b64encode(json.dumps(v, ensure_ascii=False, indent=2).encode('utf-8')).decode(),
+              'branch': 'master'
+          }
+          if os.environ['SHA']:
+              body['sha'] = os.environ['SHA']
+          print(json.dumps(body))
+          ")
+          $CURL -X PUT "https://gitee.com/api/v5/repos/TDSI/file/contents/fanhua/version.json" -H "Content-Type: application/json;charset=UTF-8" -d "$PAYLOAD"
+          echo
