@@ -101,8 +101,15 @@ class UpdateController(
 
     fun install() {
         val file = (state as? UpdateUiState.Ready)?.file ?: return
+        if (manager.needsInstallPermission()) {
+            manager.requestInstallPermission()
+            toast(R.string.install_permission_hint)
+            return
+        }
         if (manager.install(file)) {
             state = UpdateUiState.Idle
+        } else {
+            toast(R.string.update_failed)
         }
     }
 

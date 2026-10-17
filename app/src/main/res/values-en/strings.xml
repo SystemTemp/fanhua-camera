@@ -146,4 +146,5 @@
     <string name="filter_sdr">SDR</string>
     <string name="settings_horizon">Horizon leveling</string>
     <string name="settings_horizon_desc">Auto-rotates the frame with the gyroscope to keep the horizon level (preview / video / photo)</string>
+    <string name="install_permission_hint">Please allow "Install unknown apps", then return and tap Install again</string>
 </resources>

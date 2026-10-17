@@ -1,14 +1,12 @@
 package com.fanhua.camera.data
 
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageInstaller
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
-import kotlinx.coroutines.CoroutineScope
+import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -124,49 +122,49 @@ class UpdateManager(
             null
         }
 
+    fun needsInstallPermission(): Boolean =
+        !context.packageManager.canRequestPackageInstalls()
+
+    fun requestInstallPermission() {
+        try {
+            context.startActivity(
+                Intent(
+                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:${context.packageName}")
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        } catch (e: Exception) {
+        }
+    }
+
+    /**
+     * 使用系统安装器界面安装更新（ACTION_VIEW + FileProvider）。
+     * 不再使用 PackageInstaller 静默会话——静默安装自身更新时系统会终止应用进程，
+     * 造成"点击安装更新应用直接退出"的问题。
+     */
     fun install(file: File): Boolean {
-        if (!context.packageManager.canRequestPackageInstalls()) {
-            try {
-                context.startActivity(
-                    Intent(
-                        Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                        Uri.parse("package:${context.packageName}")
-                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                )
-            } catch (e: Exception) {
-            }
+        if (needsInstallPermission()) {
+            requestInstallPermission()
             return false
         }
         return try {
-            val installer = context.packageManager.packageInstaller
-            val params = PackageInstaller.SessionParams(
-                PackageInstaller.SessionParams.MODE_FULL_INSTALL
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
             )
-            params.setAppPackageName(context.packageName)
-            val sessionId = installer.createSession(params)
-            val session = installer.openSession(sessionId)
-            try {
-                session.openWrite("fanhua", 0, file.length()).use { out ->
-                    file.inputStream().use { input -> input.copyTo(out) }
-                    session.fsync(out)
-                }
-                val intent = Intent(context, Class.forName(context.packageName + ".MainActivity"))
-                val pending = PendingIntent.getActivity(
-                    context,
-                    0,
-                    intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-                session.commit(pending.intentSender)
-            } finally {
-                session.close()
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
+            context.startActivity(intent)
             Handler(Looper.getMainLooper()).postDelayed({
                 try {
                     file.delete()
                 } catch (e: Exception) {
                 }
-            }, 30000)
+            }, 120000)
             true
         } catch (e: Exception) {
             false
