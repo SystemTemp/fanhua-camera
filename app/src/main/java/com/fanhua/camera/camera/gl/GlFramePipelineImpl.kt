@@ -153,6 +153,7 @@ class GlFramePipelineImpl : GlFramePipeline {
             if (stabilizationEnabled) stabilizationMatrix else GlUtil.IDENTITY_3X3,
             if (stabilizationEnabled) STABILIZATION_CROP else 1f,
             if (inputHeight > 0) inputWidth.toFloat() / inputHeight.toFloat() else 1f,
+            if (stabilizationEnabled) STABILIZATION_COVER else 1f,
             grade,
             intensity
         )
@@ -319,6 +320,7 @@ class GlFramePipelineImpl : GlFramePipeline {
 
     private companion object {
         const val STABILIZATION_CROP = 0.85f
+        const val STABILIZATION_COVER = 1.18f
         const val SHARPNESS = 0.30f
         const val SAVE_SHARPNESS = 0.22f
         const val CINEMATIC_SHARPNESS = 0.32f

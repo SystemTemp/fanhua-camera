@@ -39,6 +39,7 @@ internal class GradePass(private val oes: Boolean) : GlPass(
         stabilization: FloatArray,
         crop: Float,
         aspect: Float,
+        stabScale: Float,
         grade: FilterGrade,
         intensity: Float
     ) {
@@ -47,6 +48,7 @@ internal class GradePass(private val oes: Boolean) : GlPass(
         GLES20.glUniformMatrix3fv(program.uniforms[1], 1, false, stabilization, 0)
         GLES20.glUniform1f(program.uniforms[2], crop)
         GLES20.glUniform1f(program.uniforms[18], aspect)
+        GLES20.glUniform1f(program.uniforms[19], stabScale)
         val target = if (oes) GLES11Ext.GL_TEXTURE_EXTERNAL_OES else GLES20.GL_TEXTURE_2D
         bindTexture(0, target, textureId, 3)
         GLES20.glUniform1f(program.uniforms[4], intensity)
@@ -86,7 +88,8 @@ internal class GradePass(private val oes: Boolean) : GlPass(
             "uGreenH",
             "uGreenS",
             "uGreenL",
-            "uAspect"
+            "uAspect",
+            "uStabScale"
         )
 
         val BODY = """
