@@ -130,7 +130,6 @@
     <string name="debug_log_empty">Log is empty. Enable debug mode and take a few photos first</string>
     <string name="debug_log_copied">Debug log copied</string>
 
-    <string name="filter_cinematic">Cinematic</string>
     <string name="filter_custom_lut">Custom LUT</string>
     <string name="settings_lut">LUT filters</string>
     <string name="settings_lut_desc">Import .cube 3D LUT files (Blackmagic, PhotonCamera, etc.); select the "Custom LUT" filter to apply</string>
@@ -147,4 +146,5 @@
     <string name="settings_horizon">Horizon leveling</string>
     <string name="settings_horizon_desc">Auto-rotates the frame with the gyroscope to keep the horizon level (preview / video / photo)</string>
     <string name="install_permission_hint">Please allow "Install unknown apps", then return and tap Install again</string>
+    <string name="live_photo_saved">Live photo saved</string>
 </resources>

@@ -112,8 +112,7 @@ class GlFramePipelineImpl : GlFramePipeline {
     ) {
         if (inputWidth <= 0 || inputHeight <= 0 || outputWidth <= 0 || outputHeight <= 0) return
         frameSeed = (timestampNs % 997L).toFloat() * 0.001f
-        // 电影感滤镜在预览时也启用锐化，让效果所见即所得
-        sharpen = preset == FilterPreset.CINEMATIC
+        sharpen = false
         render(textureId, true, textureMatrix, inputWidth, inputHeight, outputWidth, outputHeight)
     }
 
@@ -197,7 +196,7 @@ class GlFramePipelineImpl : GlFramePipeline {
             baseWidth = outputWidth
             baseHeight = outputHeight
         } else if (sharpen) {
-            // 照片保存路径（未超分时）也做轻锐化，接近系统相机锐度；电影感滤镜锐化更强
+            // 照片保存路径（未超分时）也做轻锐化，接近系统相机锐度
             val rcasTarget = GlUtil.ensureFramebuffer(rcasBuffer, inputWidth, inputHeight)
             rcasBuffer = rcasTarget
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, rcasTarget.framebufferId)
@@ -206,7 +205,7 @@ class GlFramePipelineImpl : GlFramePipeline {
                 baseTexture,
                 1f / inputWidth,
                 1f / inputHeight,
-                if (preset == FilterPreset.CINEMATIC) CINEMATIC_SHARPNESS else SAVE_SHARPNESS
+                SAVE_SHARPNESS
             )
 
             baseTexture = rcasTarget.textureId
@@ -323,7 +322,6 @@ class GlFramePipelineImpl : GlFramePipeline {
         const val STABILIZATION_COVER = 1.18f
         const val SHARPNESS = 0.30f
         const val SAVE_SHARPNESS = 0.22f
-        const val CINEMATIC_SHARPNESS = 0.32f
         const val ORIGINAL_BLOOM = 0f
     }
 }

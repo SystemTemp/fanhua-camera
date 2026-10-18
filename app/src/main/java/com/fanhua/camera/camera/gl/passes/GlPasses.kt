@@ -141,7 +141,7 @@ internal class GradePass(private val oes: Boolean) : GlPass(
                 c *= uGain;
                 c += uShadowTint * (1.0 - smoothstep(0.0, 0.46, l));
                 c += uHighlightTint * smoothstep(0.54, 1.0, l);
-                // 高光/阴影独立压暗（电影感）
+                // 高光/阴影独立压暗
                 if (uHighlights != 0.0) {
                     c *= 1.0 + uHighlights * smoothstep(0.55, 1.0, l) * 0.40;
                 }

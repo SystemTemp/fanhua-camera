@@ -55,6 +55,7 @@ import com.fanhua.camera.camera.stabilize.GyroStabilizer
 import com.fanhua.camera.data.SettingsRepository
 import com.fanhua.camera.debug.DebugLog
 import com.fanhua.camera.lut.LutStore
+import com.fanhua.camera.media.MotionPhotoBuilder
 import com.fanhua.camera.media.PhotoProcessor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -113,6 +114,8 @@ class CameraXEngine(
     private var viewPortListenerAttached = false
     private var rotationListener: View.OnLayoutChangeListener? = null
     private var rotationListenerView: View? = null
+    private var livePhotoSource: Uri? = null
+    private var livePhotoReady = false
     private var glFilterDowngraded = false
     private var providerStarted = false
     private var probeStarted = false
@@ -173,6 +176,14 @@ class CameraXEngine(
             val report = withContext(Dispatchers.IO) { capabilityProbe.probe(lensFacing) }
             val previous = capability
             capability = report
+            val specs = buildVideoSpecs(report)
+            _state.update { current ->
+                val kept = current.selectedSpec?.let { sel -> specs.firstOrNull { it.width == sel.width && it.height == sel.height && it.fps == sel.fps } }
+                current.copy(
+                    availableSpecs = specs,
+                    selectedSpec = kept ?: specs.firstOrNull()
+                )
+            }
             val needRebind = _state.value.stabilizationEnabled &&
                 report.stabilizationModes.contains("ON") &&
                 !previous.stabilizationModes.contains("ON")
@@ -414,9 +425,13 @@ class CameraXEngine(
         useCases += previewUseCase
 
         if (needsVideo) {
-            val recorder = Recorder.Builder()
+            val recorderBuilder = Recorder.Builder()
                 .setQualitySelector(buildQualitySelector())
-                .build()
+            try {
+                recorderBuilder.setTargetVideoEncodingBitRate(buildBitRate())
+            } catch (e: Exception) {
+            }
+            val recorder = recorderBuilder.build()
             val videoBuilder = VideoCapture.Builder(recorder).setTargetRotation(rotation)
             if (stabilization) {
                 try {
@@ -625,10 +640,55 @@ class CameraXEngine(
         )
     }
 
+    private fun buildBitRate(): Int {
+        val spec = _state.value.selectedSpec
+        val height = spec?.height ?: when (buildQualitySelectorFallbackHeight()) {
+            2160 -> 2160
+            1080 -> 1080
+            else -> 720
+        }
+        val fps = spec?.fps?.coerceAtLeast(24) ?: 30
+        return when {
+            height >= 2160 -> (48_000_000L * fps / 30L).toInt()
+            height >= 1080 -> (16_000_000L * fps / 30L).toInt()
+            else -> (6_000_000L * fps / 30L).toInt()
+        }
+    }
+
+    private fun buildQualitySelectorFallbackHeight(): Int {
+        val spec = _state.value.selectedSpec
+        return when {
+            spec != null && spec.height >= 2160 -> 2160
+            spec != null && spec.height >= 1080 -> 1080
+            capability.fourK30Encode -> 2160
+            else -> 720
+        }
+    }
+
     private fun flashModeValue(mode: FlashMode): Int = when (mode) {
         FlashMode.AUTO -> ImageCapture.FLASH_MODE_AUTO
         FlashMode.ON -> ImageCapture.FLASH_MODE_ON
         FlashMode.OFF -> ImageCapture.FLASH_MODE_OFF
+    }
+
+    private fun buildVideoSpecs(report: com.fanhua.camera.camera.core.CapabilityReport): List<OutputSpec> {
+        val list = mutableListOf<OutputSpec>()
+        if (report.fourK60Encode) {
+            list += OutputSpec(3840, 2160, 60, false)
+        }
+        if (report.fourK30Encode) {
+            list += OutputSpec(3840, 2160, 30, false)
+        }
+        list += OutputSpec(1920, 1080, 60, false)
+        list += OutputSpec(1920, 1080, 30, false)
+        val maxFps = report.maxVideoFps
+        if (maxFps >= 120) {
+            list += OutputSpec(1280, 720, 120, false)
+        } else if (maxFps >= 60) {
+            list += OutputSpec(1280, 720, 60, false)
+        }
+        list += OutputSpec(1280, 720, 30, false)
+        return list.distinctBy { it.width to it.height to it.fps }
     }
 
     private fun applyFlash() {
@@ -897,28 +957,78 @@ class CameraXEngine(
                             }
                             file.delete()
                             if (uri != null) {
-                                _state.update { it.copy(captureCount = it.captureCount + 1) }
+                                livePhotoSource = uri
+                                livePhotoReady = true
                             }
                         }
                     }
 
                     override fun onError(exception: ImageCaptureException) {
                         file.delete()
+                        _state.update { it.copy(busy = false) }
                     }
                 }
             )
         } catch (e: Exception) {
             file.delete()
+            _state.update { it.copy(busy = false) }
         }
-        startRecording()
         livePhotoJob?.cancel()
+        startRecordingInternal(livePhoto = true)
         livePhotoJob = scope.launch {
             delay(LIVE_PHOTO_DURATION_MS)
             stopRecording()
         }
     }
 
+    private fun finalizeLivePhoto(videoUri: Uri) {
+        val source = livePhotoSource
+        livePhotoSource = null
+        livePhotoReady = false
+        if (source == null) {
+            return
+        }
+        scope.launch {
+            val uri = withContext(Dispatchers.IO) {
+                MotionPhotoBuilder.build(context, uriToFile(source), videoUri)
+            }
+            withContext(Dispatchers.IO) {
+                try {
+                    context.contentResolver.delete(source, null, null)
+                    context.contentResolver.delete(videoUri, null, null)
+                } catch (e: Exception) {
+                }
+            }
+            _state.update {
+                it.copy(
+                    busy = false,
+                    captureCount = if (uri != null) it.captureCount + 1 else it.captureCount
+                )
+            }
+            if (uri == null) {
+                setStatus(R.string.message_error_save, true)
+            } else {
+                setStatus(R.string.live_photo_saved, false)
+            }
+        }
+    }
+
+    private fun uriToFile(uri: Uri): File {
+        val file = File(context.cacheDir, "fanhua_live_merge_" + System.currentTimeMillis() + ".jpg")
+        try {
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                file.outputStream().use { output -> input.copyTo(output) }
+            }
+        } catch (e: Exception) {
+        }
+        return file
+    }
+
     override fun startRecording() {
+        startRecordingInternal(livePhoto = false)
+    }
+
+    private fun startRecordingInternal(livePhoto: Boolean = false) {
         if (_state.value.recording || recording != null) return
         val capture = videoCapture ?: return
         val name = "FH_" + System.currentTimeMillis() + ".mp4"
@@ -985,6 +1095,8 @@ class CameraXEngine(
 
             is VideoRecordEvent.Finalize -> {
                 recording = null
+                val live = livePhotoReady
+                livePhotoReady = false
                 _state.update { it.copy(recording = false, recordingDurationMs = 0L) }
                 if (event.error != VideoRecordEvent.Finalize.ERROR_NONE) {
                     event.outputResults.outputUri?.let { uri ->
@@ -993,7 +1105,31 @@ class CameraXEngine(
                         } catch (e: Exception) {
                         }
                     }
+                    if (live) {
+                        livePhotoSource?.let { src ->
+                            try {
+                                context.contentResolver.delete(src, null, null)
+                            } catch (e: Exception) {
+                            }
+                        }
+                        livePhotoSource = null
+                        _state.update { it.copy(busy = false) }
+                    }
                     setStatus(R.string.message_error_record, true)
+                } else if (live) {
+                    event.outputResults.outputUri?.let { uri ->
+                        finalizeLivePhoto(uri)
+                    } ?: run {
+                        livePhotoSource?.let { src ->
+                            try {
+                                context.contentResolver.delete(src, null, null)
+                            } catch (e: Exception) {
+                            }
+                        }
+                        livePhotoSource = null
+                        _state.update { it.copy(busy = false) }
+                        setStatus(R.string.message_error_record, true)
+                    }
                 } else {
                     setStatus(R.string.message_video_saved, false)
                 }
@@ -1011,10 +1147,12 @@ class CameraXEngine(
             try {
                 handle.stop()
             } catch (e: Exception) {
+                Log.e(TAG, "recording stop failed", e)
             }
             try {
                 handle.close()
             } catch (e: Exception) {
+                Log.e(TAG, "recording close failed", e)
             }
         }
         if (_state.value.recording) {
