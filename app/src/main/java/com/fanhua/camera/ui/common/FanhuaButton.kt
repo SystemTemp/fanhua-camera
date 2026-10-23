@@ -23,12 +23,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.fanhua.camera.ui.theme.FanhuaGold
-import com.fanhua.camera.ui.theme.FanhuaOutline
+import com.fanhua.camera.ui.theme.FanhuaGoldDeep
+import com.fanhua.camera.ui.theme.FanhuaStroke
 import com.fanhua.camera.ui.theme.FanhuaText
 
 enum class FanhuaButtonStyle { Outline, Solid }
@@ -50,29 +52,31 @@ fun FanhuaButton(
         label = "fanhuaButtonScale"
     )
     val shape = RoundedCornerShape(50)
-    val backgroundColor = if (style == FanhuaButtonStyle.Solid) FanhuaGold else Color.Transparent
-    val foregroundColor = if (style == FanhuaButtonStyle.Solid) MaterialTheme.colorScheme.onPrimary else FanhuaText
-    val outlineColor = if (style == FanhuaButtonStyle.Solid) Color.Transparent else FanhuaOutline
+    val solid = style == FanhuaButtonStyle.Solid
+    val foreground = if (solid) Color(0xFF231700) else FanhuaText
     Row(
         modifier = modifier
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
+                alpha = if (enabled) 1f else 0.45f
             }
             .clip(shape)
-            .background(if (enabled) backgroundColor else backgroundColor.copy(alpha = 0.35f))
-            .border(
-                1.dp,
-                if (enabled) outlineColor else outlineColor.copy(alpha = 0.45f),
-                shape
+            .background(
+                if (solid) {
+                    Brush.verticalGradient(listOf(FanhuaGold, FanhuaGoldDeep))
+                } else {
+                    Brush.verticalGradient(listOf(Color(0x1FFFFFFF), Color(0x0DFFFFFF)))
+                }
             )
+            .border(1.dp, if (solid) Color.Transparent else FanhuaStroke, shape)
             .clickable(
                 interactionSource = interaction,
                 indication = null,
                 enabled = enabled,
                 onClick = onClick
             )
-            .padding(horizontal = 20.dp, vertical = 11.dp),
+            .padding(horizontal = 22.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
@@ -80,14 +84,14 @@ fun FanhuaButton(
             Icon(
                 imageVector = leadingIcon,
                 contentDescription = null,
-                tint = foregroundColor,
+                tint = foreground,
                 modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
         }
         Text(
             text = text,
-            color = if (enabled) foregroundColor else foregroundColor.copy(alpha = 0.55f),
+            color = foreground,
             style = MaterialTheme.typography.labelLarge
         )
     }

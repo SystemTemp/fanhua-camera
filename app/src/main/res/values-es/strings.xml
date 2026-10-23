@@ -121,4 +121,5 @@
     <string name="download_done">Descarga completada</string>
     <string name="install_update">Instalar actualización</string>
     <string name="message_quality_reduced">Calidad reducida, la cámara sigue funcionando</string>
+    <string name="live_photo_saved">Foto en vivo guardada</string>
 </resources>

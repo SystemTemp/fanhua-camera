@@ -13,6 +13,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -63,6 +66,7 @@ import com.fanhua.camera.ui.common.FanhuaButton
 import com.fanhua.camera.ui.common.FanhuaButtonStyle
 import com.fanhua.camera.ui.common.FanhuaIcons
 import com.fanhua.camera.ui.common.FrostedPanel
+import com.fanhua.camera.ui.common.GlassIconButton
 import com.fanhua.camera.ui.gallery.GallerySheet
 import com.fanhua.camera.ui.settings.BugReportSheet
 import com.fanhua.camera.ui.settings.SettingsSheet
@@ -72,6 +76,7 @@ import com.fanhua.camera.ui.theme.FanhuaGold
 import com.fanhua.camera.ui.theme.FanhuaInk
 import com.fanhua.camera.ui.theme.FanhuaOutline
 import com.fanhua.camera.ui.theme.FanhuaRose
+import com.fanhua.camera.ui.theme.FanhuaStroke
 import com.fanhua.camera.ui.theme.FanhuaText
 import com.fanhua.camera.ui.theme.FanhuaTextDim
 
@@ -153,7 +158,7 @@ fun FanhuaCameraApp(controller: CameraController) {
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
-                .padding(top = 74.dp)
+                .padding(top = 80.dp)
         )
 
         if (state.recording) {
@@ -161,7 +166,7 @@ fun FanhuaCameraApp(controller: CameraController) {
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .statusBarsPadding()
-                    .padding(top = 74.dp)
+                    .padding(top = 80.dp)
             )
         }
 
@@ -195,17 +200,13 @@ fun FanhuaCameraApp(controller: CameraController) {
                     .align(Alignment.BottomEnd)
                     .navigationBarsPadding()
                     .padding(24.dp)
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Color(0x66000000))
-                    .clickable { controlsVisible = true },
-                contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = FanhuaIcons.Visibility,
+                GlassIconButton(
+                    icon = FanhuaIcons.Visibility,
                     contentDescription = stringResource(R.string.show_controls),
-                    tint = FanhuaText,
-                    modifier = Modifier.size(22.dp)
+                    onClick = { controlsVisible = true },
+                    buttonSize = 48.dp,
+                    iconSize = 21.dp
                 )
             }
         }
@@ -218,10 +219,6 @@ fun FanhuaCameraApp(controller: CameraController) {
                     )
                 }
             )
-        }
-
-        if (state.mode == CaptureMode.PRO && !state.ready) {
-            ModeNotice(textRes = R.string.pro_output_spec)
         }
     }
 
@@ -255,21 +252,21 @@ fun FanhuaCameraApp(controller: CameraController) {
 @Composable
 private fun CameraStartingOverlay(modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier.background(Color(0x7308090B)),
+        modifier = modifier.background(Color(0xA6000000)),
         contentAlignment = Alignment.Center
     ) {
         FrostedPanel(
-            cornerRadius = 20.dp,
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 18.dp)
+            cornerRadius = 28.dp,
+            contentPadding = PaddingValues(horizontal = 28.dp, vertical = 22.dp)
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 CircularProgressIndicator(
                     color = FanhuaGold,
                     trackColor = FanhuaOutline,
                     strokeWidth = 3.dp,
-                    modifier = Modifier.size(30.dp)
+                    modifier = Modifier.size(32.dp)
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
                 Text(
                     text = stringResource(R.string.camera_starting),
                     color = FanhuaText,
@@ -292,14 +289,25 @@ private fun StatusOverlay(
         exit = fadeOut(animationSpec = tween(320)),
         modifier = modifier
     ) {
-        FrostedPanel(
-            cornerRadius = 20.dp,
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 9.dp)
+        Row(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(Color(0xCC15161A))
+                .border(1.dp, FanhuaStroke, CircleShape)
+                .padding(horizontal = 18.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .clip(CircleShape)
+                    .background(if (isError) FanhuaRose else FanhuaGold)
+            )
+            Spacer(modifier = Modifier.width(9.dp))
             Text(
                 text = messageRes?.let { stringResource(it) } ?: "",
-                color = if (isError) FanhuaRose else FanhuaGold,
-                style = MaterialTheme.typography.labelLarge
+                color = FanhuaText,
+                style = MaterialTheme.typography.labelMedium
             )
         }
     }
@@ -314,27 +322,28 @@ private fun RecordingBadge(modifier: Modifier = Modifier) {
             pulse.animateTo(1f, tween(durationMillis = 620, easing = LinearEasing))
         }
     }
-    FrostedPanel(
-        modifier = modifier,
-        cornerRadius = 20.dp,
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+    Row(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(Color(0xCC15161A))
+            .border(1.dp, FanhuaStroke, CircleShape)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(
-                        color = FanhuaRose.copy(alpha = 0.35f + 0.65f * pulse.value),
-                        shape = CircleShape
-                    )
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = stringResource(R.string.message_recording_started),
-                color = FanhuaText,
-                style = MaterialTheme.typography.labelMedium
-            )
-        }
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(
+                    color = Color(0xFFFF453A).copy(alpha = 0.35f + 0.65f * pulse.value),
+                    shape = CircleShape
+                )
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = stringResource(R.string.message_recording_started),
+            color = FanhuaText,
+            style = MaterialTheme.typography.labelMedium
+        )
     }
 }
 
@@ -373,35 +382,53 @@ private fun PermissionGate(onRequest: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xF20A0B0D)),
+            .background(Color(0xF2000000)),
         contentAlignment = Alignment.Center
     ) {
-        FrostedPanel(
-            cornerRadius = 24.dp,
-            contentPadding = PaddingValues(horizontal = 26.dp, vertical = 24.dp)
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 30.dp)
+                .clip(RoundedCornerShape(32.dp))
+                .background(
+                    Brush.verticalGradient(listOf(Color(0xFF1B1C21), Color(0xFF0E0F12)))
+                )
+                .border(1.dp, FanhuaStroke, RoundedCornerShape(32.dp))
+                .padding(horizontal = 28.dp, vertical = 30.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(Color(0x1FFFFC53D)),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = stringResource(R.string.permission_title),
-                    color = FanhuaGold,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = stringResource(R.string.permission_message),
-                    color = FanhuaTextDim,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                FanhuaButton(
-                    text = stringResource(R.string.permission_grant),
-                    onClick = onRequest,
-                    style = FanhuaButtonStyle.Solid
+                Icon(
+                    imageVector = FanhuaIcons.Aperture,
+                    contentDescription = null,
+                    tint = FanhuaGold,
+                    modifier = Modifier.size(26.dp)
                 )
             }
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = stringResource(R.string.permission_title),
+                color = FanhuaText,
+                style = MaterialTheme.typography.titleLarge
+            )
+            Text(
+                text = stringResource(R.string.permission_message),
+                color = FanhuaTextDim,
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            FanhuaButton(
+                text = stringResource(R.string.permission_grant),
+                onClick = onRequest,
+                style = FanhuaButtonStyle.Solid
+            )
         }
     }
 }

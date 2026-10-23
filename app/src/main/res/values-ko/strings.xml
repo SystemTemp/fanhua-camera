@@ -121,4 +121,5 @@
     <string name="download_done">다운로드 완료</string>
     <string name="install_update">업데이트 설치</string>
     <string name="message_quality_reduced">화질이 낮아졌지만 카메라는 사용할 수 있습니다</string>
+    <string name="live_photo_saved">라이브 포토가 저장되었습니다</string>
 </resources>

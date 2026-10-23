@@ -1,19 +1,19 @@
 package com.fanhua.camera.ui.camera
 
-import android.view.SurfaceView
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,13 +26,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -40,7 +42,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.fanhua.camera.R
 import com.fanhua.camera.camera.core.CameraController
 import com.fanhua.camera.camera.core.CameraUiState
-import com.fanhua.camera.camera.core.CaptureMode
 import com.fanhua.camera.camera.core.CompositionHint
 import com.fanhua.camera.ui.theme.FanhuaGold
 import com.fanhua.camera.ui.theme.FanhuaText
@@ -92,7 +93,7 @@ fun Viewfinder(
                             focusProgress.snapTo(0f)
                             focusProgress.animateTo(
                                 targetValue = 1f,
-                                animationSpec = tween(durationMillis = 680, easing = LinearEasing)
+                                animationSpec = tween(durationMillis = 720, easing = LinearEasing)
                             )
                             focusPoint = null
                         }
@@ -101,7 +102,7 @@ fun Viewfinder(
         )
 
         focusPoint?.let { point ->
-            FocusRing(center = point, progress = { focusProgress.value })
+            FocusReticle(center = point, progress = { focusProgress.value })
         }
 
         val hint = state.compositionHint
@@ -112,7 +113,7 @@ fun Viewfinder(
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
-                .padding(bottom = 120.dp)
+                .padding(bottom = 130.dp)
         ) {
             ZoomHintOverlay(state = zoomHint)
         }
@@ -120,27 +121,50 @@ fun Viewfinder(
 }
 
 @Composable
-private fun FocusRing(
+private fun FocusReticle(
     center: Offset,
     progress: () -> Float
 ) {
     Box(
         modifier = Modifier
-            .size(88.dp)
+            .size(96.dp)
             .graphicsLayer {
                 val p = progress()
                 translationX = center.x - size.width / 2f
                 translationY = center.y - size.height / 2f
-                val s = 1.35f - 0.35f * p
+                val s = 1.3f - 0.3f * p
                 scaleX = s
                 scaleY = s
-                alpha = (1f - p) * 0.92f
+                alpha = (1f - p) * 0.95f
             }
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val outer = size.minDimension / 2f - 2f
-            drawCircle(color = Color(0xFFFFE0B2), radius = outer, style = Stroke(width = 2f))
-            drawCircle(color = Color(0x66FFE0B2), radius = outer - 9f, style = Stroke(width = 1f))
+            val inset = 6f
+            val arm = 18f
+            val radius = 14f
+            val stroke = Stroke(width = 3f)
+            val color = Color(0xFFFFC53D)
+            fun bracketPath(startX: Float, startY: Float, horizontalDir: Float, verticalDir: Float): Path {
+                return Path().apply {
+                    moveTo(startX + horizontalDir * (arm - radius), startY)
+                    lineTo(startX + horizontalDir * radius, startY)
+                    quadraticTo(startX, startY, startX, startY + verticalDir * radius)
+                    lineTo(startX, startY + verticalDir * (arm - radius))
+                }
+            }
+            val left = inset
+            val top = inset
+            val right = size.width - inset
+            val bottom = size.height - inset
+            drawPath(bracketPath(left, top, 1f, 1f), color, style = stroke)
+            drawPath(bracketPath(right, top, -1f, 1f), color, style = stroke)
+            drawPath(bracketPath(left, bottom, 1f, -1f), color, style = stroke)
+            drawPath(bracketPath(right, bottom, -1f, -1f), color, style = stroke)
+            drawCircle(
+                color = Color(0x66FFC53D),
+                radius = 2.5f,
+                center = Offset(size.width / 2f, size.height / 2f)
+            )
         }
     }
 }
@@ -159,15 +183,19 @@ private fun ZoomHintOverlay(state: MutableState<Float?>) {
             text = stringResource(R.string.zoom_label) + " " +
                 String.format(Locale.US, "%.1fx", value ?: 1f),
             color = FanhuaText,
-            style = MaterialTheme.typography.labelLarge
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .background(Color(0x66000000))
+                .padding(horizontal = 14.dp, vertical = 7.dp)
         )
     }
 }
 
 @Composable
 private fun CompositionGuide(hint: CompositionHint) {
-    val gridColor = Color(0x2EFFFFFF)
-    val guideColor = if (hint.aligned) FanhuaGold else Color(0xD9FFFFFF)
+    val gridColor = Color(0x24FFFFFF)
+    val guideColor = if (hint.aligned) FanhuaGold else Color(0xCCFFFFFF)
     Box(modifier = Modifier.fillMaxSize()) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val width = size.width
@@ -189,8 +217,8 @@ private fun CompositionGuide(hint: CompositionHint) {
                     color = guideColor,
                     topLeft = Offset(rect.left, rect.top),
                     size = Size(rect.width, rect.height),
-                    cornerRadius = CornerRadius(14f),
-                    style = Stroke(width = 2f)
+                    cornerRadius = CornerRadius(22f),
+                    style = Stroke(width = 2.5f)
                 )
             }
         }
@@ -202,7 +230,10 @@ private fun CompositionGuide(hint: CompositionHint) {
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 30.dp)
+                .padding(bottom = 120.dp)
+                .clip(RoundedCornerShape(50))
+                .background(Color(0x59000000))
+                .padding(horizontal = 14.dp, vertical = 7.dp)
         )
     }
 }

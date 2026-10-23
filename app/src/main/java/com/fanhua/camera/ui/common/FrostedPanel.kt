@@ -1,6 +1,5 @@
 package com.fanhua.camera.ui.common
 
-import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -17,48 +16,37 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.fanhua.camera.ui.theme.FanhuaGold
-import com.fanhua.camera.ui.theme.FanhuaOutline
+import com.fanhua.camera.ui.theme.FanhuaStroke
 
 @Composable
 fun FrostedPanel(
     modifier: Modifier = Modifier,
-    cornerRadius: Dp = 22.dp,
+    cornerRadius: Dp = 26.dp,
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
     content: @Composable ColumnScope.() -> Unit
 ) {
     val shape = RoundedCornerShape(cornerRadius)
-    Box(modifier = modifier.clip(shape)) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(20.dp) else Modifier)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color(0xE0101216), Color(0xCC14161A))
-                    )
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color(0x26FFFFFF), Color(0x0FFFFFFF), Color(0x14FFFFFF))
                 )
-        )
-        Column(modifier = Modifier.padding(contentPadding)) { content() }
-        Box(modifier = Modifier.matchParentSize()) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(Color.Transparent, Color(0x59FFFFFF), Color.Transparent)
-                        )
-                    )
             )
-        }
+            .border(
+                1.dp,
+                Brush.verticalGradient(listOf(Color(0x40FFFFFF), Color(0x0AFFFFFF))),
+                shape
+            )
+    ) {
+        Column(modifier = Modifier.padding(contentPadding)) { content() }
     }
 }
 
@@ -69,14 +57,18 @@ fun FrostedChip(
     content: @Composable RowScope.() -> Unit
 ) {
     val shape = RoundedCornerShape(50)
-    val background = if (selected) Color(0x33E8C39E) else Color(0x1AFFFFFF)
-    val outline = if (selected) FanhuaGold else FanhuaOutline
     Row(
         modifier = modifier
             .clip(shape)
-            .background(background)
-            .border(1.dp, outline, shape)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .background(
+                if (selected) Color(0x33FFC53D) else Color(0x14FFFFFF)
+            )
+            .border(
+                1.dp,
+                if (selected) FanhuaGold.copy(alpha = 0.85f) else FanhuaStroke,
+                shape
+            )
+            .padding(horizontal = 13.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = content
     )
@@ -90,7 +82,8 @@ fun FanhuaDivider(
     Box(
         modifier = modifier
             .width(width)
-            .height(1.dp)
+            .height(3.dp)
+            .clip(RoundedCornerShape(2.dp))
             .background(Color(0x33FFFFFF))
     )
 }

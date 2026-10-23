@@ -3,7 +3,6 @@ package com.fanhua.camera.ui.settings
 import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,16 +22,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,12 +53,18 @@ import com.fanhua.camera.lut.LutLoader
 import com.fanhua.camera.lut.LutStore
 import com.fanhua.camera.ui.common.FanhuaButton
 import com.fanhua.camera.ui.common.FanhuaButtonStyle
-import com.fanhua.camera.ui.common.FanhuaDivider
 import com.fanhua.camera.ui.common.FanhuaIcons
+import com.fanhua.camera.ui.common.GroupDivider
+import com.fanhua.camera.ui.common.HyperGroup
+import com.fanhua.camera.ui.common.HyperSheet
+import com.fanhua.camera.ui.common.InfoRow
+import com.fanhua.camera.ui.common.SectionHeader
+import com.fanhua.camera.ui.common.SelectableRow
+import com.fanhua.camera.ui.common.SheetHeader
+import com.fanhua.camera.ui.common.ToggleRow
+import com.fanhua.camera.ui.common.ValueRow
 import com.fanhua.camera.ui.theme.FanhuaGold
-import com.fanhua.camera.ui.theme.FanhuaOutline
 import com.fanhua.camera.ui.theme.FanhuaRose
-import com.fanhua.camera.ui.theme.FanhuaSurface
 import com.fanhua.camera.ui.theme.FanhuaText
 import com.fanhua.camera.ui.theme.FanhuaTextDim
 import kotlinx.coroutines.Dispatchers
@@ -75,7 +73,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsSheet(
     visible: Boolean,
@@ -87,7 +84,6 @@ fun SettingsSheet(
     if (!visible) return
     val state by controller.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     var language by remember { mutableStateOf(LocaleManager.storedTag(context)) }
     val updateController = remember { UpdateController(context, scope) }
@@ -108,7 +104,6 @@ fun SettingsSheet(
                 if (savedName != null) {
                     LutStore.select(context, savedName)
                     settingsRepository.setLutPath(savedName)
-                    // 若当前正使用自定义 LUT，刷新实时预览
                     controller.setPreset(FilterPreset.CUSTOM_LUT)
                     lutNames = LutStore.listNames(context)
                     selectedLut = LutStore.path
@@ -120,139 +115,116 @@ fun SettingsSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = FanhuaSurface,
-        scrimColor = Color(0xB3000000),
-        dragHandle = null
-    ) {
+    HyperSheet(onDismiss = onDismiss) {
+        SheetHeader(
+            title = stringResource(R.string.settings_title),
+            icon = FanhuaIcons.Settings,
+            onDismiss = onDismiss
+        )
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .navigationBarsPadding()
+                .padding(horizontal = 18.dp)
         ) {
-            Spacer(modifier = Modifier.height(18.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = FanhuaIcons.Settings,
-                    contentDescription = null,
-                    tint = FanhuaGold,
-                    modifier = Modifier.size(18.dp)
+            SectionHeader(stringResource(R.string.settings_language))
+            HyperGroup {
+                SelectableRow(
+                    label = stringResource(R.string.settings_language_system),
+                    selected = language == LocaleManager.SYSTEM,
+                    onClick = {
+                        language = LocaleManager.SYSTEM
+                        LocaleManager.apply(context, LocaleManager.SYSTEM)
+                    }
                 )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = stringResource(R.string.settings_title),
-                    color = FanhuaText,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .clickable(onClick = onDismiss),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = FanhuaIcons.Close,
-                        contentDescription = stringResource(R.string.action_close),
-                        tint = FanhuaTextDim,
-                        modifier = Modifier.size(15.dp)
+                LocaleManager.supportedTags.forEach { tag ->
+                    GroupDivider()
+                    SelectableRow(
+                        label = nativeName(tag),
+                        selected = language == tag,
+                        onClick = {
+                            language = tag
+                            LocaleManager.apply(context, tag)
+                        }
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(14.dp))
-            FanhuaDivider(width = 46.dp)
-            Spacer(modifier = Modifier.height(16.dp))
 
-            SectionTitle(stringResource(R.string.settings_language))
-            Spacer(modifier = Modifier.height(10.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                LanguageRow(
-                    label = stringResource(R.string.settings_language_system),
-                    selected = language == LocaleManager.SYSTEM
+            Spacer(modifier = Modifier.height(20.dp))
+            SectionHeader(stringResource(R.string.settings_filter_intensity))
+            HyperGroup {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    language = LocaleManager.SYSTEM
-                    LocaleManager.apply(context, LocaleManager.SYSTEM)
-                }
-                LocaleManager.supportedTags.forEach { tag ->
-                    LanguageRow(
-                        label = nativeName(tag),
-                        selected = language == tag
-                    ) {
-                        language = tag
-                        LocaleManager.apply(context, tag)
-                    }
+                    Slider(
+                        value = state.filterIntensity,
+                        onValueChange = controller::setFilterIntensity,
+                        valueRange = 0f..1f,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "${(state.filterIntensity * 100).toInt()}%",
+                        color = FanhuaGold,
+                        style = MaterialTheme.typography.labelMedium
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(22.dp))
-            SectionTitle(stringResource(R.string.settings_filter_intensity))
-            Spacer(modifier = Modifier.height(4.dp))
-            Slider(
-                value = state.filterIntensity,
-                onValueChange = controller::setFilterIntensity,
-                valueRange = 0f..1f
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-            ToggleRow(
-                title = stringResource(R.string.settings_stabilization),
-                description = stringResource(R.string.settings_stabilization_desc),
-                checked = state.stabilizationEnabled,
-                onCheckedChange = controller::setStabilizationEnabled
-            )
-            ToggleRow(
-                title = stringResource(R.string.settings_horizon),
-                description = stringResource(R.string.settings_horizon_desc),
-                checked = state.horizonEnabled,
-                onCheckedChange = controller::setHorizonEnabled
-            )
-            ToggleRow(
-                title = stringResource(R.string.settings_superres),
-                description = stringResource(R.string.settings_superres_desc),
-                checked = state.superResEnabled,
-                onCheckedChange = controller::setSuperResEnabled
-            )
-            ToggleRow(
-                title = stringResource(R.string.settings_autocomposition),
-                description = stringResource(R.string.settings_autocomposition_desc),
-                checked = state.autoCompositionEnabled,
-                onCheckedChange = controller::setAutoCompositionEnabled
-            )
-
-            Spacer(modifier = Modifier.height(22.dp))
-            SectionTitle(stringResource(R.string.settings_capability))
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = stringResource(R.string.settings_capability_desc),
-                color = FanhuaTextDim,
-                style = MaterialTheme.typography.labelSmall
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            CapabilityBlock(capability)
-
-            Spacer(modifier = Modifier.height(22.dp))
-            SectionTitle(stringResource(R.string.settings_lut))
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = stringResource(R.string.settings_lut_desc),
-                color = FanhuaTextDim,
-                style = MaterialTheme.typography.labelSmall
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            if (lutNames.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.lut_none),
-                    color = FanhuaTextDim,
-                    style = MaterialTheme.typography.bodyMedium
+            Spacer(modifier = Modifier.height(20.dp))
+            SectionHeader(stringResource(R.string.capability_stabilization))
+            HyperGroup {
+                ToggleRow(
+                    title = stringResource(R.string.settings_stabilization),
+                    description = stringResource(R.string.settings_stabilization_desc),
+                    checked = state.stabilizationEnabled,
+                    onCheckedChange = controller::setStabilizationEnabled
                 )
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    lutNames.forEach { name ->
+                GroupDivider()
+                ToggleRow(
+                    title = stringResource(R.string.settings_horizon),
+                    description = stringResource(R.string.settings_horizon_desc),
+                    checked = state.horizonEnabled,
+                    onCheckedChange = controller::setHorizonEnabled
+                )
+                GroupDivider()
+                ToggleRow(
+                    title = stringResource(R.string.settings_superres),
+                    description = stringResource(R.string.settings_superres_desc),
+                    checked = state.superResEnabled,
+                    onCheckedChange = controller::setSuperResEnabled
+                )
+                GroupDivider()
+                ToggleRow(
+                    title = stringResource(R.string.settings_autocomposition),
+                    description = stringResource(R.string.settings_autocomposition_desc),
+                    checked = state.autoCompositionEnabled,
+                    onCheckedChange = controller::setAutoCompositionEnabled
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+            SectionHeader(stringResource(R.string.settings_capability))
+            HyperGroup {
+                CapabilityRows(capability)
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+            SectionHeader(stringResource(R.string.settings_lut))
+            HyperGroup {
+                if (lutNames.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.lut_none),
+                        color = FanhuaTextDim,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+                    )
+                } else {
+                    lutNames.forEachIndexed { index, name ->
+                        if (index > 0) GroupDivider()
                         LutRow(
                             name = name,
                             selected = name == selectedLut,
@@ -279,6 +251,13 @@ fun SettingsSheet(
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = stringResource(R.string.settings_lut_desc),
+                color = FanhuaTextDim,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(horizontal = 6.dp)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
             FanhuaButton(
                 text = stringResource(R.string.lut_import),
                 onClick = {
@@ -287,50 +266,45 @@ fun SettingsSheet(
                     )
                 },
                 style = FanhuaButtonStyle.Outline,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = FanhuaIcons.ArrowDown
             )
             lutNote?.let { note ->
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = note,
                     color = FanhuaGold,
-                    style = MaterialTheme.typography.labelSmall
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = 6.dp)
                 )
             }
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = stringResource(R.string.lut_use_tip),
-                color = FanhuaTextDim,
-                style = MaterialTheme.typography.labelSmall
-            )
 
-            Spacer(modifier = Modifier.height(22.dp))
-            SectionTitle(stringResource(R.string.settings_debug))
-            Spacer(modifier = Modifier.height(4.dp))
-            ToggleRow(
-                title = stringResource(R.string.settings_debug),
-                description = stringResource(R.string.settings_debug_desc),
-                checked = debugEnabled,
-                onCheckedChange = { value ->
-                    debugEnabled = value
-                    DebugLog.enabled = value
-                    debugNote = null
-                    scope.launch { settingsRepository.setDebugEnabled(value) }
-                }
-            )
+            Spacer(modifier = Modifier.height(20.dp))
+            SectionHeader(stringResource(R.string.settings_debug))
+            HyperGroup {
+                ToggleRow(
+                    title = stringResource(R.string.settings_debug),
+                    description = stringResource(R.string.settings_debug_desc),
+                    checked = debugEnabled,
+                    onCheckedChange = { value ->
+                        debugEnabled = value
+                        DebugLog.enabled = value
+                        debugNote = null
+                        scope.launch { settingsRepository.setDebugEnabled(value) }
+                    }
+                )
+            }
             debugNote?.let { note ->
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = note,
                     color = FanhuaGold,
-                    style = MaterialTheme.typography.labelSmall
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = 6.dp)
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 FanhuaButton(
                     text = stringResource(R.string.debug_copy_log),
                     onClick = {
@@ -356,40 +330,42 @@ fun SettingsSheet(
                 )
             }
 
-            Spacer(modifier = Modifier.height(22.dp))
-            SectionTitle(stringResource(R.string.settings_about))
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+            SectionHeader(stringResource(R.string.settings_about))
+            HyperGroup {
+                ValueRow(
+                    label = stringResource(R.string.author),
+                    value = "SystemTemp",
+                    onClick = { openUrl(context, "https://github.com/SystemTemp") }
+                )
+                GroupDivider()
+                ValueRow(
+                    label = stringResource(R.string.open_source),
+                    value = "fanhua-camera",
+                    onClick = { openUrl(context, "https://github.com/SystemTemp/fanhua-camera") }
+                )
+                GroupDivider()
+                ValueRow(
+                    label = stringResource(R.string.check_update),
+                    value = updateController.currentVersion,
+                    onClick = { updateController.check() }
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = stringResource(R.string.settings_about_desc),
                 color = FanhuaTextDim,
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(horizontal = 6.dp)
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
-            AboutRow(
-                label = stringResource(R.string.author),
-                value = "SystemTemp",
-                onClick = { openUrl(context, "https://github.com/SystemTemp") }
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            AboutRow(
-                label = stringResource(R.string.open_source),
-                value = "fanhua-camera",
-                onClick = { openUrl(context, "https://github.com/SystemTemp/fanhua-camera") }
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            AboutRow(
-                label = stringResource(R.string.check_update),
-                value = updateController.currentVersion,
-                onClick = { updateController.check() }
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(18.dp))
             FanhuaButton(
                 text = stringResource(R.string.bug_feedback),
                 onClick = onBugReport,
-                style = FanhuaButtonStyle.Solid,
-                modifier = Modifier.fillMaxWidth()
+                style = FanhuaButtonStyle.Outline,
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = FanhuaIcons.Feedback
             )
             Spacer(modifier = Modifier.height(28.dp))
         }
@@ -403,48 +379,11 @@ fun SettingsSheet(
     )
 }
 
-@Composable
-private fun AboutRow(
-    label: String,
-    value: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color(0x14FFFFFF))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            color = FanhuaTextDim,
-            style = MaterialTheme.typography.labelMedium
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = value,
-            color = FanhuaGold,
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Spacer(modifier = Modifier.weight(1f))
-        Icon(
-            imageVector = FanhuaIcons.ArrowRight,
-            contentDescription = null,
-            tint = FanhuaTextDim,
-            modifier = Modifier.size(14.dp)
-        )
-    }
-}
-
 private fun importLut(context: android.content.Context, uri: Uri): String? {
     return try {
         val displayName = queryDisplayName(context, uri)
             ?: (uri.lastPathSegment?.substringAfterLast('/') ?: "lut.cube")
         val clean = displayName.ifBlank { "lut.cube" }
-        // 先验证文件可解析
         context.contentResolver.openInputStream(uri)?.use { LutLoader.parse(it) }
             ?: return null
         val file = uniqueLutFile(LutStore.dir(context), clean)
@@ -494,10 +433,8 @@ private fun LutRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) Color(0x22E8C39E) else Color(0x0FFFFFFF))
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -513,16 +450,17 @@ private fun LutRow(
                 tint = FanhuaGold,
                 modifier = Modifier.size(15.dp)
             )
+            Spacer(modifier = Modifier.width(10.dp))
         }
-        Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = stringResource(R.string.lut_remove),
             color = FanhuaRose,
             style = MaterialTheme.typography.labelSmall,
             modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(50))
+                .background(Color(0x1FFF6F5E))
                 .clickable { onRemove() }
-                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .padding(horizontal = 10.dp, vertical = 5.dp)
         )
     }
 }
@@ -535,89 +473,7 @@ private fun openUrl(context: android.content.Context, url: String) {
 }
 
 @Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        color = FanhuaGold,
-        style = MaterialTheme.typography.titleMedium
-    )
-}
-
-@Composable
-private fun LanguageRow(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    val shape = RoundedCornerShape(12.dp)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(if (selected) Color(0x22E8C39E) else Color(0x0FFFFFFF))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 11.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            color = if (selected) FanhuaGold else FanhuaText,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f)
-        )
-        if (selected) {
-            Icon(
-                imageVector = FanhuaIcons.Check,
-                contentDescription = null,
-                tint = FanhuaGold,
-                modifier = Modifier.size(15.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun ToggleRow(
-    title: String,
-    description: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                color = FanhuaText,
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = description,
-                color = FanhuaTextDim,
-                style = MaterialTheme.typography.labelSmall
-            )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                checkedTrackColor = FanhuaGold,
-                uncheckedThumbColor = FanhuaTextDim,
-                uncheckedTrackColor = FanhuaOutline
-            )
-        )
-    }
-}
-
-@Composable
-private fun CapabilityBlock(capability: CapabilityReport) {
+private fun CapabilityRows(capability: CapabilityReport) {
     val rows = buildList {
         add(
             stringResource(R.string.capability_max_video) to
@@ -627,18 +483,10 @@ private fun CapabilityBlock(capability: CapabilityReport) {
                     stringResource(R.string.value_none)
                 }
         )
-        add(
-            stringResource(R.string.capability_encode_4k30) to yesNo(capability.fourK30Encode)
-        )
-        add(
-            stringResource(R.string.capability_encode_4k60) to yesNo(capability.fourK60Encode)
-        )
-        add(
-            stringResource(R.string.capability_encode_4k120) to yesNo(capability.fourK120Encode)
-        )
-        add(
-            stringResource(R.string.capability_hevc) to yesNo(capability.hevcSupported)
-        )
+        add(stringResource(R.string.capability_encode_4k30) to yesNo(capability.fourK30Encode))
+        add(stringResource(R.string.capability_encode_4k60) to yesNo(capability.fourK60Encode))
+        add(stringResource(R.string.capability_encode_4k120) to yesNo(capability.fourK120Encode))
+        add(stringResource(R.string.capability_hevc) to yesNo(capability.hevcSupported))
         add(
             stringResource(R.string.capability_highspeed) to
                 if (capability.highSpeedProfiles.isEmpty()) {
@@ -670,52 +518,25 @@ private fun CapabilityBlock(capability: CapabilityReport) {
             )
         }
     }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0x14FFFFFF))
-            .padding(horizontal = 14.dp, vertical = 6.dp)
-    ) {
-        rows.forEachIndexed { index, row ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+    rows.forEachIndexed { index, row ->
+        if (index > 0) GroupDivider()
+        InfoRow(label = row.first, value = row.second)
+    }
+    if (capability.notes.isNotEmpty()) {
+        GroupDivider()
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Text(
+                text = stringResource(R.string.capability_notes),
+                color = FanhuaTextDim,
+                style = MaterialTheme.typography.labelSmall
+            )
+            capability.notes.forEach { note ->
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = row.first,
-                    color = FanhuaTextDim,
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    text = row.second,
-                    color = FanhuaGold,
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
-            if (index != rows.lastIndex) {
-                HorizontalDivider(color = Color(0x1AFFFFFF))
-            }
-        }
-        if (capability.notes.isNotEmpty()) {
-            HorizontalDivider(color = Color(0x1AFFFFFF))
-            Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                Text(
-                    text = stringResource(R.string.capability_notes),
-                    color = FanhuaTextDim,
+                    text = note,
+                    color = FanhuaRose,
                     style = MaterialTheme.typography.labelSmall
                 )
-                capability.notes.forEach { note ->
-                    Spacer(modifier = Modifier.height(3.dp))
-                    Text(
-                        text = note,
-                        color = FanhuaRose,
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
             }
         }
     }

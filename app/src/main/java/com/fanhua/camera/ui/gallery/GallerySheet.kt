@@ -62,8 +62,10 @@ import com.fanhua.camera.camera.core.CameraController
 import com.fanhua.camera.media.PhotoProcessor
 import com.fanhua.camera.ui.common.FanhuaButton
 import com.fanhua.camera.ui.common.FanhuaButtonStyle
-import com.fanhua.camera.ui.common.FanhuaDivider
 import com.fanhua.camera.ui.common.FanhuaIcons
+import com.fanhua.camera.ui.common.HyperConfirmDialog
+import com.fanhua.camera.ui.common.HyperSheet
+import com.fanhua.camera.ui.common.SheetHeader
 import com.fanhua.camera.ui.theme.FanhuaGold
 import com.fanhua.camera.ui.theme.FanhuaSurface
 import com.fanhua.camera.ui.theme.FanhuaText
@@ -86,7 +88,6 @@ fun GallerySheet(
 ) {
     if (!visible) return
     val context = LocalContext.current
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     var entries by remember { mutableStateOf<List<MediaEntry>>(emptyList()) }
     var selected by remember { mutableStateOf<MediaEntry?>(null) }
@@ -102,53 +103,17 @@ fun GallerySheet(
         if (visible) reload()
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = FanhuaSurface,
-        scrimColor = Color(0xB3000000),
-        dragHandle = null
-    ) {
+    HyperSheet(onDismiss = onDismiss) {
+        SheetHeader(
+            title = stringResource(R.string.gallery_title),
+            icon = FanhuaIcons.Gallery,
+            onDismiss = onDismiss
+        )
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .navigationBarsPadding()
+                .padding(horizontal = 18.dp)
         ) {
-            Spacer(modifier = Modifier.height(18.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = FanhuaIcons.Gallery,
-                    contentDescription = null,
-                    tint = FanhuaGold,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = stringResource(R.string.gallery_title),
-                    color = FanhuaText,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .clickable(onClick = onDismiss),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = FanhuaIcons.Close,
-                        contentDescription = stringResource(R.string.action_close),
-                        tint = FanhuaTextDim,
-                        modifier = Modifier.size(15.dp)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(14.dp))
-            FanhuaDivider(width = 46.dp)
-            Spacer(modifier = Modifier.height(16.dp))
-
             if (entries.isEmpty()) {
                 Box(
                     modifier = Modifier
@@ -234,34 +199,22 @@ fun GallerySheet(
     }
 
     if (confirmDelete && current != null) {
-        AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            containerColor = FanhuaSurface,
-            title = {
-                Text(text = stringResource(R.string.confirm_delete_title), color = FanhuaText)
-            },
-            text = {
-                Text(text = stringResource(R.string.confirm_delete_message), color = FanhuaTextDim)
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmDelete = false
-                    scope.launch {
-                        withContext(Dispatchers.IO) {
-                            deleteEntry(context, current.uri)
-                        }
-                        selected = null
-                        reload()
+        HyperConfirmDialog(
+            title = stringResource(R.string.confirm_delete_title),
+            message = stringResource(R.string.confirm_delete_message),
+            confirmText = stringResource(R.string.action_confirm),
+            dismissText = stringResource(R.string.action_cancel),
+            onConfirm = {
+                confirmDelete = false
+                scope.launch {
+                    withContext(Dispatchers.IO) {
+                        deleteEntry(context, current.uri)
                     }
-                }) {
-                    Text(text = stringResource(R.string.action_confirm), color = FanhuaGold)
+                    selected = null
+                    reload()
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) {
-                    Text(text = stringResource(R.string.action_cancel), color = FanhuaTextDim)
-                }
-            }
+            onDismiss = { confirmDelete = false }
         )
     }
 }
@@ -277,7 +230,6 @@ private fun PreviewSheet(
     onOpenSystem: () -> Unit
 ) {
     val context = LocalContext.current
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val image by produceState<ImageBitmap?>(initialValue = null, key1 = entry.uri) {
         value = if (entry.isVideo) {
             null
@@ -288,25 +240,18 @@ private fun PreviewSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = FanhuaSurface,
-        scrimColor = Color(0xB3000000),
-        dragHandle = null
-    ) {
+    HyperSheet(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
+                .padding(horizontal = 18.dp)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = 420.dp)
-                    .padding(horizontal = 20.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0x12000000)),
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color(0x14FFFFFF)),
                 contentAlignment = Alignment.Center
             ) {
                 val bitmap = image
@@ -373,7 +318,7 @@ private fun GalleryCell(
     Box(
         modifier = Modifier
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(Color(0x1AFFFFFF))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
