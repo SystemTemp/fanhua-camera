@@ -10,8 +10,16 @@ import android.provider.MediaStore
 import android.util.Size
 import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,6 +59,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -90,7 +100,7 @@ fun GallerySheet(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var entries by remember { mutableStateOf<List<MediaEntry>>(emptyList()) }
-    var selected by remember { mutableStateOf<MediaEntry?>(null) }
+    var selectedIndex by remember { mutableStateOf<Int?>(null) }
     var processing by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     val photoProcessor = remember { PhotoProcessor(context) }
@@ -138,7 +148,10 @@ fun GallerySheet(
                     contentPadding = PaddingValues(bottom = 20.dp)
                 ) {
                     items(entries, key = { it.uri.toString() }) { entry ->
-                        GalleryCell(entry = entry, onClick = { selected = entry })
+                        GalleryCell(
+                            entry = entry,
+                            onClick = { selectedIndex = entries.indexOf(entry) }
+                        )
                     }
                 }
             }
@@ -146,12 +159,17 @@ fun GallerySheet(
         }
     }
 
-    val current = selected
-    if (current != null) {
+    val current = selectedIndex?.let { entries.getOrNull(it) }
+    if (current != null && selectedIndex != null) {
         PreviewSheet(
-            entry = current,
+            entries = entries,
+            initialIndex = selectedIndex ?: 0,
             processing = processing,
-            onDismiss = { selected = null },
+            onDismiss = { selectedIndex = null },
+            onIndexChange = {
+                selectedIndex = it
+                processing = false
+            },
             onDelete = { confirmDelete = true },
             onReprocess = {
                 if (current.isVideo || processing) return@PreviewSheet
@@ -210,7 +228,7 @@ fun GallerySheet(
                     withContext(Dispatchers.IO) {
                         deleteEntry(context, current.uri)
                     }
-                    selected = null
+                    selectedIndex = null
                     reload()
                 }
             },
@@ -222,22 +240,20 @@ fun GallerySheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PreviewSheet(
-    entry: MediaEntry,
+    entries: List<MediaEntry>,
+    initialIndex: Int,
     processing: Boolean,
     onDismiss: () -> Unit,
+    onIndexChange: (Int) -> Unit,
     onDelete: () -> Unit,
     onReprocess: () -> Unit,
     onOpenSystem: () -> Unit
 ) {
-    val context = LocalContext.current
-    val image by produceState<ImageBitmap?>(initialValue = null, key1 = entry.uri) {
-        value = if (entry.isVideo) {
-            null
-        } else {
-            withContext(Dispatchers.IO) {
-                decodeSampled(context, entry.uri, 1400)?.asImageBitmap()
-            }
-        }
+    var index by remember(initialIndex) { mutableStateOf(initialIndex) }
+    val entry = entries.getOrNull(index) ?: entries.firstOrNull() ?: return
+    val threshold = with(LocalDensity.current) { 56.dp.toPx() }
+    LaunchedEffect(index) {
+        onIndexChange(index)
     }
 
     HyperSheet(onDismiss = onDismiss) {
@@ -246,30 +262,40 @@ private fun PreviewSheet(
                 .fillMaxWidth()
                 .padding(horizontal = 18.dp)
         ) {
-            Box(
+            AnimatedContent(
+                targetState = index,
+                transitionSpec = {
+                    if (targetState > initialState) {
+                        (slideInHorizontally(tween(durationMillis = 240)) { it / 3 } + fadeIn(tween(240))) togetherWith
+                            (slideOutHorizontally(tween(durationMillis = 220)) { -it / 3 } + fadeOut(tween(200)))
+                    } else {
+                        (slideInHorizontally(tween(durationMillis = 240)) { -it / 3 } + fadeIn(tween(240))) togetherWith
+                            (slideOutHorizontally(tween(durationMillis = 220)) { it / 3 } + fadeOut(tween(200)))
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 420.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0x14FFFFFF)),
-                contentAlignment = Alignment.Center
-            ) {
-                val bitmap = image
-                if (bitmap != null) {
-                    Image(
-                        bitmap = bitmap,
-                        contentDescription = null,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else {
-                    Icon(
-                        imageVector = if (entry.isVideo) FanhuaIcons.Play else FanhuaIcons.Gallery,
-                        contentDescription = null,
-                        tint = FanhuaTextDim,
-                        modifier = Modifier.size(48.dp)
-                    )
-                }
+                    .pointerInput(entries.size) {
+                        var total = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = { total = 0f },
+                            onDragEnd = {
+                                if (total < -threshold && index < entries.size - 1) {
+                                    index += 1
+                                } else if (total > threshold && index > 0) {
+                                    index -= 1
+                                }
+                                total = 0f
+                            },
+                            onDragCancel = { total = 0f }
+                        ) { change, amount ->
+                            total += amount
+                            change.consume()
+                        }
+                    },
+                label = "previewSwipe"
+            ) { target ->
+                PreviewImage(entry = entries.getOrNull(target) ?: entry)
             }
             Spacer(modifier = Modifier.height(18.dp))
             Row(
@@ -302,6 +328,45 @@ private fun PreviewSheet(
                 )
             }
             Spacer(modifier = Modifier.height(22.dp))
+        }
+    }
+}
+
+@Composable
+private fun PreviewImage(entry: MediaEntry) {
+    val context = LocalContext.current
+    val image by produceState<ImageBitmap?>(initialValue = null, key1 = entry.uri) {
+        value = if (entry.isVideo) {
+            null
+        } else {
+            withContext(Dispatchers.IO) {
+                decodeSampled(context, entry.uri, 1400)?.asImageBitmap()
+            }
+        }
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = 420.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color(0x14FFFFFF)),
+        contentAlignment = Alignment.Center
+    ) {
+        val bitmap = image
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap,
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxWidth()
+            )
+        } else {
+            Icon(
+                imageVector = if (entry.isVideo) FanhuaIcons.Play else FanhuaIcons.Gallery,
+                contentDescription = null,
+                tint = FanhuaTextDim,
+                modifier = Modifier.size(48.dp)
+            )
         }
     }
 }

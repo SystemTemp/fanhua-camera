@@ -5,11 +5,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/**
- * 调试日志（纯记录，不影响任何功能）。
- * 打开设置里的「调试模式」后，拍照/处理/渲染管线会在关键节点记录参数，
- * 用户可在设置里一键复制全部日志发给开发者定位问题。
- */
 object DebugLog {
 
     @Volatile

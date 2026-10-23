@@ -12,15 +12,14 @@ android {
         applicationId = "com.fanhua.camera"
         minSdk = 26
         targetSdk = 34
-        versionCode = 21
-        versionName = "0.1.20-beta"
+        versionCode = 22
+        versionName = "0.1.21-beta"
         vectorDrawables {
             useSupportLibrary = true
         }
     }
 
     signingConfigs {
-        // 固定签名（所有版本统一，保证可覆盖安装升级）
         create("release") {
             storeFile = rootProject.file("signing/fanhua-release.p12")
             storePassword = "fanhua2026"

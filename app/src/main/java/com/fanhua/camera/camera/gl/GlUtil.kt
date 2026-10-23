@@ -53,8 +53,11 @@ object GlUtil {
             float ang = atan(uStabMatrix[0][1], uStabMatrix[0][0]);
             float ca = cos(ang);
             float sa = sin(ang);
-            float scale = uStabScale / max(uCrop, 0.5);
-            vec2 pos = mat2(ca, sa, -sa, ca) * (aPosition.xy * scale);
+            float scale = uStabScale * max(uCrop, 1.0);
+            vec2 pos = aPosition.xy * scale;
+            pos.x *= uAspect;
+            pos = mat2(ca, sa, -sa, ca) * pos;
+            pos.x /= uAspect;
             gl_Position = vec4(pos, aPosition.z, aPosition.w);
             vec2 uv = aTexCoord + vec2(uStabMatrix[2][0], uStabMatrix[2][1]);
             vTexCoord = (uTexMatrix * vec4(uv, 0.0, 1.0)).xy;
@@ -190,11 +193,6 @@ object GlUtil {
         return texture
     }
 
-    /**
-     * 把 3D LUT 编码为 2D 网格纹理（GLES2 兼容）。
-     * 网格布局：grid = ceil(sqrt(size))，纹理尺寸 = grid*size 见方。
-     * 每个网格 = 一个 B 层（NxN），网格内 X=R、Y=G。
-     */
     fun createLutTexture(lut: LutData): Int {
         val grid = ceil(sqrt(lut.size.toFloat())).toInt()
         val side = grid * lut.size
@@ -215,7 +213,7 @@ object GlUtil {
                         bytes.put(rv.toByte())
                         bytes.put(gv.toByte())
                         bytes.put(bv.toByte())
-                        bytes.put((-1).toByte()) // A=255
+                        bytes.put((-1).toByte())
                     }
                 }
             }

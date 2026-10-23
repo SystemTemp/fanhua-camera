@@ -4,10 +4,6 @@ import android.content.Context
 import com.fanhua.camera.debug.DebugLog
 import java.io.File
 
-/**
- * 3D LUT 数据（.cube），size=每维度采样点数，data 为 size^3*3 的 RGB 序列。
- * 索引顺序遵循 Adobe .cube 规范：b 最慢、g 次之、r 最快。
- */
 class LutData(
     val size: Int,
     val data: FloatArray,
@@ -15,9 +11,6 @@ class LutData(
     val domainMax: FloatArray = floatArrayOf(1f, 1f, 1f)
 )
 
-/**
- * 当前选中的 LUT 缓存（内存 + 磁盘持久化文件名）。
- */
 object LutStore {
 
     @Volatile

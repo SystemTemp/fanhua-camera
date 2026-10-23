@@ -10,9 +10,14 @@
     <string name="filter_original">原图</string>
     <string name="filter_dream">繁花如梦</string>
     <string name="filter_leica">徕卡一瞬</string>
-    <string name="filter_leica_mono">徕卡黑白</string>
+    <string name="filter_leica_vivid">徕卡鲜艳</string>
+    <string name="filter_leica_natural">徕卡自然</string>
+    <string name="filter_leica_mono">徕卡单色</string>
+    <string name="filter_leica_bw_hc">徕卡单色HC</string>
+    <string name="filter_leica_brown">徕卡漂棕</string>
+    <string name="filter_leica_bw_blue">徕卡单色蓝</string>
     <string name="filter_leica_portrait">徕卡人像</string>
-<string name="filter_leica_group">徕卡</string>
+    <string name="filter_leica_group">徕卡</string>
     <string name="filter_apple_log">Apple Log</string>
 
     <string name="flash_auto">自动</string>
@@ -95,6 +100,12 @@
 
     <string name="zoom_label">变焦</string>
     <string name="live_photo">实况</string>
+    <string name="grid">网格</string>
+    <string name="timer_off">关闭</string>
+    <string name="flip_camera">翻转</string>
+    <string name="filter_strip_expand">展开滤镜</string>
+    <string name="filter_strip_collapse">收起滤镜</string>
+    <string name="countdown_cancel">轻点取消</string>
     <string name="bug_feedback">反馈 Bug</string>
     <string name="bug_feedback_desc">一键复制日志，方便定位问题</string>
     <string name="copy_log">一键复制日志</string>
@@ -144,7 +155,7 @@
     <string name="show_controls">显示控件</string>
     <string name="filter_sdr">SDR 标准</string>
     <string name="settings_horizon">地平线防抖</string>
-    <string name="settings_horizon_desc">利用陀螺仪自动旋转画面，倾斜拍摄时保持地平线水平（预览/录像/拍照均生效）</string>
+    <string name="settings_horizon_desc">陀螺仪补偿平移并保持地平线水平，取景器显示金色水平仪，最大回正 8 度</string>
     <string name="install_permission_hint">请先允许「安装未知应用」，返回应用后再次点击安装</string>
     <string name="live_photo_saved">实况照片已保存</string>
 </resources>

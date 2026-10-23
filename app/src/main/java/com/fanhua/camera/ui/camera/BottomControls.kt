@@ -24,8 +24,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -93,6 +93,7 @@ import com.fanhua.camera.ui.theme.FanhuaStroke
 import com.fanhua.camera.ui.theme.FanhuaText
 import com.fanhua.camera.ui.theme.FanhuaTextDim
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -135,6 +136,8 @@ fun BottomControls(
         AnimatedVisibility(visible = !landscape) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 FilterStrip(state = state, onSelect = controller::setPreset)
+                Spacer(modifier = Modifier.height(10.dp))
+                QuickTools(state = state, controller = controller)
                 Spacer(modifier = Modifier.height(12.dp))
             }
         }
@@ -144,6 +147,8 @@ fun BottomControls(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.Center
             ) {
+                QuickTools(state = state, controller = controller)
+                Spacer(modifier = Modifier.height(12.dp))
                 ModeSelector(state = state, onSelect = controller::setMode, compact = true)
                 Spacer(modifier = Modifier.height(16.dp))
                 ShutterButton(state = state, controller = controller)
@@ -185,16 +190,111 @@ fun BottomControls(
 }
 
 @Composable
+private fun QuickTools(
+    state: CameraUiState,
+    controller: CameraController
+) {
+    Row(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(Brush.verticalGradient(listOf(Color(0x1FFFFFFF), Color(0x0DFFFFFF))))
+            .border(1.dp, FanhuaStroke, CircleShape)
+            .padding(3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        ToolChip(
+            icon = FanhuaIcons.Grid,
+            label = stringResource(R.string.grid),
+            active = state.gridEnabled,
+            onClick = { controller.setGridEnabled(!state.gridEnabled) }
+        )
+        ToolChip(
+            icon = FanhuaIcons.Timer,
+            label = timerLabel(state.timerSeconds),
+            active = state.timerSeconds > 0,
+            onClick = { controller.setTimerSeconds(nextTimerSeconds(state.timerSeconds)) }
+        )
+        ToolChip(
+            icon = FanhuaIcons.SwitchCamera,
+            label = stringResource(R.string.flip_camera),
+            active = state.frontCamera,
+            onClick = { controller.switchCamera() }
+        )
+    }
+}
+
+@Composable
+private fun ToolChip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    active: Boolean,
+    onClick: () -> Unit
+) {
+    val color by animateColorAsState(
+        targetValue = if (active) FanhuaGold else FanhuaTextDim,
+        animationSpec = tween(durationMillis = 200),
+        label = "toolColor"
+    )
+    val background by animateColorAsState(
+        targetValue = if (active) Color(0x24FFC53D) else Color.Transparent,
+        animationSpec = tween(durationMillis = 200),
+        label = "toolBackground"
+    )
+    Row(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(background)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = color,
+            modifier = Modifier.size(13.dp)
+        )
+        Spacer(modifier = Modifier.width(5.dp))
+        Text(
+            text = label,
+            color = color,
+            style = MaterialTheme.typography.labelSmall
+        )
+    }
+}
+
+@Composable
+private fun timerLabel(seconds: Int): String {
+    return if (seconds == 0) stringResource(R.string.timer_off) else "${seconds}s"
+}
+
+private fun nextTimerSeconds(seconds: Int): Int {
+    return when (seconds) {
+        0 -> 3
+        3 -> 5
+        5 -> 10
+        else -> 0
+    }
+}
+
+@Composable
 private fun FilterStrip(
     state: CameraUiState,
     onSelect: (FilterPreset) -> Unit
 ) {
     val leicaGroup = listOf(
         FilterPreset.LEICA_MOMENT,
+        FilterPreset.LEICA_VIVID,
+        FilterPreset.LEICA_NATURAL,
         FilterPreset.LEICA_MONO,
+        FilterPreset.LEICA_BW_HC,
+        FilterPreset.LEICA_BROWN,
+        FilterPreset.LEICA_BW_BLUE,
         FilterPreset.LEICA_PORTRAIT
     )
     val singles = FilterPreset.entries.filter { it !in leicaGroup }
+    var expanded by rememberSaveable { mutableStateOf(false) }
     var leicaExpanded by rememberSaveable { mutableStateOf(state.preset in leicaGroup) }
     val activeLeica = state.preset in leicaGroup
 
@@ -206,72 +306,113 @@ private fun FilterStrip(
         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
     ) {
         Column {
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(horizontal = 6.dp)
-            ) {
-                items(singles) { preset ->
-                    FilterCell(
-                        preset = preset,
-                        selected = state.preset == preset,
-                        onSelect = {
-                            onSelect(preset)
-                            if (preset == FilterPreset.CUSTOM_LUT) leicaExpanded = false
-                        }
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(10.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .clickable { leicaExpanded = !leicaExpanded }
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .clickable { expanded = !expanded }
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
+                FilterSwatch(
+                    preset = state.preset,
                     modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(if (activeLeica) FanhuaGold else Color(0x33FFFFFF))
+                        .size(28.dp)
+                        .clip(RoundedCornerShape(9.dp))
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = if (activeLeica) {
-                        stringResource(state.preset.labelRes)
-                    } else {
-                        stringResource(R.string.filter_leica_group)
-                    },
-                    color = if (activeLeica) FanhuaGold else FanhuaTextDim,
+                    text = stringResource(state.preset.labelRes),
+                    color = FanhuaText,
                     style = MaterialTheme.typography.labelMedium
                 )
                 Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = stringResource(
+                        if (expanded) R.string.filter_strip_collapse else R.string.filter_strip_expand
+                    ),
+                    color = FanhuaTextDim,
+                    style = MaterialTheme.typography.labelSmall
+                )
+                Spacer(modifier = Modifier.width(6.dp))
                 Icon(
-                    imageVector = if (leicaExpanded) FanhuaIcons.ArrowUp else FanhuaIcons.ArrowDown,
+                    imageVector = if (expanded) FanhuaIcons.ArrowUp else FanhuaIcons.ArrowDown,
                     contentDescription = null,
                     tint = FanhuaTextDim,
                     modifier = Modifier.size(14.dp)
                 )
             }
-            AnimatedVisibility(visible = leicaExpanded) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp, bottom = 2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    leicaGroup.forEach { preset ->
-                        FilterCell(
-                            preset = preset,
-                            selected = state.preset == preset,
-                            onSelect = {
-                                onSelect(preset)
-                                leicaExpanded = false
-                            }
+            AnimatedVisibility(visible = expanded) {
+                Column {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp)
+                    ) {
+                        items(singles) { preset ->
+                            FilterCell(
+                                preset = preset,
+                                selected = state.preset == preset,
+                                onSelect = {
+                                    onSelect(preset)
+                                    if (preset == FilterPreset.CUSTOM_LUT) leicaExpanded = false
+                                }
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable { leicaExpanded = !leicaExpanded }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(if (activeLeica) FanhuaGold else Color(0x33FFFFFF))
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (activeLeica) {
+                                stringResource(state.preset.labelRes)
+                            } else {
+                                stringResource(R.string.filter_leica_group)
+                            },
+                            color = if (activeLeica) FanhuaGold else FanhuaTextDim,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Icon(
+                            imageVector = if (leicaExpanded) FanhuaIcons.ArrowUp else FanhuaIcons.ArrowDown,
+                            contentDescription = null,
+                            tint = FanhuaTextDim,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                    AnimatedVisibility(visible = leicaExpanded) {
+                        LazyRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp, bottom = 2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp)
+                        ) {
+                            items(leicaGroup) { preset ->
+                                FilterCell(
+                                    preset = preset,
+                                    selected = state.preset == preset,
+                                    onSelect = {
+                                        onSelect(preset)
+                                        leicaExpanded = false
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -407,16 +548,28 @@ private fun ShutterButton(
     controller: CameraController
 ) {
     val haptic = LocalHapticFeedback.current
+    var holding by remember { mutableStateOf(false) }
+    val photoMode = state.mode != CaptureMode.VIDEO
+    val showPhoto = photoMode && (!state.recording || holding)
     Crossfade(
-        targetState = !state.recording && state.mode != CaptureMode.VIDEO,
+        targetState = showPhoto,
         animationSpec = tween(durationMillis = 240),
         label = "shutterMode"
     ) { isPhoto ->
         if (isPhoto) {
             PhotoShutter(
-                onClick = {
+                onTap = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     controller.takePhoto()
+                },
+                onHoldStart = {
+                    holding = true
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    controller.startRecording()
+                },
+                onHoldEnd = {
+                    holding = false
+                    controller.stopRecording()
                 }
             )
         } else {
@@ -433,9 +586,13 @@ private fun ShutterButton(
 }
 
 @Composable
-private fun PhotoShutter(onClick: () -> Unit) {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
+private fun PhotoShutter(
+    onTap: () -> Unit,
+    onHoldStart: () -> Unit,
+    onHoldEnd: () -> Unit
+) {
+    var pressed by remember { mutableStateOf(false) }
+    var holding by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.9f else 1f,
         animationSpec = spring(dampingRatio = 0.5f, stiffness = 620f),
@@ -444,7 +601,37 @@ private fun PhotoShutter(onClick: () -> Unit) {
     val ripple = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
 
-    Box(modifier = Modifier.size(86.dp), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = Modifier
+            .size(86.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        pressed = true
+                        val holdJob = scope.launch {
+                            delay(550)
+                            holding = true
+                            onHoldStart()
+                        }
+                        tryAwaitRelease()
+                        holdJob.cancel()
+                        pressed = false
+                        if (holding) {
+                            holding = false
+                            onHoldEnd()
+                        } else {
+                            scope.launch {
+                                ripple.snapTo(0f)
+                                ripple.animateTo(1f, tween(durationMillis = 480, easing = LinearEasing))
+                                ripple.snapTo(0f)
+                            }
+                            onTap()
+                        }
+                    }
+                )
+            },
+        contentAlignment = Alignment.Center
+    ) {
         Box(
             modifier = Modifier
                 .size(86.dp)
@@ -473,14 +660,6 @@ private fun PhotoShutter(onClick: () -> Unit) {
                 }
                 .clip(CircleShape)
                 .background(Color(0xFFF7F6F3))
-                .clickable(interactionSource = interaction, indication = null) {
-                    scope.launch {
-                        ripple.snapTo(0f)
-                        ripple.animateTo(1f, tween(durationMillis = 480, easing = LinearEasing))
-                        ripple.snapTo(0f)
-                    }
-                    onClick()
-                }
         )
     }
 }
@@ -690,25 +869,28 @@ private fun FilterSwatch(
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        val warm = grade.temperature
-        val sat = grade.saturation
-        val lift = grade.lift
-        fun channel(index: Int): Float = (0.5f + lift[index] * 2f).coerceIn(0f, 1f)
-        val baseR = channel(0)
-        val baseG = channel(1)
-        val baseB = channel(2)
-        val steps = 5
+        val steps = 6
         val cellW = w / steps
         val cellH = h / 3
+        val hues = floatArrayOf(
+            0.86f, 0.22f, 0.20f,
+            0.92f, 0.58f, 0.16f,
+            0.84f, 0.80f, 0.24f,
+            0.24f, 0.68f, 0.32f,
+            0.20f, 0.64f, 0.78f,
+            0.22f, 0.34f, 0.84f
+        )
         for (row in 0 until 3) {
+            val level = when (row) {
+                0 -> 0.16f
+                1 -> 0.5f
+                else -> 0.86f
+            }
             for (col in 0 until steps) {
-                val t = col.toFloat() / (steps - 1).toFloat()
-                val shade = 0.3f + 0.6f * t
-                val r = ((baseR + warm * 0.22f) * shade * sat).coerceIn(0f, 1f)
-                val g = ((baseG + warm * 0.04f) * shade * sat).coerceIn(0f, 1f)
-                val b = ((baseB - warm * 0.16f) * shade * sat).coerceIn(0f, 1f)
+                val base = col * 3
+                val out = grade.apply(hues[base] * level, hues[base + 1] * level, hues[base + 2] * level)
                 drawRect(
-                    color = Color(r, g, b),
+                    color = Color(out[0], out[1], out[2]),
                     topLeft = Offset(col * cellW, row * cellH),
                     size = androidx.compose.ui.geometry.Size(cellW + 0.6f, cellH + 0.6f)
                 )

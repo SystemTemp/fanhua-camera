@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +35,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
@@ -48,6 +50,8 @@ import com.fanhua.camera.ui.theme.FanhuaText
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.min
 
 @Composable
 fun Viewfinder(
@@ -103,6 +107,15 @@ fun Viewfinder(
 
         focusPoint?.let { point ->
             FocusReticle(center = point, progress = { focusProgress.value })
+        }
+
+        if (state.gridEnabled) {
+            GridOverlay()
+        }
+
+        if (state.horizonEnabled) {
+            val roll by controller.horizonRoll.collectAsState()
+            HorizonLevel(roll = roll)
         }
 
         val hint = state.compositionHint
@@ -188,6 +201,55 @@ private fun ZoomHintOverlay(state: MutableState<Float?>) {
                 .clip(RoundedCornerShape(50))
                 .background(Color(0x66000000))
                 .padding(horizontal = 14.dp, vertical = 7.dp)
+        )
+    }
+}
+
+@Composable
+private fun GridOverlay() {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val color = Color(0x2EFFFFFF)
+        for (i in 1..2) {
+            val x = size.width * i / 3f
+            val y = size.height * i / 3f
+            drawLine(color, Offset(x, 0f), Offset(x, size.height), strokeWidth = 1f)
+            drawLine(color, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
+        }
+    }
+}
+
+@Composable
+private fun HorizonLevel(roll: Float) {
+    val aligned = abs(roll) <= 0.6f
+    val color = if (aligned) FanhuaGold else Color(0xCCFFFFFF)
+    Box(modifier = Modifier.fillMaxSize()) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val cx = size.width / 2f
+            val cy = size.height / 2f
+            val half = min(size.width, size.height) * 0.34f
+            val gap = 22f
+            rotate(degrees = roll, pivot = Offset(cx, cy)) {
+                drawLine(color, Offset(cx - half, cy), Offset(cx - gap, cy), strokeWidth = 2.5f)
+                drawLine(color, Offset(cx + gap, cy), Offset(cx + half, cy), strokeWidth = 2.5f)
+                drawLine(color, Offset(cx, cy - 9f), Offset(cx, cy + 9f), strokeWidth = 2.5f)
+                for (tick in 1..4) {
+                    val dx = half * tick / 4f
+                    val h = 5f + tick * 2.5f
+                    drawLine(color, Offset(cx - dx, cy - h), Offset(cx - dx, cy + h), strokeWidth = 1.5f)
+                    drawLine(color, Offset(cx + dx, cy - h), Offset(cx + dx, cy + h), strokeWidth = 1.5f)
+                }
+            }
+        }
+        Text(
+            text = String.format(Locale.US, "%+.1f", roll),
+            color = if (aligned) FanhuaGold else FanhuaText,
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 72.dp)
+                .clip(RoundedCornerShape(50))
+                .background(Color(0x59000000))
+                .padding(horizontal = 10.dp, vertical = 4.dp)
         )
     }
 }

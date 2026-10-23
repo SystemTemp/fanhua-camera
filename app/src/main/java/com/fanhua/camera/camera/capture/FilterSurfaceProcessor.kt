@@ -20,7 +20,8 @@ data class RenderState(
     val intensity: Float,
     val superResolution: Boolean,
     val stabilization: FloatArray? = null,
-    val lut: com.fanhua.camera.lut.LutData? = null
+    val lut: com.fanhua.camera.lut.LutData? = null,
+    val stabilizationCrop: Float = 1f
 )
 
 class FilterSurfaceProcessor(
@@ -131,13 +132,9 @@ class FilterSurfaceProcessor(
             framePipeline.setPreset(renderState.preset, renderState.intensity)
             framePipeline.setSuperResolutionEnabled(renderState.superResolution)
             framePipeline.setLut(renderState.lut)
-            framePipeline.setStabilizationMatrix(renderState.stabilization)
+            framePipeline.setStabilizationMatrix(renderState.stabilization, renderState.stabilizationCrop)
             val snapshot = outputs.toList()
             for (handle in snapshot) {
-                // 停止录制时 CameraX 会关闭 VIDEO_CAPTURE 的输出 Surface（EVENT_REQUEST_CLOSE），
-                // 其内部线程可能在 glExecutor 之前释放该 Surface。快照里可能残留已关闭的 handle，
-                // 继续向已释放的 Surface 做 EGL 操作会导致 native crash（eglMakeCurrent/eglSwapBuffers）。
-                // 因此每个 handle 渲染前检查 closed 标志；单个输出失败不应中断其他输出。
                 if (handle.closed) continue
                 try {
                     handle.output.updateTransformMatrix(outputTransform, textureMatrix)
@@ -154,8 +151,6 @@ class FilterSurfaceProcessor(
                     core.setPresentationTime(handle.eglSurface, timestamp)
                     core.swapBuffers(handle.eglSurface)
                 } catch (e: Exception) {
-                    // 输出已关闭（IllegalStateException）或 EGL 操作失败：标记关闭并从渲染列表移除，
-                    // 保证预览输出不受影响，避免后续帧继续向无效 Surface 渲染。
                     if (!handle.closed) {
                         handle.closed = true
                         outputs.remove(handle)
@@ -234,7 +229,6 @@ class FilterSurfaceProcessor(
         if (handle.closed) return
         handle.closed = true
         outputs.remove(handle)
-        // 先解绑 EGL surface 再释放 Java Surface，避免渲染循环残留引用
         try {
             eglCore?.makeCurrent()
         } catch (e: Exception) {

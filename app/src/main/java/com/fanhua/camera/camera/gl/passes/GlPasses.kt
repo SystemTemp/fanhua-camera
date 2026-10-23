@@ -135,20 +135,19 @@ internal class GradePass(private val oes: Boolean) : GlPass(
             void main() {
                 vec3 src = texture2D(uTexture, vTexCoord).rgb;
                 vec3 c = (src - 0.5) * uContrast + 0.5;
-                c += uTemperature * vec3(0.050, 0.012, -0.045);
+                c *= vec3(1.0 + uTemperature * 0.12, 1.0 + uTemperature * 0.02, 1.0 - uTemperature * 0.12);
                 float l = dot(c, LUMA);
+                c = mix(vec3(l), c, uSaturation);
                 c += uLift * (1.0 - l);
                 c *= uGain;
                 c += uShadowTint * (1.0 - smoothstep(0.0, 0.46, l));
                 c += uHighlightTint * smoothstep(0.54, 1.0, l);
-                // 高光/阴影独立压暗
                 if (uHighlights != 0.0) {
                     c *= 1.0 + uHighlights * smoothstep(0.55, 1.0, l) * 0.40;
                 }
                 if (uShadows != 0.0) {
                     c *= 1.0 + uShadows * (1.0 - smoothstep(0.0, 0.45, l)) * 0.50;
                 }
-                // HSL 绿色选择性调整
                 if (abs(uGreenH) > 0.001 || abs(uGreenS) > 0.001 || abs(uGreenL) > 0.001) {
                     vec3 hsl = rgb2hsl(c);
                     float gd = abs(hsl.x - 0.5);
@@ -160,8 +159,6 @@ internal class GradePass(private val oes: Boolean) : GlPass(
                         c = hsl2rgb(hsl);
                     }
                 }
-                float l2 = dot(c, LUMA);
-                c = mix(vec3(l2), c, uSaturation);
                 c = mix(c, vec3(0.5) + (c - 0.5) * 0.82 + 0.055, uFade);
                 c = clamp(c, 0.0, 1.0);
                 gl_FragColor = vec4(mix(src, c, uIntensity), 1.0);
@@ -191,7 +188,6 @@ internal class BrightPass : GlPass(GlUtil.VERT_PLAIN, FRAGMENT, arrayOf("uTextur
             void main() {
                 vec3 c = texture2D(uTexture, vTexCoord).rgb;
                 float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
-                // 柔和高光提取：权重上限 0.72，避免太阳等极亮区域被放大成光球
                 float w = smoothstep(uThreshold, min(uThreshold + 0.38, 1.0), l);
                 w = min(w, 0.72);
                 gl_FragColor = vec4(c * w, 1.0);
@@ -278,7 +274,6 @@ internal class FinishPass : GlPass(GlUtil.VERT_PLAIN, FRAGMENT, UNIFORMS) {
                     c *= mix(1.0, 1.0 - uVignette, v);
                 }
                 if (uSdr > 0.5) {
-                    // 标准 SDR（广电/显示）色调：柔和高光压缩 + 轻微伽马，高光不溢出
                     c = clamp(c, 0.0, 1.0);
                     c = 1.0 - exp(-c * 2.6);
                     c = pow(c, vec3(0.97));

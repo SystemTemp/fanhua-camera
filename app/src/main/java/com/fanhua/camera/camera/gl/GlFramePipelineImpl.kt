@@ -49,6 +49,7 @@ class GlFramePipelineImpl : GlFramePipeline {
     )
 
     private val stabilizationMatrix = GlUtil.IDENTITY_3X3.copyOf()
+    private var stabilizationCrop = 1f
 
     private var preset = FilterPreset.DREAM
     private var intensity = 1f
@@ -66,12 +67,14 @@ class GlFramePipelineImpl : GlFramePipeline {
         superResolution = enabled
     }
 
-    override fun setStabilizationMatrix(matrix: FloatArray?) {
+    override fun setStabilizationMatrix(matrix: FloatArray?, crop: Float) {
+        stabilizationCrop = crop.coerceIn(1f, 1.4f)
         if (matrix == null) {
             for (i in 0 until 9) {
                 stabilizationMatrix[i] = GlUtil.IDENTITY_3X3[i]
             }
             stabilizationEnabled = false
+            stabilizationCrop = 1f
             return
         }
         for (i in 0 until 9) {
@@ -150,9 +153,9 @@ class GlFramePipelineImpl : GlFramePipeline {
             textureId,
             textureMatrix,
             if (stabilizationEnabled) stabilizationMatrix else GlUtil.IDENTITY_3X3,
-            if (stabilizationEnabled) STABILIZATION_CROP else 1f,
-            if (inputHeight > 0) inputWidth.toFloat() / inputHeight.toFloat() else 1f,
-            if (stabilizationEnabled) STABILIZATION_COVER else 1f,
+            if (stabilizationEnabled) stabilizationCrop else 1f,
+            if (outputHeight > 0) outputWidth.toFloat() / outputHeight.toFloat() else 1f,
+            1f,
             grade,
             intensity
         )
@@ -196,7 +199,6 @@ class GlFramePipelineImpl : GlFramePipeline {
             baseWidth = outputWidth
             baseHeight = outputHeight
         } else if (sharpen) {
-            // 照片保存路径（未超分时）也做轻锐化，接近系统相机锐度
             val rcasTarget = GlUtil.ensureFramebuffer(rcasBuffer, inputWidth, inputHeight)
             rcasBuffer = rcasTarget
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, rcasTarget.framebufferId)
@@ -318,8 +320,6 @@ class GlFramePipelineImpl : GlFramePipeline {
     }
 
     private companion object {
-        const val STABILIZATION_CROP = 0.85f
-        const val STABILIZATION_COVER = 1.18f
         const val SHARPNESS = 0.30f
         const val SAVE_SHARPNESS = 0.22f
         const val ORIGINAL_BLOOM = 0f

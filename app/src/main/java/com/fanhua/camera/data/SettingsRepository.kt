@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -20,7 +21,9 @@ data class AppSettings(
     val autoCompositionEnabled: Boolean = false,
     val selectedSpecLabel: String = "",
     val debugEnabled: Boolean = false,
-    val lutPath: String = ""
+    val lutPath: String = "",
+    val gridEnabled: Boolean = false,
+    val timerSeconds: Int = 0
 )
 
 class SettingsRepository(private val context: Context) {
@@ -34,6 +37,8 @@ class SettingsRepository(private val context: Context) {
     private val keyDebug = booleanPreferencesKey("debug_mode")
     private val keyLut = stringPreferencesKey("lut_path")
     private val keyHorizon = booleanPreferencesKey("horizon")
+    private val keyGrid = booleanPreferencesKey("grid")
+    private val keyTimer = intPreferencesKey("timer")
 
     val settings: Flow<AppSettings> = context.settingsDataStore.data.map { prefs ->
         AppSettings(
@@ -45,7 +50,9 @@ class SettingsRepository(private val context: Context) {
             autoCompositionEnabled = prefs[keyAutoComposition] ?: false,
             selectedSpecLabel = prefs[keySpec] ?: "",
             debugEnabled = prefs[keyDebug] ?: false,
-            lutPath = prefs[keyLut] ?: ""
+            lutPath = prefs[keyLut] ?: "",
+            gridEnabled = prefs[keyGrid] ?: false,
+            timerSeconds = prefs[keyTimer] ?: 0
         )
     }
 
@@ -83,5 +90,13 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setLutPath(value: String) {
         context.settingsDataStore.edit { it[keyLut] = value }
+    }
+
+    suspend fun setGridEnabled(value: Boolean) {
+        context.settingsDataStore.edit { it[keyGrid] = value }
+    }
+
+    suspend fun setTimerSeconds(value: Int) {
+        context.settingsDataStore.edit { it[keyTimer] = value }
     }
 }

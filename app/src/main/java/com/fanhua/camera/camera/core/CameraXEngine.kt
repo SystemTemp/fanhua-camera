@@ -66,6 +66,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -81,6 +82,11 @@ class CameraXEngine(
 
     private val _state = MutableStateFlow(CameraUiState())
     override val state: StateFlow<CameraUiState> = _state.asStateFlow()
+
+    private val _horizonRoll = MutableStateFlow(0f)
+    override val horizonRoll: StateFlow<Float> = _horizonRoll.asStateFlow()
+    private var horizonPollJob: Job? = null
+    private var countdownJob: Job? = null
 
     private val mainExecutor = ContextCompat.getMainExecutor(context)
     private val glExecutor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -145,7 +151,9 @@ class CameraXEngine(
                     stabilizationEnabled = stored.stabilizationEnabled,
                     horizonEnabled = stored.horizonEnabled,
                     superResEnabled = stored.superResEnabled,
-                    autoCompositionEnabled = stored.autoCompositionEnabled
+                    autoCompositionEnabled = stored.autoCompositionEnabled,
+                    gridEnabled = stored.gridEnabled,
+                    timerSeconds = stored.timerSeconds
                 )
             }
             DebugLog.log(
@@ -251,8 +259,6 @@ class CameraXEngine(
     }
 
     private fun useProSurface(): Boolean {
-        // 所有模式统一使用 PreviewView（CameraX 官方预览），
-        // 避免 PRO/SUPER_RES 走 SurfaceView 时预览黑屏/不实时渲染的问题
         return false
     }
 
@@ -262,7 +268,7 @@ class CameraXEngine(
         val mode = _state.value.mode
         val rotation = displayRotation()
         val livePhoto = mode == CaptureMode.PHOTO && _state.value.livePhotoEnabled
-        val needsVideo = mode == CaptureMode.VIDEO || mode == CaptureMode.PRO || livePhoto
+        val needsVideo = mode != CaptureMode.SUPER_RES
         val stabilization = _state.value.stabilizationEnabled &&
             capability.stabilizationModes.contains("ON")
         val softwareStabilization = _state.value.stabilizationEnabled || _state.value.horizonEnabled
@@ -309,11 +315,17 @@ class CameraXEngine(
         )
 
         val surfaceProcessor: FilterSurfaceProcessor? = if (useEffect) {
+            val previewAspect = previewView?.let { if (it.height > 0) it.width.toFloat() / it.height else 0f }
+                ?: 0f
+            val aspect = if (previewAspect > 0f) previewAspect else 0.75f
             FilterSurfaceProcessor(
                 glExecutor,
                 {
                     if (softwareStabilization) {
-                        renderState.copy(stabilization = stabilizer.matrix())
+                        renderState.copy(
+                            stabilization = stabilizer.matrix(),
+                            stabilizationCrop = stabilizer.cropScale(aspect)
+                        )
                     } else {
                         renderState
                     }
@@ -354,6 +366,23 @@ class CameraXEngine(
                 setStatus(R.string.message_filter_degraded, false)
             }
         }
+        if (camera == null && mode == CaptureMode.PHOTO) {
+            val photoOnlyCases = buildUseCases(
+                mode,
+                rotation,
+                false,
+                livePhoto,
+                stabilization,
+                IMAGE_FULL_RES
+            )
+            camera = tryBind(cameraProvider, selector, photoOnlyCases, null, viewPort)
+            if (camera == null) {
+                camera = tryBind(cameraProvider, selector, photoOnlyCases, null, null)
+            }
+            if (camera != null) {
+                Log.d(TAG, "bind ok without video use case, long-press record disabled")
+            }
+        }
         if (camera == null) {
             processor?.release()
             processor = null
@@ -387,6 +416,7 @@ class CameraXEngine(
         Log.d(TAG, "bind ok mode=$mode filterPreviewActive=$useEffect")
         _state.update { it.copy(filterPreviewActive = useEffect) }
 
+        refreshHorizonPolling()
         attachRotationListener()
 
         applyFlash()
@@ -442,9 +472,15 @@ class CameraXEngine(
             val videoUseCase = videoBuilder.build()
             videoCapture = videoUseCase
             useCases += videoUseCase
-            if (livePhoto) {
+            if (livePhoto || mode == CaptureMode.PHOTO) {
                 val captureBuilder = ImageCapture.Builder()
-                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                    .setCaptureMode(
+                        if (mode == CaptureMode.PHOTO && !livePhoto) {
+                            ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
+                        } else {
+                            ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY
+                        }
+                    )
                     .setTargetRotation(rotation)
                 imageResolution?.let { captureBuilder.setTargetResolution(it) }
                 val captureUseCase = captureBuilder.build()
@@ -744,6 +780,7 @@ class CameraXEngine(
 
     override fun setMode(mode: CaptureMode) {
         if (_state.value.mode == mode) return
+        cancelCountdown()
         _state.update { it.copy(mode = mode, compositionHint = null, busy = true) }
         if (mode == CaptureMode.SUPER_RES) {
             _state.update { it.copy(superResEnabled = true) }
@@ -802,6 +839,7 @@ class CameraXEngine(
         if (_state.value.horizonEnabled == enabled) return
         _state.update { it.copy(horizonEnabled = enabled) }
         scope.launch { settings.setHorizonEnabled(enabled) }
+        if (!enabled) refreshHorizonPolling()
         bind()
     }
 
@@ -821,6 +859,20 @@ class CameraXEngine(
         _state.update { it.copy(autoCompositionEnabled = enabled, compositionHint = null) }
         scope.launch { settings.setAutoCompositionEnabled(enabled) }
         bind()
+    }
+
+    override fun setGridEnabled(enabled: Boolean) {
+        if (_state.value.gridEnabled == enabled) return
+        _state.update { it.copy(gridEnabled = enabled) }
+        scope.launch { settings.setGridEnabled(enabled) }
+    }
+
+    override fun setTimerSeconds(seconds: Int) {
+        val value = seconds.coerceIn(0, 10)
+        if (_state.value.timerSeconds == value) return
+        if (value == 0) cancelCountdown()
+        _state.update { it.copy(timerSeconds = value) }
+        scope.launch { settings.setTimerSeconds(value) }
     }
 
     override fun setRecordingSpeed(speed: RecordingSpeed) {
@@ -865,6 +917,38 @@ class CameraXEngine(
             startLivePhoto()
             return
         }
+        val seconds = _state.value.timerSeconds
+        if (seconds > 0 && imageCapture != null && !_state.value.busy) {
+            startCountdown(seconds)
+            return
+        }
+        capturePhotoNow()
+    }
+
+    private fun startCountdown(seconds: Int) {
+        if (countdownJob?.isActive == true) return
+        countdownJob = scope.launch {
+            var remain = seconds
+            _state.update { it.copy(countdownRemaining = remain) }
+            while (remain > 0) {
+                delay(1000)
+                if (!isActive) return@launch
+                remain -= 1
+                _state.update { it.copy(countdownRemaining = remain) }
+            }
+            capturePhotoNow()
+        }
+    }
+
+    override fun cancelCountdown() {
+        countdownJob?.cancel()
+        countdownJob = null
+        if (_state.value.countdownRemaining != 0) {
+            _state.update { it.copy(countdownRemaining = 0) }
+        }
+    }
+
+    private fun capturePhotoNow() {
         val capture = imageCapture ?: return
         if (_state.value.busy) return
         playShutterSound()
@@ -1173,8 +1257,34 @@ class CameraXEngine(
             CameraSelector.LENS_FACING_BACK
         }
         capability = capabilityProbe.probe(lensFacing)
-        _state.update { it.copy(lensOptions = emptyList(), activeLensId = "", compositionHint = null, busy = true) }
+        _state.update {
+            it.copy(
+                lensOptions = emptyList(),
+                activeLensId = "",
+                compositionHint = null,
+                busy = true,
+                frontCamera = lensFacing == CameraSelector.LENS_FACING_FRONT
+            )
+        }
         bind()
+    }
+
+    private fun refreshHorizonPolling() {
+        horizonPollJob?.cancel()
+        horizonPollJob = null
+        if (!_state.value.horizonEnabled || released) {
+            _horizonRoll.value = 0f
+            return
+        }
+        horizonPollJob = scope.launch {
+            while (true) {
+                delay(50)
+                val value = stabilizer.rollDegrees
+                if (kotlin.math.abs(value - _horizonRoll.value) > 0.2f) {
+                    _horizonRoll.value = value
+                }
+            }
+        }
     }
 
     override fun switchToPhotoFromPreview() {
@@ -1186,6 +1296,10 @@ class CameraXEngine(
         stopRecordingInternal()
         livePhotoJob?.cancel()
         livePhotoJob = null
+        horizonPollJob?.cancel()
+        horizonPollJob = null
+        countdownJob?.cancel()
+        countdownJob = null
         detachAnalysis()
         stabilizer.stop()
         try {

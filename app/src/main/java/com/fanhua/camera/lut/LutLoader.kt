@@ -5,10 +5,6 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.util.Locale
 
-/**
- * 解析 Adobe/Blackmagic 风格 .cube 3D LUT 文件。
- * 支持：LUT_3D_SIZE、DOMAIN_MIN/MAX、TITLE、# 注释，忽略每行多余数值。
- */
 object LutLoader {
 
     fun parse(input: InputStream): LutData {
@@ -61,11 +57,9 @@ object LutLoader {
             "LUT data incomplete: got ${values.size / 3} of ${size * size * size} entries"
         )
 
-        // 数据截断到预期数量（多余行忽略）
         val data = FloatArray(expected)
         for (i in 0 until expected) data[i] = values[i]
 
-        // DOMAIN 映射到 0..1
         var min = domainMin
         var max = domainMax
         if (min[0] >= max[0] || min[1] >= max[1] || min[2] >= max[2]) {

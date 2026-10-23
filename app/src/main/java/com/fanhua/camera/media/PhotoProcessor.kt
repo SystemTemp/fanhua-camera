@@ -41,7 +41,6 @@ class PhotoProcessor(private val context: Context) {
         }
     }
 
-    /** 徕卡官方数字字体 lg1056_regular（取自徕卡一瞬 watermarks/leica/92） */
     private val leicaNumberTypeface: Typeface by lazy {
         try {
             androidx.core.content.res.ResourcesCompat.getFont(context, R.font.leica_lg1056)
@@ -51,7 +50,6 @@ class PhotoProcessor(private val context: Context) {
         }
     }
 
-    /** 品牌 logo：白色机型用黑色版，白底画框取黑色 logo */
     private val brandLogo: Bitmap? by lazy {
         try {
             BitmapFactory.decodeResource(context.resources, R.drawable.wm_xiaomi_black)
@@ -150,7 +148,6 @@ class PhotoProcessor(private val context: Context) {
             )
             val elapsed = SystemClock.elapsedRealtime() - startMs
             DebugLog.log("Photo", "GL pipeline done in ${elapsed}ms -> saving")
-            // 徕卡一瞬：输出徕卡白边画框成片（照片嵌在白框内，含品牌与 EXIF）
             if (preset == FilterPreset.LEICA_MOMENT) {
                 val framed = try {
                     drawLeicaFrame(processed, readExifInfo(source))
@@ -175,17 +172,7 @@ class PhotoProcessor(private val context: Context) {
         }
     }
 
-    /**
-     * 徕卡「白边画框」水印，规格逆向自徕卡一瞬 6.8.001960.0
-     * (assets/watermarks/leica/92/config.json, position="out")：
-     *  - 整张照片包在白框内，顶部信息栏 188dp、底部信息栏 194dp，左右留白 80dp
-     *  - 顶栏：品牌 logo(24dp) + 机型名(f1 21.6pt/wght501) + 版本描边标签(f2 13.2pt) + 右侧时间(f4)
-     *  - 底栏：徕卡 logo(72dp) + 40dp 间距 + EXIF 两行(f3 20pt/letterSpacing .15)
-     *     第一行 焦距 mm，第二行 F aperture / S speed / ISO
-     *  - 字体徕卡官方 lg1056_regular.otf；前景色取 @foreground[0]=#000000
-     */
     fun drawLeicaFrame(source: Bitmap, exif: ExifInfo): Bitmap {
-        // dp 基准：以照片短边为参照，让不同分辨率下水印比例一致
         val base = minOf(source.width, source.height).toFloat()
         val dp = base / 640f
         val padH = 80f * dp
@@ -198,7 +185,6 @@ class PhotoProcessor(private val context: Context) {
         val canvas = Canvas(out)
         canvas.drawColor(Color.WHITE)
 
-        // 照片本体嵌入
         canvas.drawBitmap(source, padH, topH, Paint(Paint.FILTER_BITMAP_FLAG))
 
         val ink = Color.BLACK
@@ -206,7 +192,6 @@ class PhotoProcessor(private val context: Context) {
         val leicaFont = leicaNumberTypeface
         val sysFont = Typeface.create("sans-serif", Typeface.NORMAL)
 
-        // ── 顶栏：品牌 logo + 机型 ──
         var cursorX = padH
         val logoH = 24f * dp
         brandLogo?.let { logo ->
@@ -227,7 +212,6 @@ class PhotoProcessor(private val context: Context) {
         canvas.drawText(modelText, cursorX, modelBaseline, modelPaint)
         cursorX += modelPaint.measureText(modelText)
 
-        // 版本名描边标签
         exif.versionName?.let { ver ->
             val vp = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = ink
@@ -252,7 +236,6 @@ class PhotoProcessor(private val context: Context) {
             canvas.drawText(ver, rr.left + gap, modelBaseline, vp)
         }
 
-        // 顶栏右侧：时间
         exif.timeText?.let { t ->
             val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = inkSecondary
@@ -264,7 +247,6 @@ class PhotoProcessor(private val context: Context) {
             canvas.drawText(t, outW - padH, topH - 108f * dp, tp)
         }
 
-        // ── 底栏：徕卡 logo + EXIF ──
         val bottomTop = topH + source.height.toFloat()
         var bx = padH
         val leicaH = 72f * dp
@@ -272,7 +254,6 @@ class PhotoProcessor(private val context: Context) {
             val logoW = leicaH * logo.width / logo.height.toFloat()
             val centerY = bottomTop + bottomH / 2f
             val dst = android.graphics.RectF(bx, centerY - leicaH / 2f, bx + logoW, centerY + leicaH / 2f)
-            // 徕卡 logo 原图是深色，白底上直接用
             canvas.drawBitmap(logo, null, dst, Paint(Paint.FILTER_BITMAP_FLAG))
             bx = dst.right + 40f * dp
         }
@@ -287,12 +268,10 @@ class PhotoProcessor(private val context: Context) {
         val line1Y = bottomTop + bottomH / 2f - 4f * dp
         val line2Y = bottomTop + bottomH / 2f + 20f * dp
 
-        // 第一行：焦距
         if (exif.focalMm.isNotBlank()) {
             canvas.drawText(exif.focalMm, bx, line1Y, exifPaint)
         }
 
-        // 第二行：F / S / ISO
         var sx = bx
         fun label(text: String) {
             canvas.drawText(text, sx, line2Y, labelPaint)
@@ -331,7 +310,6 @@ class PhotoProcessor(private val context: Context) {
         val versionName: String? = null
     )
 
-    /** 从原图 EXIF 读取徕卡框需要的字段 */
     fun readExifInfo(source: File?): ExifInfo {
         if (source == null) return ExifInfo()
         return try {
@@ -356,7 +334,6 @@ class PhotoProcessor(private val context: Context) {
             val date = exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL)
                 ?: exif.getAttribute(ExifInterface.TAG_DATETIME)
             val timeText = date?.let {
-                // EXIF 格式 "yyyy:MM:dd HH:mm:ss" → "yyyy.MM.dd HH:mm"
                 val m = Regex("""(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2})""").find(it)
                 m?.let { r -> "${r.groupValues[1]}.${r.groupValues[2]}.${r.groupValues[3]} ${r.groupValues[4]}:${r.groupValues[5]}" }
             }
@@ -487,7 +464,6 @@ class PhotoProcessor(private val context: Context) {
     }
 
     private companion object {
-        // 解码长边上限：保留更多原始像素，接近系统相机清晰度
         const val MAX_DECODE_EDGE = 8192
         const val JPEG_QUALITY = 98
     }

@@ -27,6 +27,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            if (event.action != KeyEvent.ACTION_DOWN || event.repeatCount != 0) return true
             val controller = engine
             if (controller != null) {
                 when (controller.state.value.mode) {

@@ -137,11 +137,6 @@ class UpdateManager(
         }
     }
 
-    /**
-     * 使用系统安装器界面安装更新（ACTION_VIEW + FileProvider）。
-     * 不再使用 PackageInstaller 静默会话——静默安装自身更新时系统会终止应用进程，
-     * 造成"点击安装更新应用直接退出"的问题。
-     */
     fun install(file: File): Boolean {
         if (needsInstallPermission()) {
             requestInstallPermission()

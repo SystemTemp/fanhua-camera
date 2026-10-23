@@ -15,6 +15,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -169,6 +170,12 @@ fun FanhuaCameraApp(controller: CameraController) {
                     .padding(top = 80.dp)
             )
         }
+
+        CountdownOverlay(
+            remaining = state.countdownRemaining,
+            onCancel = controller::cancelCountdown,
+            modifier = Modifier.fillMaxSize()
+        )
 
         CaptureFlash(
             captureCount = state.captureCount,
@@ -344,6 +351,36 @@ private fun RecordingBadge(modifier: Modifier = Modifier) {
             color = FanhuaText,
             style = MaterialTheme.typography.labelMedium
         )
+    }
+}
+
+@Composable
+private fun CountdownOverlay(
+    remaining: Int,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (remaining <= 0) return
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        modifier = modifier
+            .background(Color(0x40000000))
+            .clickable(interactionSource = interaction, indication = null, onClick = onCancel),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = remaining.toString(),
+                color = FanhuaGold,
+                style = MaterialTheme.typography.displayLarge
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = stringResource(R.string.countdown_cancel),
+                color = FanhuaTextDim,
+                style = MaterialTheme.typography.labelMedium
+            )
+        }
     }
 }
 

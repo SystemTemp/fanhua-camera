@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 interface CameraController {
     val state: StateFlow<CameraUiState>
+    val horizonRoll: StateFlow<Float>
 
     fun onPermissionResult(granted: Boolean)
     fun attachCameraXPreview(previewView: PreviewView)
@@ -22,6 +23,9 @@ interface CameraController {
     fun setSuperResEnabled(enabled: Boolean)
     fun setLivePhotoEnabled(enabled: Boolean)
     fun setAutoCompositionEnabled(enabled: Boolean)
+    fun setGridEnabled(enabled: Boolean)
+    fun setTimerSeconds(seconds: Int)
+    fun cancelCountdown()
     fun setRecordingSpeed(speed: RecordingSpeed)
     fun selectSpec(spec: OutputSpec)
     fun tapToFocus(x: Float, y: Float)
