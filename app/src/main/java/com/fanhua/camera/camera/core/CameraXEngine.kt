@@ -330,7 +330,8 @@ class CameraXEngine(
                         renderState
                     }
                 },
-                { error -> setStatus(R.string.message_error_camera, true) }
+                { error -> setStatus(R.string.message_error_camera, true) },
+                { setStatus(R.string.message_error_record, true) }
             ).also { processor = it }
         } else {
             null

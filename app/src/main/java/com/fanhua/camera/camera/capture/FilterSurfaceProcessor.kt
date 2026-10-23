@@ -5,7 +5,6 @@ import android.opengl.EGLSurface
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import android.view.Surface
-import androidx.camera.core.ProcessingException
 import androidx.camera.core.SurfaceOutput
 import androidx.camera.core.SurfaceProcessor
 import androidx.camera.core.SurfaceRequest
@@ -27,7 +26,8 @@ data class RenderState(
 class FilterSurfaceProcessor(
     private val executor: Executor,
     private val stateProvider: () -> RenderState,
-    private val errorListener: (Throwable) -> Unit
+    private val errorListener: (Throwable) -> Unit,
+    private val outputErrorListener: ((Throwable) -> Unit)? = null
 ) : SurfaceProcessor {
 
     private class OutputHandle(
@@ -82,7 +82,10 @@ class FilterSurfaceProcessor(
                 }
             } catch (e: Exception) {
                 errorListener(e)
-                throw ProcessingException()
+                try {
+                    request.willNotProvideSurface()
+                } catch (ignore: Exception) {
+                }
             }
         }
     }
@@ -105,8 +108,12 @@ class FilterSurfaceProcessor(
                 val eglSurface = core.createWindowSurface(surface)
                 outputs += OutputHandle(output, surface, eglSurface)
             } catch (e: Exception) {
-                errorListener(e)
-                throw ProcessingException()
+                val listener = outputErrorListener
+                if (listener != null) listener.invoke(e) else errorListener(e)
+                try {
+                    output.close()
+                } catch (ignore: Exception) {
+                }
             }
         }
     }

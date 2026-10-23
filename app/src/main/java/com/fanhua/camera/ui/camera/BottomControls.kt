@@ -25,6 +25,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -342,15 +344,16 @@ private fun FilterStrip(
                     modifier = Modifier.size(14.dp)
                 )
             }
-            AnimatedVisibility(visible = expanded) {
+            if (expanded) {
                 Column {
                     Spacer(modifier = Modifier.height(8.dp))
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        contentPadding = PaddingValues(horizontal = 6.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        items(singles) { preset ->
+                        singles.forEach { preset ->
                             FilterCell(
                                 preset = preset,
                                 selected = state.preset == preset,
@@ -394,15 +397,15 @@ private fun FilterStrip(
                             modifier = Modifier.size(14.dp)
                         )
                     }
-                    AnimatedVisibility(visible = leicaExpanded) {
-                        LazyRow(
+                    if (leicaExpanded) {
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 4.dp, bottom = 2.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            contentPadding = PaddingValues(horizontal = 6.dp)
+                                .padding(top = 4.dp, bottom = 2.dp)
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            items(leicaGroup) { preset ->
+                            leicaGroup.forEach { preset ->
                                 FilterCell(
                                     preset = preset,
                                     selected = state.preset == preset,
@@ -758,7 +761,8 @@ private fun LensSwitcher(
             .clip(CircleShape)
             .background(Brush.verticalGradient(listOf(Color(0x1FFFFFFF), Color(0x0FFFFFFF))))
             .border(1.dp, FanhuaStroke, CircleShape)
-            .padding(4.dp),
+            .padding(4.dp)
+            .horizontalScroll(rememberScrollState()),
         verticalAlignment = Alignment.CenterVertically
     ) {
         state.lensOptions.forEach { lens ->
