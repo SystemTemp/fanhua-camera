@@ -60,6 +60,7 @@ import com.fanhua.camera.camera.core.CameraController
 import com.fanhua.camera.camera.core.CapabilityProbe
 import com.fanhua.camera.camera.core.CaptureMode
 import com.fanhua.camera.camera.core.FlashMode
+import com.fanhua.camera.camera.core.PhotoAspect
 import com.fanhua.camera.ui.camera.BottomControls
 import com.fanhua.camera.ui.camera.TopBar
 import com.fanhua.camera.ui.camera.Viewfinder
@@ -135,12 +136,27 @@ fun FanhuaCameraApp(controller: CameraController) {
                 state = state,
                 landscape = isLandscape,
                 onFlashToggle = {
-                    val next = when (state.flashMode) {
-                        FlashMode.AUTO -> FlashMode.ON
-                        FlashMode.ON -> FlashMode.OFF
-                        FlashMode.OFF -> FlashMode.AUTO
+                    if (state.frontCamera) {
+                        // 前置没有闪光灯，直接切常亮补光（屏幕补光）
+                        controller.setTorchEnabled(!state.torchEnabled)
+                    } else {
+                        val next = when (state.flashMode) {
+                            FlashMode.AUTO -> FlashMode.ON
+                            FlashMode.ON -> FlashMode.OFF
+                            FlashMode.OFF -> FlashMode.AUTO
+                        }
+                        controller.setFlashMode(next)
                     }
-                    controller.setFlashMode(next)
+                },
+                onTorchToggle = { controller.setTorchEnabled(!state.torchEnabled) },
+                onAspectToggle = {
+                    val next = when (state.photoAspect) {
+                        PhotoAspect.FULL -> PhotoAspect.RATIO_4_3
+                        PhotoAspect.RATIO_4_3 -> PhotoAspect.RATIO_16_9
+                        PhotoAspect.RATIO_16_9 -> PhotoAspect.RATIO_1_1
+                        PhotoAspect.RATIO_1_1 -> PhotoAspect.FULL
+                    }
+                    controller.setPhotoAspect(next)
                 },
                 onAutoCompositionToggle = {
                     controller.setAutoCompositionEnabled(!state.autoCompositionEnabled)
@@ -195,7 +211,6 @@ fun FanhuaCameraApp(controller: CameraController) {
             BottomControls(
                 controller = controller,
                 state = state,
-                capability = capability,
                 landscape = isLandscape,
                 onOpenGallery = { showGallery = true }
             )

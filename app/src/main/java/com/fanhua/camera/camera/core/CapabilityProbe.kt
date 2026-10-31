@@ -1,31 +1,45 @@
 package com.fanhua.camera.camera.core
 
 import android.content.Context
+import android.graphics.ImageFormat
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.media.MediaCodecList
 import android.media.MediaRecorder
+import android.util.Range
 import android.util.Size
 
+/**
+ * 相机能力探测。
+ *
+ * 通过 Camera2 的 [CameraCharacteristics] 与 [MediaCodecList] 交叉验证，
+ * 得出「这台设备真正能做到什么」，避免 UI 上给出设备无法执行的选项。
+ */
 class CapabilityProbe(private val context: Context) {
 
     fun probe(facing: Int): CapabilityReport {
         val manager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
         var characteristics: CameraCharacteristics? = null
         for (id in manager.cameraIdList) {
-            val item = manager.getCameraCharacteristics(id)
+            val item = try {
+                manager.getCameraCharacteristics(id)
+            } catch (e: Exception) {
+                continue
+            }
             if (item.get(CameraCharacteristics.LENS_FACING) == facing) {
                 characteristics = item
                 break
             }
         }
-        val camera = characteristics ?: return CapabilityReport(notes = listOf("no camera for facing $facing"))
+        val camera = characteristics
+            ?: return CapabilityReport(notes = listOf("未找到该朝向的摄像头"))
         val map = camera.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
         val hevc = videoCapabilities("video/hevc")
         val avc = videoCapabilities("video/avc")
 
         var maxSize = Size(0, 0)
         var maxFps = 0
+        var maxPhotoSize = Size(0, 0)
         if (map != null) {
             val sizes = map.getOutputSizes(MediaRecorder::class.java) ?: emptyArray()
             for (size in sizes) {
@@ -37,6 +51,12 @@ class CapabilityProbe(private val context: Context) {
                 val duration = map.getOutputMinFrameDuration(MediaRecorder::class.java, maxSize)
                 if (duration > 0) {
                     maxFps = (1_000_000_000L / duration).toInt()
+                }
+            }
+            val photoSizes = map.getOutputSizes(ImageFormat.JPEG) ?: emptyArray()
+            for (size in photoSizes) {
+                if (size.width.toLong() * size.height > maxPhotoSize.width.toLong() * maxPhotoSize.height) {
+                    maxPhotoSize = size
                 }
             }
         }
@@ -75,21 +95,23 @@ class CapabilityProbe(private val context: Context) {
 
         val notes = mutableListOf<String>()
         if (hevc != null) {
-            notes += "HEVC encoder detected"
+            notes += "已检测到 HEVC 编码器"
         } else {
-            notes += "HEVC encoder missing, AVC only"
+            notes += "缺少 HEVC 编码器，仅支持 AVC"
         }
         if (!fourK120 && highSpeedFps >= 120) {
-            notes += "SoC encoder cannot reach 4K120, slow motion limited to $highSpeedFps FPS capture"
+            notes += "SoC 编码器无法达到 4K120，慢动作上限为 $highSpeedFps FPS 采集"
         }
         if (highSpeedProfiles.isEmpty()) {
-            notes += "No constrained high speed capture profile"
+            notes += "无受约束高速采集档位"
         }
 
         return CapabilityReport(
             maxVideoWidth = maxSize.width,
             maxVideoHeight = maxSize.height,
             maxVideoFps = if (maxFps > 240) 30 else maxFps,
+            maxPhotoWidth = maxPhotoSize.width,
+            maxPhotoHeight = maxPhotoSize.height,
             hevcSupported = hevc != null,
             fourK30Encode = fourK30,
             fourK60Encode = fourK60,
@@ -103,6 +125,57 @@ class CapabilityProbe(private val context: Context) {
             proSpecs = proSpecs,
             notes = notes
         )
+    }
+
+    /** 该朝向的摄像头是否带闪光灯单元。 */
+    fun hasFlash(facing: Int): Boolean {
+        val manager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        for (id in manager.cameraIdList) {
+            val item = try {
+                manager.getCameraCharacteristics(id)
+            } catch (e: Exception) {
+                continue
+            }
+            if (item.get(CameraCharacteristics.LENS_FACING) == facing) {
+                return item.get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+            }
+        }
+        return false
+    }
+
+    /** 曝光补偿的可用区间。 */
+    fun exposureRange(facing: Int): Range<Int>? {
+        val manager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        for (id in manager.cameraIdList) {
+            val item = try {
+                manager.getCameraCharacteristics(id)
+            } catch (e: Exception) {
+                continue
+            }
+            if (item.get(CameraCharacteristics.LENS_FACING) == facing) {
+                return item.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE)
+            }
+        }
+        return null
+    }
+
+    /** 曝光补偿每档的步长（EV）。 */
+    fun exposureStep(facing: Int): Float {
+        val manager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        for (id in manager.cameraIdList) {
+            val item = try {
+                manager.getCameraCharacteristics(id)
+            } catch (e: Exception) {
+                continue
+            }
+            if (item.get(CameraCharacteristics.LENS_FACING) == facing) {
+                val rational = item.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP)
+                if (rational != null && rational.denominator != 0) {
+                    return rational.numerator.toFloat() / rational.denominator.toFloat()
+                }
+            }
+        }
+        return 1f / 6f
     }
 
     private fun buildSpecs(caps: android.media.MediaCodecInfo.VideoCapabilities?): List<OutputSpec> {

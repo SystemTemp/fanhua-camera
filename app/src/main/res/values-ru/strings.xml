@@ -2,36 +2,62 @@
 <resources>
     <string name="app_name">Камера Фаньхуа</string>
 
+    <!-- Режимы съёмки -->
     <string name="mode_photo">Фото</string>
     <string name="mode_video">Видео</string>
     <string name="mode_pro">Про</string>
     <string name="mode_superres">Супер</string>
 
+    <!-- Фильтры -->
     <string name="filter_original">Оригинал</string>
     <string name="filter_dream">Цветочный сон</string>
     <string name="filter_leica">Мгновение Leica</string>
+    <string name="filter_leica_vivid">Leica Яркий</string>
+    <string name="filter_leica_natural">Leica Естественный</string>
     <string name="filter_leica_mono">Leica Mono</string>
+    <string name="filter_leica_bw_hc">Leica Ч/Б HC</string>
+    <string name="filter_leica_brown">Leica Сепия</string>
+    <string name="filter_leica_bw_blue">Leica Синий моно</string>
     <string name="filter_leica_portrait">Leica Портрет</string>
+    <string name="filter_leica_classic">Leica Классика</string>
+    <string name="filter_leica_group">Leica</string>
+    <string name="filter_fuji_classic">Fuji Classic Chrome</string>
+    <string name="filter_kodak_portra">Kodak Portra</string>
+    <string name="filter_teal_orange">Бирюза и оранж</string>
+    <string name="filter_cinematic">Кинематограф</string>
+    <string name="filter_film_grain">Зерно плёнки</string>
+    <string name="filter_group_film">Плёнка</string>
     <string name="filter_apple_log">Apple Log</string>
+    <string name="filter_custom_lut">Своя LUT</string>
+    <string name="filter_sdr">SDR стандарт</string>
 
+    <!-- Вспышка и постоянный свет -->
     <string name="flash_auto">Авто</string>
     <string name="flash_on">Вкл</string>
     <string name="flash_off">Выкл</string>
+    <string name="torch_on">Постоянный свет вкл</string>
+    <string name="torch_off">Постоянный свет выкл</string>
 
+    <!-- Общие действия -->
     <string name="action_settings">Настройки</string>
     <string name="action_close">Закрыть</string>
     <string name="action_switch_camera">Сменить камеру</string>
     <string name="action_confirm">ОК</string>
     <string name="action_cancel">Отмена</string>
+    <string name="action_reset">Сбросить</string>
 
+    <!-- Разрешения -->
     <string name="permission_title">Требуется доступ к камере</string>
     <string name="permission_message">Разрешите доступ к камере и микрофону для съёмки фото и видео</string>
     <string name="permission_grant">Разрешить</string>
 
+    <!-- Сообщения -->
     <string name="message_photo_saved">Фото сохранено</string>
     <string name="message_video_saved">Видео сохранено</string>
     <string name="message_recording_started">Идёт запись</string>
     <string name="message_recording_stopped">Запись завершена</string>
+    <string name="message_recording_paused">Запись приостановлена</string>
+    <string name="message_recording_resumed">Запись продолжена</string>
     <string name="message_saving">Сохранение</string>
     <string name="message_processing">Обработка</string>
     <string name="message_error_camera">Камера недоступна</string>
@@ -41,24 +67,57 @@
     <string name="message_high_speed_unavailable">Это устройство не поддерживает высокоскоростную запись</string>
     <string name="message_superres_unavailable">Это устройство не поддерживает вывод сверхвысокого разрешения</string>
     <string name="message_stabilization_unavailable">Это устройство не поддерживает эту настройку стабилизации</string>
+    <string name="message_quality_reduced">Качество снижено, камера работает</string>
+    <string name="message_torch_unavailable">Это устройство не поддерживает постоянный свет</string>
+    <string name="message_exposure_unavailable">Это устройство не поддерживает компенсацию экспозиции</string>
+    <string name="message_focus_locked">Фокус зафиксирован</string>
+    <string name="message_focus_reset">Автофокус восстановлен</string>
 
+    <!-- Настройки -->
     <string name="settings_title">Настройки</string>
     <string name="settings_language">Язык интерфейса</string>
     <string name="settings_language_system">Как в системе</string>
+    <string name="settings_capture">Съёмка</string>
+    <string name="settings_photo_aspect">Соотношение сторон фото</string>
+    <string name="settings_photo_aspect_desc">Что видите, то и получите: фото обрезается по центру под выбранное соотношение</string>
+    <string name="settings_mirror">Зеркалить селфи</string>
+    <string name="settings_mirror_desc">Отражать по горизонтали на фронтальной камере, чтобы снимок совпадал с предпросмотром</string>
+    <string name="settings_watermark">Рамка Leica</string>
+    <string name="settings_watermark_desc">Накладывать фирменную рамку и параметры съёмки при фильтре «Мгновение Leica»</string>
+    <string name="settings_shutter_sound">Звук затвора</string>
+    <string name="settings_shutter_sound_desc">Воспроизводить системный звук затвора при съёмке</string>
     <string name="settings_filter_intensity">Интенсивность фильтра</string>
+    <string name="settings_image">Изображение</string>
     <string name="settings_stabilization">Стабилизация видео</string>
     <string name="settings_stabilization_desc">Использовать аппаратную стабилизацию и гироскопическую компенсацию при суперразрешении</string>
+    <string name="settings_horizon">Блокировка горизонта</string>
+    <string name="settings_horizon_desc">Компенсирует панорамирование по гироскопу и держит горизонт ровно; в видоискателе золотой уровень, выравнивание до 8 градусов</string>
     <string name="settings_superres">Суперразрешение фото</string>
     <string name="settings_superres_desc">Увеличить фото до более высокого разрешения после съёмки</string>
     <string name="settings_autocomposition">Автокомпозиция</string>
     <string name="settings_autocomposition_desc">Определять объект и давать подсказки по кадрированию</string>
     <string name="settings_capability">Возможности устройства</string>
     <string name="settings_capability_desc">Просмотр реально поддерживаемых параметров записи</string>
+    <string name="settings_lut">Фильтры LUT</string>
+    <string name="settings_lut_desc">Импортируйте 3D-LUT .cube (Blackmagic, PhotonCamera и др.), затем выберите «Своя LUT» в ленте фильтров</string>
+    <string name="settings_debug">Режим отладки</string>
+    <string name="settings_debug_desc">Записывает только отладочные журналы и не мешает работе; скопируйте журнал и отправьте разработчику</string>
     <string name="settings_about">О программе</string>
     <string name="settings_about_desc">Камера Фаньхуа · Многоязычная фотография</string>
+    <string name="settings_reset">Сбросить настройки</string>
+    <string name="settings_reset_desc">Удаляет все настройки съёмки; фото и видео не удаляются</string>
+    <string name="settings_reset_done">Настройки сброшены</string>
 
+    <!-- Соотношения сторон -->
+    <string name="aspect_full">Полный кадр</string>
+    <string name="aspect_4_3">4:3</string>
+    <string name="aspect_16_9">16:9</string>
+    <string name="aspect_1_1">1:1</string>
+
+    <!-- Возможности устройства -->
     <string name="capability_title">Отчёт о возможностях</string>
     <string name="capability_max_video">Максимальная запись</string>
+    <string name="capability_max_photo">Максимальное фото</string>
     <string name="capability_encode_4k30">Кодирование 4K 30FPS</string>
     <string name="capability_encode_4k60">Кодирование 4K 60FPS</string>
     <string name="capability_encode_4k120">Кодирование 4K 120FPS</string>
@@ -72,11 +131,14 @@
     <string name="value_unsupported">Не поддерживается</string>
     <string name="value_none">Нет</string>
 
+    <!-- Про-режим -->
     <string name="pro_manual_focus">Ручная фокусировка</string>
-    <string name="pro_speed_normal">Обычная</string>
-    <string name="pro_speed_slow_motion">Замедление</string>
+    <string name="pro_exposure">Компенсация экспозиции</string>
+    <string name="pro_exposure_auto">Авто</string>
+    <string name="pro_focus_auto">Автофокус</string>
     <string name="pro_output_spec">Параметры вывода</string>
 
+    <!-- Подсказки композиции -->
     <string name="composition_hint_center">Переместите объект на пересечение третей</string>
     <string name="composition_hint_left">Объект справа, сдвиньте влево</string>
     <string name="composition_hint_right">Объект слева, сдвиньте вправо</string>
@@ -84,16 +146,34 @@
     <string name="composition_hint_down">Объект сверху, сдвиньте вниз</string>
     <string name="composition_aligned">Хорошая композиция</string>
 
+    <!-- Галерея -->
     <string name="gallery_title">Результаты</string>
     <string name="gallery_empty">Нет содержимого</string>
+    <string name="gallery_share">Поделиться</string>
+    <string name="gallery_open">Открыть в системе</string>
     <string name="gallery_interpolate">Создать высокую частоту</string>
     <string name="gallery_upscale">Суперразрешение до 4K</string>
     <string name="processing_title">Обработка</string>
     <string name="processing_done">Обработка завершена</string>
     <string name="processing_failed">Обработка не удалась</string>
 
+    <!-- Видоискатель и элементы управления -->
     <string name="zoom_label">Зум</string>
     <string name="live_photo">Живое фото</string>
+    <string name="grid">Сетка</string>
+    <string name="timer_off">Выкл</string>
+    <string name="flip_camera">Перевернуть</string>
+    <string name="filter_strip_expand">Развернуть фильтры</string>
+    <string name="filter_strip_collapse">Свернуть фильтры</string>
+    <string name="countdown_cancel">Нажмите, чтобы отменить</string>
+    <string name="video_pause">Пауза</string>
+    <string name="video_resume">Продолжить</string>
+    <string name="hide_controls">Скрыть элементы</string>
+    <string name="show_controls">Показать элементы</string>
+    <string name="camera_starting">Запуск камеры…</string>
+    <string name="double_tap_switch">Двойное касание для смены камеры</string>
+
+    <!-- Обратная связь и о программе -->
     <string name="bug_feedback">Сообщить об ошибке</string>
     <string name="bug_feedback_desc">Скопировать журналы одним касанием для поиска проблемы</string>
     <string name="copy_log">Копировать журналы</string>
@@ -110,7 +190,8 @@
     <string name="confirm_delete_title">Удалить это фото?</string>
     <string name="confirm_delete_message">Нельзя отменить</string>
     <string name="open_with_system">Открыть в системе</string>
-    <string name="camera_starting">Запуск камеры…</string>
+
+    <!-- Обновления -->
     <string name="check_update">Проверить обновления</string>
     <string name="update_available">Доступна новая версия</string>
     <string name="update_latest">У вас актуальная версия</string>
@@ -120,6 +201,22 @@
     <string name="downloading">Загрузка</string>
     <string name="download_done">Загрузка завершена</string>
     <string name="install_update">Установить обновление</string>
-    <string name="message_quality_reduced">Качество снижено, камера работает</string>
+    <string name="install_permission_hint">Сначала разрешите «Установку неизвестных приложений», вернитесь и нажмите «Установить» снова</string>
+
+    <!-- Отладка -->
+    <string name="debug_copy_log">Копировать отладочный журнал</string>
+    <string name="debug_clear_log">Очистить журнал</string>
+    <string name="debug_log_empty">Журнал пуст. Включите режим отладки и сделайте несколько снимков</string>
+    <string name="debug_log_copied">Отладочный журнал скопирован</string>
+
+    <!-- LUT -->
+    <string name="lut_import">Импорт LUT (.cube)</string>
+    <string name="lut_none">LUT пока не импортирована</string>
+    <string name="lut_imported">LUT импортирована</string>
+    <string name="lut_invalid">Файл LUT недействителен или не разобран</string>
+    <string name="lut_removed">LUT удалена</string>
+    <string name="lut_remove">Удалить</string>
+    <string name="lut_use_tip">Применяется после выбора фильтра «Своя LUT»</string>
+
     <string name="live_photo_saved">Живое фото сохранено</string>
 </resources>

@@ -2,36 +2,62 @@
 <resources>
     <string name="app_name">번화여몽 카메라</string>
 
+    <!-- 촬영 모드 -->
     <string name="mode_photo">사진</string>
     <string name="mode_video">동영상</string>
     <string name="mode_pro">프로</string>
     <string name="mode_superres">초해상도</string>
 
+    <!-- 필터 -->
     <string name="filter_original">원본</string>
     <string name="filter_dream">번화여몽</string>
     <string name="filter_leica">라이카의 순간</string>
+    <string name="filter_leica_vivid">라이카 비비드</string>
+    <string name="filter_leica_natural">라이카 내추럴</string>
     <string name="filter_leica_mono">라이카 모노</string>
+    <string name="filter_leica_bw_hc">라이카 모노 HC</string>
+    <string name="filter_leica_brown">라이카 세피아</string>
+    <string name="filter_leica_bw_blue">라이카 블루 모노</string>
     <string name="filter_leica_portrait">라이카 인물</string>
+    <string name="filter_leica_classic">라이카 클래식</string>
+    <string name="filter_leica_group">라이카</string>
+    <string name="filter_fuji_classic">후지 클래식 크롬</string>
+    <string name="filter_kodak_portra">코닥 포트라</string>
+    <string name="filter_teal_orange">틸 앤 오렌지</string>
+    <string name="filter_cinematic">시네마틱</string>
+    <string name="filter_film_grain">필름 그레인</string>
+    <string name="filter_group_film">필름</string>
     <string name="filter_apple_log">Apple Log</string>
+    <string name="filter_custom_lut">사용자 LUT</string>
+    <string name="filter_sdr">SDR 표준</string>
 
+    <!-- 플래시 및 상시 조명 -->
     <string name="flash_auto">자동</string>
     <string name="flash_on">켜기</string>
     <string name="flash_off">끄기</string>
+    <string name="torch_on">상시 조명 켜기</string>
+    <string name="torch_off">상시 조명 끄기</string>
 
+    <!-- 공통 동작 -->
     <string name="action_settings">설정</string>
     <string name="action_close">닫기</string>
     <string name="action_switch_camera">카메라 전환</string>
     <string name="action_confirm">확인</string>
     <string name="action_cancel">취소</string>
+    <string name="action_reset">초기화</string>
 
+    <!-- 권한 -->
     <string name="permission_title">카메라 권한이 필요합니다</string>
     <string name="permission_message">촬영과 녹화를 위해 카메라와 마이크 접근을 허용해 주세요</string>
     <string name="permission_grant">권한 허용</string>
 
+    <!-- 안내 메시지 -->
     <string name="message_photo_saved">사진이 저장되었습니다</string>
     <string name="message_video_saved">동영상이 저장되었습니다</string>
     <string name="message_recording_started">녹화 중</string>
     <string name="message_recording_stopped">녹화가 종료되었습니다</string>
+    <string name="message_recording_paused">녹화를 일시정지했습니다</string>
+    <string name="message_recording_resumed">녹화를 다시 시작했습니다</string>
     <string name="message_saving">저장 중</string>
     <string name="message_processing">처리 중</string>
     <string name="message_error_camera">카메라를 사용할 수 없습니다</string>
@@ -41,24 +67,57 @@
     <string name="message_high_speed_unavailable">이 기기는 고프레임 녹화를 지원하지 않습니다</string>
     <string name="message_superres_unavailable">이 기기는 초해상도 출력을 지원하지 않습니다</string>
     <string name="message_stabilization_unavailable">이 기기는 해당 손떨림 보정 설정을 지원하지 않습니다</string>
+    <string name="message_quality_reduced">화질이 낮아졌지만 카메라는 사용할 수 있습니다</string>
+    <string name="message_torch_unavailable">이 기기는 상시 조명을 지원하지 않습니다</string>
+    <string name="message_exposure_unavailable">이 기기는 노출 보정을 지원하지 않습니다</string>
+    <string name="message_focus_locked">초점이 고정되었습니다</string>
+    <string name="message_focus_reset">자동 초점으로 되돌렸습니다</string>
 
+    <!-- 설정 -->
     <string name="settings_title">설정</string>
     <string name="settings_language">표시 언어</string>
     <string name="settings_language_system">시스템 설정 따르기</string>
+    <string name="settings_capture">촬영</string>
+    <string name="settings_photo_aspect">사진 화면 비율</string>
+    <string name="settings_photo_aspect_desc">보이는 그대로 저장하며, 선택한 비율로 가운데를 잘라냅니다</string>
+    <string name="settings_mirror">셀피 좌우 반전</string>
+    <string name="settings_mirror_desc">전면 카메라 촬영 시 좌우를 반전해 미리보기와 같게 저장합니다</string>
+    <string name="settings_watermark">라이카 프레임</string>
+    <string name="settings_watermark_desc">‘라이카의 순간’ 필터 사용 시 브랜드 프레임과 촬영 정보를 함께 넣습니다</string>
+    <string name="settings_shutter_sound">셔터 소리</string>
+    <string name="settings_shutter_sound_desc">사진 촬영 시 시스템 셔터 소리를 재생합니다</string>
     <string name="settings_filter_intensity">필터 강도</string>
+    <string name="settings_image">영상</string>
     <string name="settings_stabilization">동영상 손떨림 보정</string>
     <string name="settings_stabilization_desc">하드웨어 보정을 우선하고 초해상도 녹화 시 자이로 보정을 사용합니다</string>
+    <string name="settings_horizon">수평 보정</string>
+    <string name="settings_horizon_desc">자이로로 패닝을 보정해 수평을 유지합니다. 뷰파인더에 금색 수평계가 표시되며 최대 8도까지 되돌립니다</string>
     <string name="settings_superres">사진 초해상도</string>
     <string name="settings_superres_desc">촬영 후 사진을 더 높은 해상도로 확대합니다</string>
     <string name="settings_autocomposition">자동 구도</string>
     <string name="settings_autocomposition_desc">피사체 위치를 감지해 구도 안내와 자르기 제안을 제공합니다</string>
     <string name="settings_capability">기기 성능</string>
     <string name="settings_capability_desc">이 기기가 실제로 지원하는 녹화 사양을 확인합니다</string>
+    <string name="settings_lut">LUT 필터</string>
+    <string name="settings_lut_desc">.cube 3D LUT(Blackmagic, PhotonCamera 등)를 가져올 수 있습니다. 가져온 뒤 필터 목록에서 ‘사용자 LUT’를 선택하면 적용됩니다</string>
+    <string name="settings_debug">디버그 모드</string>
+    <string name="settings_debug_desc">디버그 로그만 기록하며 일반 사용에는 영향이 없습니다. 테스트 후 로그를 복사해 개발자에게 보내 주세요</string>
     <string name="settings_about">정보</string>
     <string name="settings_about_desc">번화여몽 카메라 · 다국어 촬영</string>
+    <string name="settings_reset">기본 설정으로 복원</string>
+    <string name="settings_reset_desc">모든 촬영 설정을 지웁니다. 사진과 동영상은 삭제되지 않습니다</string>
+    <string name="settings_reset_done">기본 설정으로 복원했습니다</string>
 
+    <!-- 화면 비율 -->
+    <string name="aspect_full">풀 프레임</string>
+    <string name="aspect_4_3">4:3</string>
+    <string name="aspect_16_9">16:9</string>
+    <string name="aspect_1_1">1:1</string>
+
+    <!-- 기기 성능 -->
     <string name="capability_title">기기 성능 보고서</string>
     <string name="capability_max_video">최대 녹화 사양</string>
+    <string name="capability_max_photo">최대 사진 사양</string>
     <string name="capability_encode_4k30">4K 30FPS 인코딩</string>
     <string name="capability_encode_4k60">4K 60FPS 인코딩</string>
     <string name="capability_encode_4k120">4K 120FPS 인코딩</string>
@@ -72,11 +131,14 @@
     <string name="value_unsupported">미지원</string>
     <string name="value_none">없음</string>
 
+    <!-- 프로 모드 -->
     <string name="pro_manual_focus">수동 초점</string>
-    <string name="pro_speed_normal">일반</string>
-    <string name="pro_speed_slow_motion">슬로모션</string>
+    <string name="pro_exposure">노출 보정</string>
+    <string name="pro_exposure_auto">자동</string>
+    <string name="pro_focus_auto">자동 초점</string>
     <string name="pro_output_spec">출력 사양</string>
 
+    <!-- 구도 안내 -->
     <string name="composition_hint_center">피사체를 삼분할 교차점으로 이동</string>
     <string name="composition_hint_left">피사체가 오른쪽, 왼쪽으로 조정</string>
     <string name="composition_hint_right">피사체가 왼쪽, 오른쪽으로 조정</string>
@@ -84,16 +146,34 @@
     <string name="composition_hint_down">피사체가 위쪽, 아래로 조정</string>
     <string name="composition_aligned">구도가 좋습니다</string>
 
+    <!-- 갤러리 -->
     <string name="gallery_title">촬영 결과</string>
     <string name="gallery_empty">아직 없음</string>
+    <string name="gallery_share">공유</string>
+    <string name="gallery_open">시스템에서 열기</string>
     <string name="gallery_interpolate">고프레임 생성</string>
     <string name="gallery_upscale">4K로 초해상도</string>
     <string name="processing_title">처리 중</string>
     <string name="processing_done">처리 완료</string>
     <string name="processing_failed">처리 실패</string>
 
+    <!-- 뷰파인더 및 조작부 -->
     <string name="zoom_label">줌</string>
     <string name="live_photo">라이브 포토</string>
+    <string name="grid">그리드</string>
+    <string name="timer_off">끄기</string>
+    <string name="flip_camera">전환</string>
+    <string name="filter_strip_expand">필터 펼치기</string>
+    <string name="filter_strip_collapse">필터 접기</string>
+    <string name="countdown_cancel">탭하여 취소</string>
+    <string name="video_pause">일시정지</string>
+    <string name="video_resume">계속</string>
+    <string name="hide_controls">조작부 숨기기</string>
+    <string name="show_controls">조작부 표시</string>
+    <string name="camera_starting">카메라 시작 중…</string>
+    <string name="double_tap_switch">두 번 탭하여 전후면 카메라 전환</string>
+
+    <!-- 피드백 및 정보 -->
     <string name="bug_feedback">버그 신고</string>
     <string name="bug_feedback_desc">로그를 한 번에 복사하여 문제 해결에 활용</string>
     <string name="copy_log">로그 복사</string>
@@ -110,7 +190,8 @@
     <string name="confirm_delete_title">이 사진을 삭제할까요?</string>
     <string name="confirm_delete_message">되돌릴 수 없습니다</string>
     <string name="open_with_system">시스템에서 열기</string>
-    <string name="camera_starting">카메라 시작 중…</string>
+
+    <!-- 업데이트 -->
     <string name="check_update">업데이트 확인</string>
     <string name="update_available">새 버전이 있습니다</string>
     <string name="update_latest">최신 버전입니다</string>
@@ -120,6 +201,22 @@
     <string name="downloading">다운로드 중</string>
     <string name="download_done">다운로드 완료</string>
     <string name="install_update">업데이트 설치</string>
-    <string name="message_quality_reduced">화질이 낮아졌지만 카메라는 사용할 수 있습니다</string>
+    <string name="install_permission_hint">먼저 ‘알 수 없는 앱 설치’를 허용한 뒤 앱으로 돌아와 다시 설치를 누르세요</string>
+
+    <!-- 디버그 -->
+    <string name="debug_copy_log">디버그 로그 복사</string>
+    <string name="debug_clear_log">로그 지우기</string>
+    <string name="debug_log_empty">로그가 비어 있습니다. 디버그 모드를 켜고 몇 장 촬영해 주세요</string>
+    <string name="debug_log_copied">디버그 로그를 복사했습니다</string>
+
+    <!-- LUT -->
+    <string name="lut_import">LUT 가져오기 (.cube)</string>
+    <string name="lut_none">아직 가져온 LUT가 없습니다</string>
+    <string name="lut_imported">LUT를 가져왔습니다</string>
+    <string name="lut_invalid">LUT 파일이 유효하지 않거나 분석에 실패했습니다</string>
+    <string name="lut_removed">LUT를 삭제했습니다</string>
+    <string name="lut_remove">삭제</string>
+    <string name="lut_use_tip">‘사용자 LUT’ 필터를 선택하면 적용됩니다</string>
+
     <string name="live_photo_saved">라이브 포토가 저장되었습니다</string>
 </resources>

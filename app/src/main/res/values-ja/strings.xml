@@ -2,36 +2,62 @@
 <resources>
     <string name="app_name">繁花如夢カメラ</string>
 
+    <!-- 撮影モード -->
     <string name="mode_photo">写真</string>
     <string name="mode_video">動画</string>
     <string name="mode_pro">プロ</string>
     <string name="mode_superres">超解像</string>
 
+    <!-- フィルター -->
     <string name="filter_original">オリジナル</string>
     <string name="filter_dream">繁花如夢</string>
     <string name="filter_leica">ライカの瞬間</string>
+    <string name="filter_leica_vivid">ライカビビッド</string>
+    <string name="filter_leica_natural">ライカナチュラル</string>
     <string name="filter_leica_mono">ライカモノクロ</string>
+    <string name="filter_leica_bw_hc">ライカモノクロ HC</string>
+    <string name="filter_leica_brown">ライカセピア</string>
+    <string name="filter_leica_bw_blue">ライカブルーモノ</string>
     <string name="filter_leica_portrait">ライカポートレート</string>
+    <string name="filter_leica_classic">ライカクラシック</string>
+    <string name="filter_leica_group">ライカ</string>
+    <string name="filter_fuji_classic">クラシッククローム</string>
+    <string name="filter_kodak_portra">コダックポートラ</string>
+    <string name="filter_teal_orange">ティール＆オレンジ</string>
+    <string name="filter_cinematic">シネマティック</string>
+    <string name="filter_film_grain">フィルムグレイン</string>
+    <string name="filter_group_film">フィルム</string>
     <string name="filter_apple_log">Apple Log</string>
+    <string name="filter_custom_lut">カスタム LUT</string>
+    <string name="filter_sdr">SDR 標準</string>
 
+    <!-- フラッシュと常時点灯 -->
     <string name="flash_auto">自動</string>
     <string name="flash_on">オン</string>
     <string name="flash_off">オフ</string>
+    <string name="torch_on">常時点灯オン</string>
+    <string name="torch_off">常時点灯オフ</string>
 
+    <!-- 共通操作 -->
     <string name="action_settings">設定</string>
     <string name="action_close">閉じる</string>
     <string name="action_switch_camera">カメラ切替</string>
     <string name="action_confirm">確定</string>
     <string name="action_cancel">キャンセル</string>
+    <string name="action_reset">リセット</string>
 
+    <!-- 権限 -->
     <string name="permission_title">カメラの権限が必要です</string>
     <string name="permission_message">撮影と録画のためにカメラとマイクへのアクセスを許可してください</string>
     <string name="permission_grant">権限を許可</string>
 
+    <!-- メッセージ -->
     <string name="message_photo_saved">写真を保存しました</string>
     <string name="message_video_saved">動画を保存しました</string>
     <string name="message_recording_started">録画中</string>
     <string name="message_recording_stopped">録画を終了しました</string>
+    <string name="message_recording_paused">録画を一時停止しました</string>
+    <string name="message_recording_resumed">録画を再開しました</string>
     <string name="message_saving">保存中</string>
     <string name="message_processing">処理中</string>
     <string name="message_error_camera">カメラを利用できません</string>
@@ -41,24 +67,57 @@
     <string name="message_high_speed_unavailable">この端末は高フレームレート録画に対応していません</string>
     <string name="message_superres_unavailable">この端末は超解像出力に対応していません</string>
     <string name="message_stabilization_unavailable">この端末はこの手ぶれ補正設定に対応していません</string>
+    <string name="message_quality_reduced">画質が低下しましたが、カメラは使用できます</string>
+    <string name="message_torch_unavailable">この端末は常時点灯に対応していません</string>
+    <string name="message_exposure_unavailable">この端末は露出補正に対応していません</string>
+    <string name="message_focus_locked">フォーカスを固定しました</string>
+    <string name="message_focus_reset">オートフォーカスに戻しました</string>
 
+    <!-- 設定 -->
     <string name="settings_title">設定</string>
     <string name="settings_language">表示言語</string>
     <string name="settings_language_system">システムに従う</string>
+    <string name="settings_capture">撮影</string>
+    <string name="settings_photo_aspect">写真のアスペクト比</string>
+    <string name="settings_photo_aspect_desc">ファインダーで見たままを保存し、選択した比率で中央をトリミングします</string>
+    <string name="settings_mirror">自撮りミラー</string>
+    <string name="settings_mirror_desc">フロントカメラで左右反転し、プレビューと同じ向きで保存します</string>
+    <string name="settings_watermark">ライカフレーム</string>
+    <string name="settings_watermark_desc">「ライカの瞬間」フィルター使用時にブランドフレームと撮影情報を重ねます</string>
+    <string name="settings_shutter_sound">シャッター音</string>
+    <string name="settings_shutter_sound_desc">撮影時にシステムのシャッター音を再生します</string>
     <string name="settings_filter_intensity">フィルター強度</string>
+    <string name="settings_image">映像</string>
     <string name="settings_stabilization">動画の手ぶれ補正</string>
     <string name="settings_stabilization_desc">ハードウェア補正を優先し、超解像録画時はジャイロ補正を有効にします</string>
+    <string name="settings_horizon">水平線補正</string>
+    <string name="settings_horizon_desc">ジャイロでパンを補正して水平を保ちます。ファインダーには金色の水準器を表示し、最大 8 度まで戻します</string>
     <string name="settings_superres">写真の超解像</string>
     <string name="settings_superres_desc">撮影後に写真をより高い解像度へ拡大します</string>
     <string name="settings_autocomposition">自動構図</string>
     <string name="settings_autocomposition_desc">被写体の位置を検出し、構図ガイドとトリミング提案を行います</string>
     <string name="settings_capability">端末の性能</string>
     <string name="settings_capability_desc">この端末が実際に対応する録画仕様を確認します</string>
+    <string name="settings_lut">LUT フィルター</string>
+    <string name="settings_lut_desc">.cube 3D LUT（Blackmagic、PhotonCamera など）を読み込めます。読み込み後、フィルター列で「カスタム LUT」を選ぶと使えます</string>
+    <string name="settings_debug">デバッグモード</string>
+    <string name="settings_debug_desc">デバッグログを記録するだけで通常の使用には影響しません。テスト後にログをコピーして開発者へ送ってください</string>
     <string name="settings_about">アプリ情報</string>
     <string name="settings_about_desc">繁花如夢カメラ · 多言語撮影</string>
+    <string name="settings_reset">初期設定に戻す</string>
+    <string name="settings_reset_desc">撮影の設定をすべて消去します。写真と動画は削除されません</string>
+    <string name="settings_reset_done">初期設定に戻しました</string>
 
+    <!-- アスペクト比 -->
+    <string name="aspect_full">フルサイズ</string>
+    <string name="aspect_4_3">4:3</string>
+    <string name="aspect_16_9">16:9</string>
+    <string name="aspect_1_1">1:1</string>
+
+    <!-- 端末の性能 -->
     <string name="capability_title">端末性能レポート</string>
     <string name="capability_max_video">最大録画仕様</string>
+    <string name="capability_max_photo">最大写真仕様</string>
     <string name="capability_encode_4k30">4K 30FPS エンコード</string>
     <string name="capability_encode_4k60">4K 60FPS エンコード</string>
     <string name="capability_encode_4k120">4K 120FPS エンコード</string>
@@ -72,11 +131,14 @@
     <string name="value_unsupported">非対応</string>
     <string name="value_none">なし</string>
 
+    <!-- プロモード -->
     <string name="pro_manual_focus">マニュアルフォーカス</string>
-    <string name="pro_speed_normal">標準</string>
-    <string name="pro_speed_slow_motion">スローモーション</string>
+    <string name="pro_exposure">露出補正</string>
+    <string name="pro_exposure_auto">自動</string>
+    <string name="pro_focus_auto">オートフォーカス</string>
     <string name="pro_output_spec">出力仕様</string>
 
+    <!-- 構図ガイド -->
     <string name="composition_hint_center">被写体を三分割の交点へ</string>
     <string name="composition_hint_left">被写体が右寄り、左へ調整</string>
     <string name="composition_hint_right">被写体が左寄り、右へ調整</string>
@@ -84,21 +146,39 @@
     <string name="composition_hint_down">被写体が上寄り、下へ調整</string>
     <string name="composition_aligned">構図は良好です</string>
 
+    <!-- ギャラリー -->
     <string name="gallery_title">撮影結果</string>
     <string name="gallery_empty">まだありません</string>
+    <string name="gallery_share">共有</string>
+    <string name="gallery_open">システムで開く</string>
     <string name="gallery_interpolate">高フレームレートを生成</string>
     <string name="gallery_upscale">4K へ超解像</string>
     <string name="processing_title">処理中</string>
     <string name="processing_done">処理が完了しました</string>
     <string name="processing_failed">処理に失敗しました</string>
 
+    <!-- ファインダーと操作部 -->
     <string name="zoom_label">ズーム</string>
     <string name="live_photo">ライブフォト</string>
+    <string name="grid">グリッド</string>
+    <string name="timer_off">オフ</string>
+    <string name="flip_camera">反転</string>
+    <string name="filter_strip_expand">フィルターを展開</string>
+    <string name="filter_strip_collapse">フィルターを収納</string>
+    <string name="countdown_cancel">タップでキャンセル</string>
+    <string name="video_pause">一時停止</string>
+    <string name="video_resume">再開</string>
+    <string name="hide_controls">操作部を隠す</string>
+    <string name="show_controls">操作部を表示</string>
+    <string name="camera_starting">カメラを起動中…</string>
+    <string name="double_tap_switch">ダブルタップでカメラ切替</string>
+
+    <!-- フィードバックとアプリ情報 -->
     <string name="bug_feedback">バグを報告</string>
     <string name="bug_feedback_desc">ログをワンタップでコピーして問題の特定に役立てる</string>
     <string name="copy_log">ログをコピー</string>
     <string name="copied">コピーしました</string>
-    <string name="report_issue">GitHubで報告</string>
+    <string name="report_issue">GitHub で報告</string>
     <string name="author">作者</string>
     <string name="open_homepage">ホームページを開く</string>
     <string name="device_info">端末情報</string>
@@ -110,7 +190,8 @@
     <string name="confirm_delete_title">この写真を削除しますか？</string>
     <string name="confirm_delete_message">元に戻せません</string>
     <string name="open_with_system">システムで開く</string>
-    <string name="camera_starting">カメラを起動中…</string>
+
+    <!-- アップデート -->
     <string name="check_update">更新を確認</string>
     <string name="update_available">新しいバージョンがあります</string>
     <string name="update_latest">最新バージョンです</string>
@@ -120,6 +201,22 @@
     <string name="downloading">ダウンロード中</string>
     <string name="download_done">ダウンロード完了</string>
     <string name="install_update">更新をインストール</string>
-    <string name="message_quality_reduced">画質が低下しましたが、カメラは使用できます</string>
+    <string name="install_permission_hint">先に「提供元不明のアプリ」を許可し、アプリに戻ってからもう一度インストールをタップしてください</string>
+
+    <!-- デバッグ -->
+    <string name="debug_copy_log">デバッグログをコピー</string>
+    <string name="debug_clear_log">ログを消去</string>
+    <string name="debug_log_empty">ログが空です。デバッグモードを有効にして数枚撮影してください</string>
+    <string name="debug_log_copied">デバッグログをコピーしました</string>
+
+    <!-- LUT -->
+    <string name="lut_import">LUT を読み込む (.cube)</string>
+    <string name="lut_none">LUT はまだ読み込まれていません</string>
+    <string name="lut_imported">LUT を読み込みました</string>
+    <string name="lut_invalid">LUT ファイルが無効か解析に失敗しました</string>
+    <string name="lut_removed">LUT を削除しました</string>
+    <string name="lut_remove">削除</string>
+    <string name="lut_use_tip">「カスタム LUT」フィルターを選ぶと適用されます</string>
+
     <string name="live_photo_saved">ライブフォトを保存しました</string>
 </resources>

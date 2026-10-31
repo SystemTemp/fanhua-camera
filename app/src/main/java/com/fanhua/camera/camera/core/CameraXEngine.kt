@@ -10,11 +10,8 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
-import android.util.Rational
 import android.util.Size
 import android.view.Surface
-import android.view.SurfaceHolder
-import android.view.SurfaceView
 import android.view.View
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraEffect
@@ -25,7 +22,6 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.core.SurfaceOrientedMeteringPointFactory
-import androidx.camera.core.SurfaceRequest
 import androidx.camera.core.UseCase
 import androidx.camera.core.UseCaseGroup
 import androidx.camera.core.ViewPort
@@ -46,7 +42,12 @@ import androidx.core.util.Consumer
 import androidx.lifecycle.LifecycleOwner
 import com.fanhua.camera.R
 import com.fanhua.camera.camera.analyzer.CompositionEngine
-import com.fanhua.camera.camera.analyzer.FaceAnalyzer
+import com.fanhua.camera.camera.analyzer.SubjectAnalyzer
+import com.fanhua.camera.camera.detect.DetectorStore
+import com.fanhua.camera.camera.detect.ModelDownloader
+import com.fanhua.camera.camera.detect.Detection as DetectDetection
+import com.fanhua.camera.camera.detect.DetectorModels
+import com.fanhua.camera.camera.detect.ObjectDetector
 import com.fanhua.camera.camera.capture.FilterCameraEffect
 import com.fanhua.camera.camera.capture.FilterSurfaceProcessor
 import com.fanhua.camera.camera.capture.RenderState
@@ -74,6 +75,15 @@ import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
+/**
+ * CameraX 引擎实现。
+ *
+ * 设计要点：
+ * - 所有公开方法都是「幂等 + 可重入」的，UI 层可以随意调用；
+ * - 状态集中在 [CameraUiState]，UI 只订阅不判断；
+ * - 绑定失败时按「有特效 → 无特效 → 降分辨率 → 仅照片」四级降级，
+ *   保证任何设备上都能至少拍照。
+ */
 class CameraXEngine(
     private val context: Context,
     private val lifecycleOwner: LifecycleOwner,
@@ -87,6 +97,7 @@ class CameraXEngine(
     override val horizonRoll: StateFlow<Float> = _horizonRoll.asStateFlow()
     private var horizonPollJob: Job? = null
     private var countdownJob: Job? = null
+    private var recordingTimerJob: Job? = null
 
     private val mainExecutor = ContextCompat.getMainExecutor(context)
     private val glExecutor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -98,9 +109,6 @@ class CameraXEngine(
     private val stabilizer = GyroStabilizer(context) { displayRotation() }
 
     private var previewView: PreviewView? = null
-    private var proSurfaceView: SurfaceView? = null
-    private var pendingProRequest: SurfaceRequest? = null
-    private var proHolderCallbackAttached = false
 
     private var provider: ProcessCameraProvider? = null
     private var camera: Camera? = null
@@ -108,7 +116,8 @@ class CameraXEngine(
     private var imageCapture: ImageCapture? = null
     private var videoCapture: VideoCapture<Recorder>? = null
     private var imageAnalysis: ImageAnalysis? = null
-    private var faceAnalyzer: FaceAnalyzer? = null
+    private var subjectAnalyzer: SubjectAnalyzer? = null
+    private val detector = ObjectDetector(context)
     private var processor: FilterSurfaceProcessor? = null
     private var recording: Recording? = null
 
@@ -117,7 +126,6 @@ class CameraXEngine(
     private var renderState = RenderState(FilterPreset.DREAM, 1f, false)
     private var statusJob: Job? = null
     private var livePhotoJob: Job? = null
-    private var viewPortListenerAttached = false
     private var rotationListener: View.OnLayoutChangeListener? = null
     private var rotationListenerView: View? = null
     private var livePhotoSource: Uri? = null
@@ -127,6 +135,9 @@ class CameraXEngine(
     private var probeStarted = false
     private var released = false
 
+    /** 记录最近一次绑定的参数，用于判断是否需要重新绑定，避免无谓的重建。 */
+    private var boundSignature: String = ""
+
     init {
         scope.launch {
             val stored = settings.settings.first()
@@ -134,33 +145,36 @@ class CameraXEngine(
             if (stored.lutPath.isNotBlank()) {
                 LutStore.select(context, stored.lutPath)
             }
+            val preset = FilterPreset.fromKey(stored.presetKey)
             renderState = RenderState(
-                FilterPreset.fromKey(stored.presetKey),
+                preset,
                 stored.filterIntensity,
                 false,
-                lut = if (FilterPreset.fromKey(stored.presetKey) == FilterPreset.CUSTOM_LUT) {
-                    LutStore.cached
-                } else {
-                    null
-                }
+                lut = if (preset == FilterPreset.CUSTOM_LUT) LutStore.cached else null
             )
             _state.update {
                 it.copy(
-                    preset = renderState.preset,
-                    filterIntensity = renderState.intensity,
+                    preset = preset,
+                    filterIntensity = stored.filterIntensity,
                     stabilizationEnabled = stored.stabilizationEnabled,
                     horizonEnabled = stored.horizonEnabled,
                     superResEnabled = stored.superResEnabled,
                     autoCompositionEnabled = stored.autoCompositionEnabled,
                     gridEnabled = stored.gridEnabled,
-                    timerSeconds = stored.timerSeconds
+                    timerSeconds = stored.timerSeconds,
+                    photoAspect = PhotoAspect.fromKey(stored.photoAspectKey),
+                    mirrorSelfie = stored.mirrorSelfie,
+                    watermarkEnabled = stored.watermarkEnabled,
+                    shutterSoundEnabled = stored.shutterSoundEnabled
                 )
             }
             DebugLog.log(
                 "Engine",
-                "init preset=${renderState.preset} intensity=${renderState.intensity} debug=${DebugLog.enabled} " +
-                    "lut=${stored.lutPath.ifBlank { "(none)" }}"
+                "初始化 preset=$preset intensity=${stored.filterIntensity} debug=${DebugLog.enabled} " +
+                    "lut=${stored.lutPath.ifBlank { "(无)" }}"
             )
+            // 加载已选中的检测模型（如果有）
+            loadSelectedDetector()
         }
         if (ContextCompat.checkSelfPermission(
                 context, Manifest.permission.CAMERA
@@ -186,12 +200,17 @@ class CameraXEngine(
             capability = report
             val specs = buildVideoSpecs(report)
             _state.update { current ->
-                val kept = current.selectedSpec?.let { sel -> specs.firstOrNull { it.width == sel.width && it.height == sel.height && it.fps == sel.fps } }
+                val kept = current.selectedSpec?.let { sel ->
+                    specs.firstOrNull {
+                        it.width == sel.width && it.height == sel.height && it.fps == sel.fps
+                    }
+                }
                 current.copy(
                     availableSpecs = specs,
                     selectedSpec = kept ?: specs.firstOrNull()
                 )
             }
+            publishExposure()
             val needRebind = _state.value.stabilizationEnabled &&
                 report.stabilizationModes.contains("ON") &&
                 !previous.stabilizationModes.contains("ON")
@@ -209,12 +228,10 @@ class CameraXEngine(
             if (released) return@addListener
             try {
                 provider = future.get()
-                if (previewView == null && proSurfaceView == null) {
-                    return@addListener
-                }
+                if (previewView == null) return@addListener
                 bind()
             } catch (e: Exception) {
-                Log.e(TAG, "ProcessCameraProvider init failed", e)
+                Log.e(TAG, "ProcessCameraProvider 初始化失败", e)
                 _state.update { it.copy(cameraAvailable = false) }
                 setStatus(R.string.message_error_camera, true)
             }
@@ -222,33 +239,13 @@ class CameraXEngine(
     }
 
     override fun attachCameraXPreview(previewView: PreviewView) {
+        val firstAttach = this.previewView == null
         this.previewView = previewView
-        maybeBind()
-    }
-
-    override fun attachProPreview(surfaceView: SurfaceView) {
-        this.proSurfaceView = surfaceView
-        if (!proHolderCallbackAttached) {
-            proHolderCallbackAttached = true
-            surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
-                override fun surfaceCreated(holder: SurfaceHolder) {
-                    val request = pendingProRequest
-                    pendingProRequest = null
-                    if (request != null && holder.surface.isValid) {
-                        request.provideSurface(holder.surface, mainExecutor) { }
-                    }
-                }
-
-                override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-                }
-
-                override fun surfaceDestroyed(holder: SurfaceHolder) {
-                    pendingProRequest?.willNotProvideSurface()
-                    pendingProRequest = null
-                }
-            })
+        // 预览视图尺寸变化时（旋转、分屏）需要重新计算 targetResolution，否则画面会被拉伸。
+        attachRotationListener()
+        if (firstAttach || provider != null) {
+            maybeBind()
         }
-        maybeBind()
     }
 
     private fun maybeBind() {
@@ -258,10 +255,12 @@ class CameraXEngine(
         bind()
     }
 
-    private fun useProSurface(): Boolean {
-        return false
-    }
-
+    /**
+     * 绑定用例。
+     *
+     * 降级链：带 GL 特效 → 去掉特效 → 降低照片分辨率 → 只保留拍照。
+     * 每一级都记录日志，方便线上排查。
+     */
     private fun bind() {
         val cameraProvider = provider ?: return
         if (released) return
@@ -273,7 +272,14 @@ class CameraXEngine(
             capability.stabilizationModes.contains("ON")
         val softwareStabilization = _state.value.stabilizationEnabled || _state.value.horizonEnabled
         val useEffect = !glFilterDowngraded
-        val view = if (useProSurface()) proSurfaceView else previewView
+        val view = previewView
+
+        val signature = listOf(
+            mode, rotation, livePhoto, needsVideo, stabilization, softwareStabilization,
+            useEffect, lensFacing, _state.value.autoCompositionEnabled,
+            _state.value.selectedSpec?.label, _state.value.frontCamera
+        ).joinToString("|")
+
         Log.d(
             TAG,
             "bind mode=$mode rotation=$rotation livePhoto=$livePhoto needsVideo=$needsVideo " +
@@ -302,9 +308,10 @@ class CameraXEngine(
         try {
             cameraProvider.unbindAll()
         } catch (e: Exception) {
-            setStatus(R.string.message_error_camera, true)
+            Log.e(TAG, "unbindAll 失败", e)
         }
 
+        val aspect = _state.value.photoAspect
         val useCases = buildUseCases(
             mode,
             rotation,
@@ -315,16 +322,17 @@ class CameraXEngine(
         )
 
         val surfaceProcessor: FilterSurfaceProcessor? = if (useEffect) {
-            val previewAspect = previewView?.let { if (it.height > 0) it.width.toFloat() / it.height else 0f }
-                ?: 0f
-            val aspect = if (previewAspect > 0f) previewAspect else 0.75f
+            val previewAspect = previewView?.let {
+                if (it.height > 0) it.width.toFloat() / it.height else 0f
+            } ?: 0f
+            val cropAspect = if (previewAspect > 0f) previewAspect else 0.75f
             FilterSurfaceProcessor(
                 glExecutor,
                 {
                     if (softwareStabilization) {
                         renderState.copy(
                             stabilization = stabilizer.matrix(),
-                            stabilizationCrop = stabilizer.cropScale(aspect)
+                            stabilizationCrop = stabilizer.cropScale(cropAspect)
                         )
                     } else {
                         renderState
@@ -349,9 +357,8 @@ class CameraXEngine(
             )
         }
 
-        val viewPort = buildViewPort()
         val selector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
-        camera = tryBind(cameraProvider, selector, useCases, effect, viewPort)
+        camera = tryBind(cameraProvider, selector, useCases, effect, buildViewPort())
         if (camera == null) {
             camera = tryBind(cameraProvider, selector, useCases, effect, null)
         }
@@ -359,7 +366,7 @@ class CameraXEngine(
             surfaceProcessor?.release()
             processor = null
             glFilterDowngraded = true
-            camera = tryBind(cameraProvider, selector, useCases, null, viewPort)
+            camera = tryBind(cameraProvider, selector, useCases, null, buildViewPort())
             if (camera == null) {
                 camera = tryBind(cameraProvider, selector, useCases, null, null)
             }
@@ -376,12 +383,12 @@ class CameraXEngine(
                 stabilization,
                 IMAGE_FULL_RES
             )
-            camera = tryBind(cameraProvider, selector, photoOnlyCases, null, viewPort)
+            camera = tryBind(cameraProvider, selector, photoOnlyCases, null, buildViewPort())
             if (camera == null) {
                 camera = tryBind(cameraProvider, selector, photoOnlyCases, null, null)
             }
             if (camera != null) {
-                Log.d(TAG, "bind ok without video use case, long-press record disabled")
+                Log.d(TAG, "已在不含视频用例的情况下绑定成功，长按录像不可用")
             }
         }
         if (camera == null) {
@@ -395,18 +402,18 @@ class CameraXEngine(
                 stabilization,
                 IMAGE_FALLBACK_RES
             )
-            camera = tryBind(cameraProvider, selector, lowCases, null, viewPort)
+            camera = tryBind(cameraProvider, selector, lowCases, null, buildViewPort())
             if (camera == null) {
                 camera = tryBind(cameraProvider, selector, lowCases, null, null)
             }
             if (camera != null) {
-                Log.d(TAG, "bind ok with reduced image resolution")
+                Log.d(TAG, "已用降低后的照片分辨率绑定成功")
                 setStatus(R.string.message_quality_reduced, true)
             }
         }
 
         if (camera == null) {
-            Log.e(TAG, "bind failed for mode=$mode, camera is null")
+            Log.e(TAG, "bind 失败 mode=$mode，camera 为空")
             _state.update {
                 it.copy(cameraAvailable = false, ready = false, filterPreviewActive = false)
             }
@@ -414,7 +421,8 @@ class CameraXEngine(
             return
         }
 
-        Log.d(TAG, "bind ok mode=$mode filterPreviewActive=$useEffect")
+        boundSignature = signature
+        Log.d(TAG, "bind 成功 mode=$mode filterPreviewActive=$useEffect")
         _state.update { it.copy(filterPreviewActive = useEffect) }
 
         refreshHorizonPolling()
@@ -422,6 +430,7 @@ class CameraXEngine(
 
         applyFlash()
         publishZoomState()
+        publishExposure()
         _state.update {
             it.copy(
                 cameraAvailable = true,
@@ -443,11 +452,12 @@ class CameraXEngine(
         val useCases = mutableListOf<UseCase>()
 
         val previewBuilder = Preview.Builder().setTargetRotation(rotation)
-        val previewHost = if (useProSurface()) proSurfaceView else previewView
+        val previewHost = previewView
         if (previewHost != null && previewHost.width > 0 && previewHost.height > 0) {
             try {
                 previewBuilder.setTargetResolution(Size(previewHost.width, previewHost.height))
             } catch (e: Exception) {
+                DebugLog.log("Engine", "setTargetResolution(预览) 失败: ${e.message}")
             }
         }
         val previewUseCase = previewBuilder.build()
@@ -461,6 +471,7 @@ class CameraXEngine(
             try {
                 recorderBuilder.setTargetVideoEncodingBitRate(buildBitRate())
             } catch (e: Exception) {
+                DebugLog.log("Engine", "设置码率失败: ${e.message}")
             }
             val recorder = recorderBuilder.build()
             val videoBuilder = VideoCapture.Builder(recorder).setTargetRotation(rotation)
@@ -468,6 +479,7 @@ class CameraXEngine(
                 try {
                     videoBuilder.setVideoStabilizationEnabled(true)
                 } catch (e: Exception) {
+                    DebugLog.log("Engine", "开启硬件防抖失败: ${e.message}")
                 }
             }
             val videoUseCase = videoBuilder.build()
@@ -510,14 +522,20 @@ class CameraXEngine(
         }
 
         imageAnalysis = null
-        if (_state.value.autoCompositionEnabled) {
+        // 只有检测模型就绪时才挂分析器，否则白耗电且给不出提示
+        val detectorReady = detector.ready
+        if (_state.value.autoCompositionEnabled && detectorReady) {
             val analysisBuilder = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .setTargetRotation(rotation)
             val analysis = analysisBuilder.build()
-            val analyzer = FaceAnalyzer { faces, _, _ -> onFaces(faces) }
+            val analyzer = SubjectAnalyzer(
+                detectorProvider = { detector },
+                useFaceDetection = true,
+                onResult = { detections, faces -> onDetections(detections, faces) }
+            )
             analysis.setAnalyzer(analysisExecutor, analyzer)
-            faceAnalyzer = analyzer
+            subjectAnalyzer = analyzer
             imageAnalysis = analysis
             useCases += analysis
         }
@@ -544,78 +562,28 @@ class CameraXEngine(
         } catch (e: Exception) {
             Log.e(
                 TAG,
-                "bindToLifecycle failed: useCases=${useCases.size} effect=${effect != null} viewPort=${viewPort != null} mode=${_state.value.mode}",
+                "bindToLifecycle 失败: useCases=${useCases.size} effect=${effect != null} " +
+                    "viewPort=${viewPort != null} mode=${_state.value.mode}",
                 e
+            )
+            DebugLog.log(
+                "Engine",
+                "bindToLifecycle 失败: ${e.javaClass.simpleName}: ${e.message}"
             )
             null
         }
     }
 
     private fun attachPreviewProvider(previewUseCase: Preview) {
-        if (useProSurface()) {
-            val surfaceView = proSurfaceView
-            if (surfaceView == null) {
-                previewView?.let { previewUseCase.setSurfaceProvider(it.surfaceProvider) }
-                return
-            }
-            previewUseCase.setSurfaceProvider { request ->
-                val holder = surfaceView.holder
-                if (holder.surface.isValid) {
-                    request.provideSurface(holder.surface, mainExecutor) { }
-                } else {
-                    pendingProRequest?.willNotProvideSurface()
-                    pendingProRequest = request
-                }
-            }
-        } else {
-            val target = previewView
-            if (target != null) {
-                previewUseCase.setSurfaceProvider(target.surfaceProvider)
-            } else {
-                proSurfaceView?.let { surfaceView ->
-                    previewUseCase.setSurfaceProvider { request ->
-                        val holder = surfaceView.holder
-                        if (holder.surface.isValid) {
-                            request.provideSurface(holder.surface, mainExecutor) { }
-                        } else {
-                            pendingProRequest?.willNotProvideSurface()
-                            pendingProRequest = request
-                        }
-                    }
-                }
-            }
+        val target = previewView
+        if (target != null) {
+            previewUseCase.setSurfaceProvider(target.surfaceProvider)
         }
-    }
-
-    private fun requestViewPortRebind() {
-        if (viewPortListenerAttached) return
-        val view: View? = if (useProSurface()) proSurfaceView else previewView
-        if (view == null) return
-        viewPortListenerAttached = true
-        view.addOnLayoutChangeListener(object : View.OnLayoutChangeListener {
-            override fun onLayoutChange(
-                v: View,
-                left: Int,
-                top: Int,
-                right: Int,
-                bottom: Int,
-                oldLeft: Int,
-                oldTop: Int,
-                oldRight: Int,
-                oldBottom: Int
-            ) {
-                if (v.width > 0 && v.height > 0) {
-                    v.removeOnLayoutChangeListener(this)
-                    viewPortListenerAttached = false
-                    bind()
-                }
-            }
-        })
     }
 
     private fun attachRotationListener() {
         if (released) return
-        val view: View? = if (useProSurface()) proSurfaceView else previewView
+        val view: View? = previewView
         if (view == null) return
         if (rotationListenerView === view && rotationListener != null) return
         rotationListenerView?.removeOnLayoutChangeListener(rotationListener)
@@ -626,12 +594,10 @@ class CameraXEngine(
             val width = right - left
             val height = bottom - top
             if (width > 0 && height > 0) {
-                val aspect = width.toFloat() / height
-                val lastAspect = if (lastHeight > 0) lastWidth.toFloat() / lastHeight else aspect
                 val changed = lastWidth != width || lastHeight != height
                 lastWidth = width
                 lastHeight = height
-                if (changed && kotlin.math.abs(aspect - lastAspect) > 0.1f && !released) {
+                if (changed && !released) {
                     applyRotation()
                 }
             }
@@ -648,16 +614,14 @@ class CameraXEngine(
             videoCapture?.targetRotation = rotation
             imageAnalysis?.targetRotation = rotation
         } catch (e: Exception) {
-            Log.e(TAG, "applyRotation failed", e)
+            Log.e(TAG, "applyRotation 失败", e)
         }
     }
 
-    private fun buildViewPort(): ViewPort? {
-        return null
-    }
+    private fun buildViewPort(): ViewPort? = null
 
     private fun displayRotation(): Int {
-        val view: View? = if (useProSurface()) proSurfaceView else previewView
+        val view: View? = previewView
         val display = view?.display
             ?: (context as? android.app.Activity)?.windowManager?.defaultDisplay
         return display?.rotation ?: Surface.ROTATION_0
@@ -679,26 +643,12 @@ class CameraXEngine(
 
     private fun buildBitRate(): Int {
         val spec = _state.value.selectedSpec
-        val height = spec?.height ?: when (buildQualitySelectorFallbackHeight()) {
-            2160 -> 2160
-            1080 -> 1080
-            else -> 720
-        }
+        val height = spec?.height ?: if (capability.fourK30Encode) 2160 else 720
         val fps = spec?.fps?.coerceAtLeast(24) ?: 30
         return when {
             height >= 2160 -> (48_000_000L * fps / 30L).toInt()
             height >= 1080 -> (16_000_000L * fps / 30L).toInt()
             else -> (6_000_000L * fps / 30L).toInt()
-        }
-    }
-
-    private fun buildQualitySelectorFallbackHeight(): Int {
-        val spec = _state.value.selectedSpec
-        return when {
-            spec != null && spec.height >= 2160 -> 2160
-            spec != null && spec.height >= 1080 -> 1080
-            capability.fourK30Encode -> 2160
-            else -> 720
         }
     }
 
@@ -708,7 +658,7 @@ class CameraXEngine(
         FlashMode.OFF -> ImageCapture.FLASH_MODE_OFF
     }
 
-    private fun buildVideoSpecs(report: com.fanhua.camera.camera.core.CapabilityReport): List<OutputSpec> {
+    private fun buildVideoSpecs(report: CapabilityReport): List<OutputSpec> {
         val list = mutableListOf<OutputSpec>()
         if (report.fourK60Encode) {
             list += OutputSpec(3840, 2160, 60, false)
@@ -725,16 +675,21 @@ class CameraXEngine(
             list += OutputSpec(1280, 720, 60, false)
         }
         list += OutputSpec(1280, 720, 30, false)
-        return list.distinctBy { it.width to it.height to it.fps }
+        return list.distinctBy { Triple(it.width, it.height, it.fps) }
     }
 
     private fun applyFlash() {
         imageCapture?.flashMode = flashModeValue(_state.value.flashMode)
-        val torch = _state.value.flashMode == FlashMode.ON &&
-            (_state.value.mode == CaptureMode.VIDEO || _state.value.mode == CaptureMode.PRO)
+        val wantTorch = when {
+            _state.value.torchEnabled -> true
+            _state.value.flashMode == FlashMode.ON &&
+                (_state.value.mode == CaptureMode.VIDEO || _state.value.mode == CaptureMode.PRO) -> true
+            else -> false
+        }
         try {
-            camera?.cameraControl?.enableTorch(torch)
+            camera?.cameraControl?.enableTorch(wantTorch)
         } catch (e: Exception) {
+            DebugLog.log("Engine", "切换补光灯失败: ${e.message}")
         }
     }
 
@@ -766,17 +721,52 @@ class CameraXEngine(
     }
 
     private fun zoomLabel(ratio: Float): String =
-        if (ratio < 1f) String.format(Locale.US, "%.1fx", ratio) else String.format(Locale.US, "%.0fx", ratio)
+        if (ratio < 1f) {
+            String.format(Locale.US, "%.1fx", ratio)
+        } else {
+            String.format(Locale.US, "%.0fx", ratio)
+        }
 
-    private fun onFaces(faces: List<FaceBox>) {
+    /** 同步曝光补偿能力到 UI 状态。 */
+    private fun publishExposure() {
+        val range = try {
+            capabilityProbe.exposureRange(lensFacing)
+        } catch (e: Exception) {
+            null
+        }
+        if (range == null) {
+            _state.update { it.copy(exposure = ExposureState()) }
+            return
+        }
+        val step = try {
+            capabilityProbe.exposureStep(lensFacing)
+        } catch (e: Exception) {
+            1f / 6f
+        }
+        _state.update {
+            it.copy(
+                exposure = ExposureState(
+                    index = 0,
+                    minIndex = range.lower,
+                    maxIndex = range.upper,
+                    stepEv = if (step > 0f) step else 1f / 6f
+                )
+            )
+        }
+    }
+
+    private fun onDetections(detections: List<DetectDetection>, faces: List<FaceBox>) {
         if (!_state.value.autoCompositionEnabled) {
             if (_state.value.compositionHint != null) {
                 _state.update { it.copy(compositionHint = null) }
             }
             return
         }
-        val hint = CompositionEngine.evaluate(faces)
-        _state.update { it.copy(compositionHint = hint) }
+        val hint = CompositionEngine.evaluateDetections(detections, faces)
+        val label = detections.maxByOrNull { it.area }?.let {
+            context.getString(it.kind.labelRes)
+        }
+        _state.update { it.copy(compositionHint = hint, subjectLabel = label) }
     }
 
     override fun setMode(mode: CaptureMode) {
@@ -802,6 +792,7 @@ class CameraXEngine(
         try {
             camera?.cameraControl?.setZoomRatio(clamped)
         } catch (e: Exception) {
+            DebugLog.log("Engine", "设置变焦失败: ${e.message}")
         }
         val active = _state.value.lensOptions
             .minByOrNull { kotlin.math.abs(it.zoomRatio - clamped) }?.id ?: _state.value.activeLensId
@@ -811,6 +802,27 @@ class CameraXEngine(
     override fun setFlashMode(mode: FlashMode) {
         _state.update { it.copy(flashMode = mode) }
         applyFlash()
+    }
+
+    override fun setTorchEnabled(enabled: Boolean) {
+        if (_state.value.torchEnabled == enabled) return
+        _state.update { it.copy(torchEnabled = enabled) }
+        applyFlash()
+    }
+
+    override fun setExposureCompensation(index: Int) {
+        val exposure = _state.value.exposure
+        if (!exposure.available) {
+            setStatus(R.string.message_exposure_unavailable, true)
+            return
+        }
+        val clamped = index.coerceIn(exposure.minIndex, exposure.maxIndex)
+        try {
+            camera?.cameraControl?.setExposureCompensationIndex(clamped)
+        } catch (e: Exception) {
+            DebugLog.log("Engine", "设置曝光补偿失败: ${e.message}")
+        }
+        _state.update { it.copy(exposure = it.exposure.copy(index = clamped)) }
     }
 
     override fun setPreset(preset: FilterPreset) {
@@ -857,9 +869,92 @@ class CameraXEngine(
 
     override fun setAutoCompositionEnabled(enabled: Boolean) {
         if (_state.value.autoCompositionEnabled == enabled) return
+        // 打开但没有模型时，先尝试加载；仍失败就提示去设置里下载，不静默失败
+        if (enabled && !detector.ready) {
+            loadSelectedDetector()
+            if (!detector.ready) {
+                setStatus(R.string.detector_need_model, true)
+            }
+        }
         _state.update { it.copy(autoCompositionEnabled = enabled, compositionHint = null) }
         scope.launch { settings.setAutoCompositionEnabled(enabled) }
         bind()
+    }
+
+    /* ------------------------------------------------------------ 检测模型管理 */
+
+    /** 加载当前选中的模型；没有选中或文件损坏时把状态置为未就绪。 */
+    private fun loadSelectedDetector() {
+        val selected = DetectorStore.selected(context)
+        if (selected == null) {
+            _state.update { it.copy(detectorReady = false, detectorModelId = null) }
+            return
+        }
+        val definition = DetectorModels.byId(selected)
+        val ok = if (definition != null) {
+            detector.load(definition)
+        } else {
+            detector.loadCustom()
+        }
+        _state.update {
+            it.copy(detectorReady = ok, detectorModelId = if (ok) selected else null)
+        }
+        DebugLog.log("Engine", "加载检测模型 $selected -> $ok")
+    }
+
+    override suspend fun downloadDetectorModel(modelId: String): Boolean {
+        val definition = DetectorModels.byId(modelId) ?: return false
+        _state.update { it.copy(detectorDownloadPercent = 0) }
+        val downloader = ModelDownloader(context)
+        val result = withContext(Dispatchers.IO) {
+            downloader.download(definition) { progress ->
+                _state.update { it.copy(detectorDownloadPercent = progress.percent) }
+            }
+        }
+        _state.update { it.copy(detectorDownloadPercent = null) }
+        return when (result) {
+            is ModelDownloader.Result.Success -> {
+                DetectorStore.select(context, modelId)
+                loadSelectedDetector()
+                setStatus(R.string.detector_download_done, false)
+                if (_state.value.autoCompositionEnabled) bind()
+                true
+            }
+            is ModelDownloader.Result.Cancelled -> false
+            is ModelDownloader.Result.Failed -> {
+                DebugLog.log("Engine", "模型下载失败: ${result.reason}")
+                setStatus(R.string.detector_download_failed, true)
+                false
+            }
+        }
+    }
+
+    override fun useDetectorModel(modelId: String) {
+        if (!DetectorStore.isDownloaded(context, modelId)) return
+        DetectorStore.select(context, modelId)
+        loadSelectedDetector()
+        if (_state.value.autoCompositionEnabled) bind()
+    }
+
+    override fun deleteDetectorModel(modelId: String) {
+        if (_state.value.detectorModelId == modelId) {
+            detector.release()
+            _state.update { it.copy(detectorReady = false, detectorModelId = null) }
+        }
+        DetectorStore.delete(context, modelId)
+        loadSelectedDetector()
+        if (_state.value.autoCompositionEnabled) bind()
+    }
+
+    override suspend fun importDetectorModel(bytes: ByteArray): Boolean {
+        val ok = withContext(Dispatchers.IO) {
+            DetectorStore.importCustom(context, bytes)
+        }
+        if (!ok) return false
+        DetectorStore.select(context, DetectorModels.CUSTOM_ID)
+        loadSelectedDetector()
+        if (_state.value.autoCompositionEnabled) bind()
+        return _state.value.detectorReady
     }
 
     override fun setGridEnabled(enabled: Boolean) {
@@ -876,8 +971,28 @@ class CameraXEngine(
         scope.launch { settings.setTimerSeconds(value) }
     }
 
-    override fun setRecordingSpeed(speed: RecordingSpeed) {
-        _state.update { it.copy(recordingSpeed = speed) }
+    override fun setPhotoAspect(aspect: PhotoAspect) {
+        if (_state.value.photoAspect == aspect) return
+        _state.update { it.copy(photoAspect = aspect) }
+        scope.launch { settings.setPhotoAspect(aspect) }
+    }
+
+    override fun setMirrorSelfie(enabled: Boolean) {
+        if (_state.value.mirrorSelfie == enabled) return
+        _state.update { it.copy(mirrorSelfie = enabled) }
+        scope.launch { settings.setMirrorSelfie(enabled) }
+    }
+
+    override fun setWatermarkEnabled(enabled: Boolean) {
+        if (_state.value.watermarkEnabled == enabled) return
+        _state.update { it.copy(watermarkEnabled = enabled) }
+        scope.launch { settings.setWatermarkEnabled(enabled) }
+    }
+
+    override fun setShutterSoundEnabled(enabled: Boolean) {
+        if (_state.value.shutterSoundEnabled == enabled) return
+        _state.update { it.copy(shutterSoundEnabled = enabled) }
+        scope.launch { settings.setShutterSoundEnabled(enabled) }
     }
 
     override fun selectSpec(spec: OutputSpec) {
@@ -890,7 +1005,7 @@ class CameraXEngine(
 
     override fun tapToFocus(x: Float, y: Float) {
         val activeCamera = camera ?: return
-        val view: View? = if (useProSurface()) proSurfaceView else previewView
+        val view = previewView
         val width = view?.width ?: 0
         val height = view?.height ?: 0
         if (width <= 0 || height <= 0) return
@@ -899,7 +1014,12 @@ class CameraXEngine(
             val point = factory.createPoint(x * width, y * height)
             val action = FocusMeteringAction.Builder(point).build()
             activeCamera.cameraControl.startFocusAndMetering(action)
+            // 手动对焦生效后，标记退出「手动对焦」状态，避免 UI 误显示。
+            if (_state.value.manualFocusActive) {
+                _state.update { it.copy(manualFocusActive = false) }
+            }
         } catch (e: Exception) {
+            DebugLog.log("Engine", "对焦失败: ${e.message}")
         }
     }
 
@@ -909,11 +1029,22 @@ class CameraXEngine(
         try {
             camera?.cameraControl?.setLinearZoom(value)
         } catch (e: Exception) {
+            DebugLog.log("Engine", "手动对焦失败: ${e.message}")
         }
     }
 
+    override fun resetManualFocus() {
+        if (!_state.value.manualFocusActive) return
+        _state.update { it.copy(manualFocusActive = false, manualFocusPosition = 0.5f) }
+        setStatus(R.string.message_focus_reset, false)
+    }
+
     override fun takePhoto() {
-        Log.d(TAG, "takePhoto called mode=${_state.value.mode} busy=${_state.value.busy} livePhoto=${_state.value.livePhotoEnabled} capture=${imageCapture != null}")
+        Log.d(
+            TAG,
+            "takePhoto mode=${_state.value.mode} busy=${_state.value.busy} " +
+                "livePhoto=${_state.value.livePhotoEnabled} capture=${imageCapture != null}"
+        )
         if (_state.value.livePhotoEnabled && _state.value.mode == CaptureMode.PHOTO) {
             startLivePhoto()
             return
@@ -952,7 +1083,7 @@ class CameraXEngine(
     private fun capturePhotoNow() {
         val capture = imageCapture ?: return
         if (_state.value.busy) return
-        playShutterSound()
+        if (_state.value.shutterSoundEnabled) playShutterSound()
         _state.update { it.copy(busy = true) }
         setStatus(R.string.message_saving, false)
         val file = File(context.cacheDir, "fanhua_capture_" + System.currentTimeMillis() + ".jpg")
@@ -966,6 +1097,7 @@ class CameraXEngine(
                 file.delete()
                 _state.update { it.copy(busy = false) }
                 setStatus(R.string.message_error_save, true)
+                DebugLog.log("Engine", "拍照失败: ${exception.message}")
             }
         })
     }
@@ -986,6 +1118,7 @@ class CameraXEngine(
             player.prepare()
             player.start()
         } catch (e: Exception) {
+            DebugLog.log("Engine", "播放快门音失败: ${e.message}")
         }
     }
 
@@ -993,28 +1126,38 @@ class CameraXEngine(
         val preset = _state.value.preset
         val intensity = _state.value.filterIntensity
         val upscale = _state.value.superResEnabled || _state.value.mode == CaptureMode.SUPER_RES
+        val aspect = _state.value.photoAspect
+        val mirror = _state.value.frontCamera && _state.value.mirrorSelfie
+        val watermark = _state.value.watermarkEnabled
         val srcSize = try {
             val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
             android.graphics.BitmapFactory.decodeFile(file.absolutePath, bounds)
             "${bounds.outWidth}x${bounds.outHeight}"
         } catch (e: Exception) {
-            "unknown"
+            "未知"
         }
         DebugLog.log(
             "Engine",
-            "capture saved file=${file.absolutePath} size=$srcSize preset=${preset.name} " +
-                "intensity=$intensity upscale=$upscale mode=${_state.value.mode}"
+            "拍照已保存 file=${file.absolutePath} size=$srcSize preset=${preset.name} " +
+                "intensity=$intensity upscale=$upscale aspect=$aspect mirror=$mirror " +
+                "watermark=$watermark mode=${_state.value.mode}"
         )
         scope.launch {
             val uri = withContext(Dispatchers.IO) {
-                photoProcessor.process(file, preset, intensity, upscale)
+                photoProcessor.process(file, preset, intensity, upscale, aspect, mirror, watermark)
             }
             file.delete()
             if (uri == null) {
                 _state.update { it.copy(busy = false) }
                 setStatus(R.string.message_error_save, true)
             } else {
-                _state.update { it.copy(busy = false, captureCount = it.captureCount + 1) }
+                _state.update {
+                    it.copy(
+                        busy = false,
+                        captureCount = it.captureCount + 1,
+                        lastCaptureUri = uri.toString()
+                    )
+                }
                 setStatus(R.string.message_photo_saved, false)
             }
         }
@@ -1024,7 +1167,7 @@ class CameraXEngine(
         if (_state.value.busy || _state.value.recording || recording != null) return
         val capture = videoCapture ?: return
         val photo = imageCapture ?: return
-        playShutterSound()
+        if (_state.value.shutterSoundEnabled) playShutterSound()
         _state.update { it.copy(busy = true) }
         val file = File(context.cacheDir, "fanhua_live_" + System.currentTimeMillis() + ".jpg")
         try {
@@ -1036,9 +1179,14 @@ class CameraXEngine(
                         val preset = _state.value.preset
                         val intensity = _state.value.filterIntensity
                         val upscale = _state.value.superResEnabled
+                        val aspect = _state.value.photoAspect
+                        val mirror = _state.value.frontCamera && _state.value.mirrorSelfie
+                        val watermark = _state.value.watermarkEnabled
                         scope.launch {
                             val uri = withContext(Dispatchers.IO) {
-                                photoProcessor.process(file, preset, intensity, upscale)
+                                photoProcessor.process(
+                                    file, preset, intensity, upscale, aspect, mirror, watermark
+                                )
                             }
                             file.delete()
                             if (uri != null) {
@@ -1057,6 +1205,7 @@ class CameraXEngine(
         } catch (e: Exception) {
             file.delete()
             _state.update { it.copy(busy = false) }
+            return
         }
         livePhotoJob?.cancel()
         startRecordingInternal(livePhoto = true)
@@ -1070,9 +1219,7 @@ class CameraXEngine(
         val source = livePhotoSource
         livePhotoSource = null
         livePhotoReady = false
-        if (source == null) {
-            return
-        }
+        if (source == null) return
         scope.launch {
             val uri = withContext(Dispatchers.IO) {
                 MotionPhotoBuilder.build(context, uriToFile(source), videoUri)
@@ -1082,12 +1229,14 @@ class CameraXEngine(
                     context.contentResolver.delete(source, null, null)
                     context.contentResolver.delete(videoUri, null, null)
                 } catch (e: Exception) {
+                    DebugLog.log("Engine", "清理实况临时文件失败: ${e.message}")
                 }
             }
             _state.update {
                 it.copy(
                     busy = false,
-                    captureCount = if (uri != null) it.captureCount + 1 else it.captureCount
+                    captureCount = if (uri != null) it.captureCount + 1 else it.captureCount,
+                    lastCaptureUri = uri?.toString() ?: it.lastCaptureUri
                 )
             }
             if (uri == null) {
@@ -1105,6 +1254,7 @@ class CameraXEngine(
                 file.outputStream().use { output -> input.copyTo(output) }
             }
         } catch (e: Exception) {
+            DebugLog.log("Engine", "读取实况源文件失败: ${e.message}")
         }
         return file
     }
@@ -1120,6 +1270,7 @@ class CameraXEngine(
         var pending = try {
             buildPendingRecording(capture, name)
         } catch (e: Exception) {
+            DebugLog.log("Engine", "准备录制失败: ${e.message}")
             null
         }
         if (pending == null) {
@@ -1136,12 +1287,13 @@ class CameraXEngine(
         val handle = try {
             pending.start(mainExecutor) { event -> onVideoEvent(event) }
         } catch (e: Exception) {
+            DebugLog.log("Engine", "开始录制失败: ${e.message}")
             setStatus(R.string.message_error_record, true)
             return
         }
         recording = handle
-        _state.update { it.copy(recording = true, recordingDurationMs = 0L) }
-        setStatus(R.string.message_recording_started, false)
+        _state.update { it.copy(recording = true, recordingPaused = false, recordingDurationMs = 0L) }
+        if (!livePhoto) setStatus(R.string.message_recording_started, false)
     }
 
     private fun buildPendingRecording(capture: VideoCapture<Recorder>, name: String): PendingRecording {
@@ -1154,7 +1306,7 @@ class CameraXEngine(
             }
             val collection = MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
             val uri: Uri = context.contentResolver.insert(collection, values)
-                ?: throw IllegalStateException("media store insert failed")
+                ?: throw IllegalStateException("媒体库插入失败")
             val options = MediaStoreOutputOptions.Builder(context.contentResolver, uri).build()
             return capture.output.prepareRecording(context, options)
         }
@@ -1170,7 +1322,8 @@ class CameraXEngine(
     private fun onVideoEvent(event: VideoRecordEvent) {
         when (event) {
             is VideoRecordEvent.Start -> {
-                _state.update { it.copy(recording = true, recordingDurationMs = 0L) }
+                _state.update { it.copy(recording = true, recordingPaused = false) }
+                startRecordingTimer()
             }
 
             is VideoRecordEvent.Status -> {
@@ -1178,16 +1331,26 @@ class CameraXEngine(
                 _state.update { it.copy(recordingDurationMs = duration) }
             }
 
+            is VideoRecordEvent.Pause -> {
+                _state.update { it.copy(recordingPaused = true) }
+            }
+
+            is VideoRecordEvent.Resume -> {
+                _state.update { it.copy(recordingPaused = false) }
+            }
+
             is VideoRecordEvent.Finalize -> {
                 recording = null
+                stopRecordingTimer()
                 val live = livePhotoReady
                 livePhotoReady = false
-                _state.update { it.copy(recording = false, recordingDurationMs = 0L) }
+                _state.update { it.copy(recording = false, recordingPaused = false, recordingDurationMs = 0L) }
                 if (event.error != VideoRecordEvent.Finalize.ERROR_NONE) {
                     event.outputResults.outputUri?.let { uri ->
                         try {
                             context.contentResolver.delete(uri, null, null)
                         } catch (e: Exception) {
+                            DebugLog.log("Engine", "删除失败录像失败: ${e.message}")
                         }
                     }
                     if (live) {
@@ -1195,6 +1358,7 @@ class CameraXEngine(
                             try {
                                 context.contentResolver.delete(src, null, null)
                             } catch (e: Exception) {
+                                DebugLog.log("Engine", "删除实况源失败: ${e.message}")
                             }
                         }
                         livePhotoSource = null
@@ -1209,6 +1373,7 @@ class CameraXEngine(
                             try {
                                 context.contentResolver.delete(src, null, null)
                             } catch (e: Exception) {
+                                DebugLog.log("Engine", "删除实况源失败: ${e.message}")
                             }
                         }
                         livePhotoSource = null
@@ -1220,28 +1385,67 @@ class CameraXEngine(
                 }
             }
 
-            else -> {
+            else -> Unit
+        }
+    }
+
+    private fun startRecordingTimer() {
+        stopRecordingTimer()
+        recordingTimerJob = scope.launch {
+            while (isActive) {
+                delay(500)
+                if (!_state.value.recording) break
             }
         }
+    }
+
+    private fun stopRecordingTimer() {
+        recordingTimerJob?.cancel()
+        recordingTimerJob = null
     }
 
     private fun stopRecordingInternal() {
         val handle = recording
         recording = null
+        stopRecordingTimer()
         if (handle != null) {
             try {
                 handle.stop()
             } catch (e: Exception) {
-                Log.e(TAG, "recording stop failed", e)
+                Log.e(TAG, "停止录制失败", e)
             }
             try {
                 handle.close()
             } catch (e: Exception) {
-                Log.e(TAG, "recording close failed", e)
+                Log.e(TAG, "关闭录制失败", e)
             }
         }
         if (_state.value.recording) {
-            _state.update { it.copy(recording = false, recordingDurationMs = 0L) }
+            _state.update { it.copy(recording = false, recordingPaused = false, recordingDurationMs = 0L) }
+        }
+    }
+
+    override fun pauseRecording() {
+        val handle = recording ?: return
+        if (_state.value.recordingPaused) return
+        try {
+            handle.pause()
+            _state.update { it.copy(recordingPaused = true) }
+            setStatus(R.string.message_recording_paused, false)
+        } catch (e: Exception) {
+            DebugLog.log("Engine", "暂停录制失败: ${e.message}")
+        }
+    }
+
+    override fun resumeRecording() {
+        val handle = recording ?: return
+        if (!_state.value.recordingPaused) return
+        try {
+            handle.resume()
+            _state.update { it.copy(recordingPaused = false) }
+            setStatus(R.string.message_recording_resumed, false)
+        } catch (e: Exception) {
+            DebugLog.log("Engine", "恢复录制失败: ${e.message}")
         }
     }
 
@@ -1264,10 +1468,12 @@ class CameraXEngine(
                 activeLensId = "",
                 compositionHint = null,
                 busy = true,
-                frontCamera = lensFacing == CameraSelector.LENS_FACING_FRONT
+                frontCamera = lensFacing == CameraSelector.LENS_FACING_FRONT,
+                torchEnabled = false
             )
         }
         bind()
+        probeAsync()
     }
 
     private fun refreshHorizonPolling() {
@@ -1288,10 +1494,6 @@ class CameraXEngine(
         }
     }
 
-    override fun switchToPhotoFromPreview() {
-        setMode(CaptureMode.PHOTO)
-    }
-
     override fun release() {
         released = true
         stopRecordingInternal()
@@ -1306,6 +1508,7 @@ class CameraXEngine(
         try {
             provider?.unbindAll()
         } catch (e: Exception) {
+            Log.e(TAG, "unbindAll 失败", e)
         }
         camera = null
         imageCapture = null
@@ -1317,21 +1520,21 @@ class CameraXEngine(
         statusJob = null
         glExecutor.shutdown()
         analysisExecutor.shutdown()
-        pendingProRequest = null
-        viewPortListenerAttached = false
         rotationListenerView?.removeOnLayoutChangeListener(rotationListener)
         rotationListenerView = null
         rotationListener = null
+        detector.release()
     }
 
     private fun detachAnalysis() {
         try {
             imageAnalysis?.clearAnalyzer()
         } catch (e: Exception) {
+            DebugLog.log("Engine", "清除分析器失败: ${e.message}")
         }
         imageAnalysis = null
-        faceAnalyzer?.release()
-        faceAnalyzer = null
+        subjectAnalyzer?.release()
+        subjectAnalyzer = null
     }
 
     private fun hasAudioPermission(): Boolean =

@@ -10,12 +10,14 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.net.Uri
+import android.opengl.EGLSurface
 import android.opengl.GLES20
 import android.os.Build
 import android.os.SystemClock
 import android.provider.MediaStore
 import androidx.exifinterface.media.ExifInterface
 import com.fanhua.camera.R
+import com.fanhua.camera.camera.core.PhotoAspect
 import com.fanhua.camera.camera.filters.FilterPreset
 import com.fanhua.camera.camera.gl.EglCore
 import com.fanhua.camera.camera.gl.createGlFramePipeline
@@ -25,7 +27,18 @@ import java.io.File
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
+/**
+ * 照片后处理器：把 CameraX 拍下的原始 JPEG 走一遍 GL 滤镜管线，然后写回媒体库。
+ *
+ * 处理顺序（很重要，不要随意调换）：
+ * 解码 → EXIF 方向旋转 → 前置镜像 → 画幅裁切 → GL 滤镜（含超分）→ 读回 → 徕卡相框 → 保存（含 EXIF 写回）
+ */
 class PhotoProcessor(private val context: Context) {
 
     private val leicaTypeface: Typeface by lazy {
@@ -66,111 +79,191 @@ class PhotoProcessor(private val context: Context) {
         }
     }
 
-    fun process(source: File, preset: FilterPreset, intensity: Float, upscale: Boolean): Uri? {
-        DebugLog.log("Photo", "process start preset=${preset.name} intensity=$intensity upscale=$upscale")
-        if (preset == FilterPreset.ORIGINAL && !upscale) {
-            DebugLog.log("Photo", "original + no upscale -> direct copy (no GL pipeline)")
+    /**
+     * 应用版本名，用于徕卡相框上的版本号角标。
+     *
+     * 历史实现用的是 [Build.VERSION.RELEASE]（Android 系统版本，例如 "14"），语义错误：
+     * 相框上想表达的是「哪一版 App 拍的」。
+     */
+    private val appVersionName: String by lazy {
+        try {
+            @Suppress("DEPRECATION")
+            val info = context.packageManager.getPackageInfo(context.packageName, 0)
+            info.versionName ?: ""
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
+    /**
+     * 处理并保存一张照片。
+     *
+     * @param source CameraX 写出的原始临时文件（带完整 EXIF）
+     * @param preset 滤镜预设
+     * @param intensity 滤镜强度 0..1
+     * @param upscale 是否超分放大（长边上限 [MAX_SUPER_RES_EDGE]）
+     * @param aspect 照片画幅，[PhotoAspect.FULL] 表示不裁切
+     * @param mirror 前置镜像，true 时水平翻转（在旋转之后、裁切之前）
+     * @param watermark 徕卡相框开关；false 时即使是 LEICA_MOMENT 也不加相框
+     */
+    fun process(
+        source: File,
+        preset: FilterPreset,
+        intensity: Float,
+        upscale: Boolean,
+        aspect: PhotoAspect = PhotoAspect.FULL,
+        mirror: Boolean = false,
+        watermark: Boolean = true
+    ): Uri? {
+        DebugLog.log(
+            "Photo",
+            "开始处理 preset=${preset.name} intensity=$intensity upscale=$upscale " +
+                "aspect=${aspect.name} mirror=$mirror watermark=$watermark"
+        )
+        val needsGeometry = aspect != PhotoAspect.FULL || mirror
+
+        // 原图 + 不超分 + 不需要几何处理：字节级直接复制，连解码都省了（EXIF 天然保留）
+        if (preset == FilterPreset.ORIGINAL && !upscale && !needsGeometry) {
+            DebugLog.log("Photo", "原图且无需几何处理 -> 直接复制（不走 GL 管线）")
             return saveOriginal(source)
         }
+
+        // 原图 + 需要画幅/镜像：走纯 CPU 几何路径。
+        // 不走 GL 是因为 ORIGINAL 预设的 FinishPass 仍会叠加 bloom，会改变「原图」的观感。
+        if (preset == FilterPreset.ORIGINAL && !upscale) {
+            DebugLog.log("Photo", "原图 + 画幅/镜像 -> 纯 CPU 几何处理")
+            return saveGeometryOnly(source, preset, aspect, mirror)
+        }
+
         val lut = if (preset == FilterPreset.CUSTOM_LUT) LutStore.cached else null
         if (preset == FilterPreset.CUSTOM_LUT && lut == null) {
-            DebugLog.log("Photo", "CUSTOM_LUT selected but no LUT imported -> save original")
-            return saveOriginal(source)
+            DebugLog.log("Photo", "CUSTOM_LUT 未导入 LUT")
+            // 没有 LUT 时仍要保证画幅/镜像生效，所以需要几何处理时走纯 CPU 路径
+            return if (needsGeometry) {
+                saveGeometryOnly(source, preset, aspect, mirror)
+            } else {
+                saveOriginal(source)
+            }
         }
-        var bitmap: Bitmap? = null
-        var processed: Bitmap? = null
+
+        var decoded: Bitmap? = null
+        var output: Bitmap? = null
         var eglCore: EglCore? = null
-        val startMs = SystemClock.elapsedRealtime()
+        var eglSurface: EGLSurface? = null
         val pipeline = createGlFramePipeline()
+        val startMs = SystemClock.elapsedRealtime()
         try {
             pipeline.setLut(lut)
-            bitmap = decode(source) ?: return null
-            DebugLog.log("Photo", "decoded ${bitmap.width}x${bitmap.height}")
-            val rotation = readRotation(source)
-            if (rotation != 0) {
-                val matrix = Matrix()
-                matrix.postRotate(rotation.toFloat())
-                val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-                if (rotated !== bitmap) {
-                    bitmap.recycle()
-                    bitmap = rotated
-                }
-                DebugLog.log("Photo", "applied EXIF rotation=$rotation -> ${bitmap.width}x${bitmap.height}")
+
+            // 1) 解码 + EXIF 方向旋转
+            var working = loadOrientedBitmap(source) ?: return null
+            decoded = working
+            DebugLog.log("Photo", "解码旋转后 ${working.width}x${working.height}")
+
+            // 2) 前置镜像（旋转之后）
+            if (mirror) {
+                working = swapBitmap(working, flipHorizontal(working))
+                decoded = working
+                DebugLog.log("Photo", "已水平镜像")
             }
-            val sourceBitmap = bitmap ?: return null
+
+            // 3) 画幅裁切（旋转/镜像之后、加徕卡框之前）
+            if (aspect != PhotoAspect.FULL) {
+                working = swapBitmap(working, cropToAspect(working, aspect))
+                decoded = working
+                DebugLog.log("Photo", "画幅裁切 ${aspect.name} -> ${working.width}x${working.height}")
+            }
+
+            val srcWidth = working.width
+            val srcHeight = working.height
+
+            // 4) 目标尺寸（超分）
             val targetWidth: Int
             val targetHeight: Int
             if (upscale) {
-                val maxEdge = 4096f
-                val longEdge = maxOf(sourceBitmap.width, sourceBitmap.height).toFloat()
-                val factor = minOf(2f, maxEdge / longEdge).coerceAtLeast(1f)
-                targetWidth = (sourceBitmap.width * factor).toInt()
-                targetHeight = (sourceBitmap.height * factor).toInt()
+                val longEdge = maxOf(srcWidth, srcHeight).toFloat()
+                // 大图不再无脑放大 2 倍：源图长边 >= 3000 时插值收益极低，画质反而变差
+                val maxFactor = if (longEdge >= LARGE_SOURCE_EDGE) {
+                    LARGE_SOURCE_MAX_FACTOR
+                } else {
+                    DEFAULT_MAX_FACTOR
+                }
+                val factor = minOf(maxFactor, MAX_SUPER_RES_EDGE / longEdge).coerceAtLeast(1f)
+                targetWidth = (srcWidth * factor).toInt()
+                targetHeight = (srcHeight * factor).toInt()
             } else {
-                targetWidth = sourceBitmap.width
-                targetHeight = sourceBitmap.height
+                targetWidth = srcWidth
+                targetHeight = srcHeight
             }
-            DebugLog.log("Photo", "render target=${targetWidth}x${targetHeight}")
+            DebugLog.log("Photo", "渲染目标 ${targetWidth}x$targetHeight")
 
+            // 5) GL 渲染
             val core = EglCore()
             eglCore = core
-            DebugLog.log("Photo", "EGL context GLES${core.glVersion}")
+            DebugLog.log("Photo", "EGL 上下文 GLES${core.glVersion}")
             val surface = core.createOffscreenSurface(targetWidth, targetHeight)
+            eglSurface = surface
             core.makeCurrent(surface)
-            val textureId = pipeline.createTextureFromBitmap(sourceBitmap)
+            val textureId = pipeline.createTextureFromBitmap(working)
             pipeline.setPreset(preset, intensity)
-            pipeline.setSuperResolutionEnabled(upscale && targetWidth > sourceBitmap.width)
-            pipeline.drawBitmapFrame(textureId, sourceBitmap.width, sourceBitmap.height, targetWidth, targetHeight)
-            val byteBuffer = ByteBuffer.allocateDirect(targetWidth * targetHeight * 4).order(ByteOrder.nativeOrder())
-            GLES20.glReadPixels(0, 0, targetWidth, targetHeight, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, byteBuffer)
-            byteBuffer.rewind()
-            val pixels = IntArray(targetWidth * targetHeight)
-            val tmp = ByteArray(4)
-            for (i in pixels.indices) {
-                byteBuffer.get(tmp)
-                val r = tmp[0].toInt() and 0xFF
-                val g = tmp[1].toInt() and 0xFF
-                val b = tmp[2].toInt() and 0xFF
-                val a = tmp[3].toInt() and 0xFF
-                pixels[i] = (a shl 24) or (r shl 16) or (g shl 8) or b
-            }
-            core.destroySurface(surface)
-            pipeline.deleteTexture(textureId)
+            pipeline.setSuperResolutionEnabled(upscale && targetWidth > srcWidth)
+            pipeline.drawBitmapFrame(textureId, srcWidth, srcHeight, targetWidth, targetHeight)
 
-            processed = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
-            processed.setPixels(pixels, 0, targetWidth, 0, 0, targetWidth, targetHeight)
+            // 6) 读回像素
+            val readback = readPixels(targetWidth, targetHeight)
+            pipeline.deleteTexture(textureId)
+            output = readback
             DebugLog.log(
                 "Photo",
-                "readback ok topLeft=0x%08X center=0x%08X".format(
-                    processed.getPixel(0, 0),
-                    processed.getPixel(targetWidth / 2, targetHeight / 2)
+                "读回完成 左上=0x%08X 中心=0x%08X".format(
+                    readback.getPixel(0, 0),
+                    readback.getPixel(targetWidth / 2, targetHeight / 2)
                 )
             )
             val elapsed = SystemClock.elapsedRealtime() - startMs
-            DebugLog.log("Photo", "GL pipeline done in ${elapsed}ms -> saving")
-            if (preset == FilterPreset.LEICA_MOMENT) {
+            DebugLog.log("Photo", "GL 管线耗时 ${elapsed}ms -> 开始保存")
+
+            // 7) 徕卡相框（受水印开关控制）
+            var result = readback
+            if (watermark && preset == FilterPreset.LEICA_MOMENT) {
                 val framed = try {
-                    drawLeicaFrame(processed, readExifInfo(source))
+                    drawLeicaFrame(result, readExifInfo(source))
                 } catch (e: Exception) {
-                    DebugLog.log("Photo", "leica frame failed: ${e.message}")
-                    processed
+                    DebugLog.log("Photo", "徕卡相框绘制失败: ${e.message}")
+                    result
                 }
-                if (framed !== processed) {
-                    processed.recycle()
-                    processed = framed
+                if (framed !== result) {
+                    result.recycle()
+                    result = framed
+                    output = framed
                 }
             }
-            return save(processed, preset)
+
+            // 8) 保存（压缩到 cache 临时文件 -> 写 EXIF -> 复制进 MediaStore）
+            return save(result, preset, source)
         } catch (e: Exception) {
-            DebugLog.log("Photo", "GL pipeline FAILED: ${e.javaClass.simpleName}: ${e.message}")
+            DebugLog.log("Photo", "GL 管线失败: ${e.javaClass.simpleName}: ${e.message}")
             return saveOriginal(source)
         } finally {
             pipeline.release()
+            eglSurface?.let { surface -> eglCore?.destroySurface(surface) }
             eglCore?.release()
-            bitmap?.recycle()
-            processed?.recycle()
+            decoded?.recycle()
+            output?.recycle()
         }
     }
+
+    /** 兼容旧调用方的 4 参数重载，委托到带画幅/镜像/水印的新版本。 */
+    fun process(source: File, preset: FilterPreset, intensity: Float, upscale: Boolean): Uri? =
+        process(
+            source = source,
+            preset = preset,
+            intensity = intensity,
+            upscale = upscale,
+            aspect = PhotoAspect.FULL,
+            mirror = false,
+            watermark = true
+        )
 
     fun drawLeicaFrame(source: Bitmap, exif: ExifInfo): Bitmap {
         val base = minOf(source.width, source.height).toFloat()
@@ -335,7 +428,10 @@ class PhotoProcessor(private val context: Context) {
                 ?: exif.getAttribute(ExifInterface.TAG_DATETIME)
             val timeText = date?.let {
                 val m = Regex("""(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2})""").find(it)
-                m?.let { r -> "${r.groupValues[1]}.${r.groupValues[2]}.${r.groupValues[3]} ${r.groupValues[4]}:${r.groupValues[5]}" }
+                m?.let { r ->
+                    "${r.groupValues[1]}.${r.groupValues[2]}.${r.groupValues[3]} " +
+                        "${r.groupValues[4]}:${r.groupValues[5]}"
+                }
             }
             ExifInfo(
                 focalMm = focal,
@@ -343,11 +439,24 @@ class PhotoProcessor(private val context: Context) {
                 speed = speed,
                 iso = iso,
                 timeText = timeText,
-                versionName = "${Build.VERSION.RELEASE}"
+                // 应用版本名（不是 Android 系统版本）；相框角标空间有限，只取数字部分
+                versionName = appVersionBadge()
             )
         } catch (e: Exception) {
             ExifInfo()
         }
+    }
+
+    /**
+     * 徕卡相框上显示的版本角标。
+     *
+     * 形如 `v0.1.21-beta` -> `V0.1.21`：相框角标宽度有限，去掉 `-beta` 这类通道后缀，
+     * 保留主版本号，语义仍是「App 版本」。
+     */
+    private fun appVersionBadge(): String? {
+        val raw = appVersionName.ifBlank { return null }
+        val core = raw.substringBefore('-').ifBlank { raw }
+        return "V$core"
     }
 
     private fun parseRational(raw: String): Double? {
@@ -361,13 +470,145 @@ class PhotoProcessor(private val context: Context) {
         }
     }
 
+    // ---------------------------------------------------------------- 几何变换
+
+    /**
+     * 按画幅居中裁切。
+     *
+     * 竖拍处理：手机竖拍时图片高 > 宽，此时 [PhotoAspect.ratio] 应按「长边/短边」理解，
+     * 目标比例取 `1f / ratio`（例如 4:3 的竖拍结果是 3:4 而不是 4:3）。
+     */
+    private fun cropToAspect(bitmap: Bitmap, aspect: PhotoAspect): Bitmap {
+        val ratio = aspect.ratio
+        if (ratio <= 0f) return bitmap
+        val targetRatio = if (bitmap.height > bitmap.width) 1f / ratio else ratio
+        val width = bitmap.width
+        val height = bitmap.height
+        val currentRatio = width.toFloat() / height.toFloat()
+        // 比例已经很接近就不裁，避免无意义的位图拷贝
+        if (abs(currentRatio - targetRatio) < 0.005f) return bitmap
+
+        val cropWidth: Int
+        val cropHeight: Int
+        if (currentRatio > targetRatio) {
+            // 当前太宽 -> 裁宽
+            cropWidth = (height * targetRatio).roundToInt().coerceIn(1, width)
+            cropHeight = height
+        } else {
+            // 当前太高 -> 裁高
+            cropWidth = width
+            cropHeight = (width / targetRatio).roundToInt().coerceIn(1, height)
+        }
+        val left = ((width - cropWidth) / 2).coerceAtLeast(0)
+        val top = ((height - cropHeight) / 2).coerceAtLeast(0)
+        return Bitmap.createBitmap(bitmap, left, top, cropWidth, cropHeight)
+    }
+
+    /** 水平翻转（前置镜像）。 */
+    private fun flipHorizontal(bitmap: Bitmap): Bitmap {
+        val matrix = Matrix().apply {
+            postScale(-1f, 1f, bitmap.width / 2f, bitmap.height / 2f)
+        }
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+    }
+
+    /** 用新位图替换旧位图；不是同一个对象时回收旧的，避免 OOM。 */
+    private fun swapBitmap(current: Bitmap, next: Bitmap): Bitmap {
+        if (next !== current) current.recycle()
+        return next
+    }
+
+    // ---------------------------------------------------------------- 读回
+
+    /**
+     * 从当前 EGL 上下文的默认帧缓冲读回像素并生成 Bitmap。
+     *
+     * ## 字节序依据（关键）
+     * - `glReadPixels(GL_RGBA, GL_UNSIGNED_BYTE)` 输出的内存布局是逐像素 R,G,B,A。
+     * - Android 的 `Bitmap.Config.ARGB_8888` 在内存中同样是逐像素 R,G,B,A 字节序
+     *   （小端机器上单像素 int 值为 0xAARRGGBB，但字节流顺序是 R,G,B,A）。
+     * - 两者字节布局一致，因此 `copyPixelsFromBuffer` 可以直接使用，无需逐像素重排。
+     *   旧实现用 `(a shl 24) or (r shl 16) or (g shl 8) or b` 逐个组装 IntArray，
+     *   在 4K（约 800 万像素）下是 800 万次循环，实测数百毫秒；直接 copy 是纯 memcpy 级别。
+     *
+     * ## Y 方向
+     * `GLUtils.texImage2D` 上传 Bitmap 时第 0 行对应纹理 v=0，而 `drawQuad` 把 v=0 画在
+     * 帧缓冲底部；`glReadPixels` 又从底部第 0 行开始读 —— 两次翻转相互抵消，方向正确，
+     * 不需要额外翻转。
+     *
+     * ## 如何回退
+     * 如果实机发现颜色异常（红蓝互换 / 整张照片偏色），把 [USE_DIRECT_COPY] 改成 false，
+     * 就会走 [readPixelsWithChannelSwap] 逐像素重排 R/B 的保守路径。
+     * 历史背景：release notes 里记录过「修复照片偏色：保存管线 R/B 通道互换」，
+     * 说明这里曾经踩过坑，所以保留两条路径以便快速回退。
+     */
+    private fun readPixels(width: Int, height: Int): Bitmap {
+        val buffer = ByteBuffer.allocateDirect(width * height * 4).order(ByteOrder.nativeOrder())
+        GLES20.glReadPixels(0, 0, width, height, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buffer)
+        // copyPixelsFromBuffer 从 buffer 的当前位置开始读，必须显式归零
+        buffer.position(0)
+        return if (USE_DIRECT_COPY) {
+            Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply {
+                copyPixelsFromBuffer(buffer)
+            }
+        } else {
+            readPixelsWithChannelSwap(buffer, width, height)
+        }
+    }
+
+    /**
+     * 回退路径：不走 `copyPixelsFromBuffer`，改为显式搬运通道再 `setPixels`。
+     *
+     * ## 通道换算（为什么这么写）
+     * `glReadPixels(GL_RGBA)` 的内存字节流是 (R,G,B,A)。在小端机上按 int 读出来是
+     * `0xAABBGGRR`（最低字节是 R）。而 [Bitmap.setPixels] 接收的是**颜色值** `0xAARRGGBB`。
+     * 所以要把最低字节 R 搬到 16 位、把 16 位的 B 搬到最低字节：
+     *
+     * ```
+     * 0xAABBGGRR  --(R/B 对调)-->  0xAARRGGBB
+     * ```
+     *
+     * ## 为什么这条路径才是「保险」的那条
+     * - [Bitmap.copyPixelsFromBuffer] 依赖一个**未写进文档**的实现细节：
+     *   ARGB_8888 的原生内存布局恰好是 RGBA 字节序。绝大多数设备如此，所以能用。
+     * - [Bitmap.setPixels] 的语义是**文档化的**：参数就是 `0xAARRGGBB` 颜色值，
+     *   由系统自己负责转成原生布局。所以这条路径与设备内存布局无关，构造上就是对的。
+     *
+     * 换句话说：默认走快路径；一旦实机出现红蓝互换/偏色，把 [USE_DIRECT_COPY] 改成
+     * `false` 切到本函数即可得到正确颜色 —— **不要**去改下面的掩码。
+     *
+     * 性能：4K 约 800 万次循环，比直接 copy 慢，但比历史实现逐个
+     * `ByteBuffer.get(ByteArray(4))` 快一个数量级（这里用 `asIntBuffer()` 整块取）。
+     */
+    private fun readPixelsWithChannelSwap(
+        buffer: ByteBuffer,
+        width: Int,
+        height: Int
+    ): Bitmap {
+        val count = width * height
+        val pixels = IntArray(count)
+        buffer.asIntBuffer().get(pixels)
+        for (i in 0 until count) {
+            val v = pixels[i]
+            // 保留 A(24-31) 与 G(8-15)，把 R(0-7) 与 B(16-23) 对调
+            pixels[i] = (v and 0xFF00FF00.toInt()) or
+                ((v and 0x000000FF) shl 16) or
+                ((v ushr 16) and 0x000000FF)
+        }
+        return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply {
+            setPixels(pixels, 0, width, 0, 0, width, height)
+        }
+    }
+
+    // ---------------------------------------------------------------- 解码
+
     private fun decode(source: File): Bitmap? {
         val bounds = BitmapFactory.Options()
         bounds.inJustDecodeBounds = true
         BitmapFactory.decodeFile(source.absolutePath, bounds)
         DebugLog.log(
             "Photo",
-            "decode bounds=${bounds.outWidth}x${bounds.outHeight} mime=${bounds.outMimeType}"
+            "解码尺寸=${bounds.outWidth}x${bounds.outHeight} mime=${bounds.outMimeType}"
         )
         var sample = 1
         val longEdge = maxOf(bounds.outWidth, bounds.outHeight)
@@ -378,7 +619,23 @@ class PhotoProcessor(private val context: Context) {
         options.inSampleSize = sample
         options.inPreferredConfig = Bitmap.Config.ARGB_8888
         val bitmap = BitmapFactory.decodeFile(source.absolutePath, options)
-        DebugLog.log("Photo", "decode sample=$sample -> ${bitmap?.width}x${bitmap?.height}")
+        DebugLog.log("Photo", "解码 sample=$sample -> ${bitmap?.width}x${bitmap?.height}")
+        return bitmap
+    }
+
+    /** 解码并按 EXIF 方向摆正。 */
+    private fun loadOrientedBitmap(source: File): Bitmap? {
+        var bitmap = decode(source) ?: return null
+        val rotation = readRotation(source)
+        if (rotation != 0) {
+            val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
+            val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+            if (rotated !== bitmap) {
+                bitmap.recycle()
+                bitmap = rotated
+            }
+            DebugLog.log("Photo", "应用 EXIF 旋转=$rotation -> ${bitmap.width}x${bitmap.height}")
+        }
         return bitmap
     }
 
@@ -396,8 +653,122 @@ class PhotoProcessor(private val context: Context) {
         }
     }
 
-    private fun save(bitmap: Bitmap, preset: FilterPreset): Uri? {
+    // ---------------------------------------------------------------- 保存
+
+    /**
+     * 保存位图到媒体库。
+     *
+     * 流程：先压缩到 cacheDir 临时 jpg（只有文件才能用 [ExifInterface] 读写），
+     * 把源文件的 EXIF 写进临时文件，再把字节复制到 MediaStore 输出流。
+     * 这样既保住了 EXIF，又不用直接操作 MediaStore 的 fd。
+     */
+    private fun save(bitmap: Bitmap, preset: FilterPreset, source: File?): Uri? {
         val name = "FH_" + System.currentTimeMillis() + "_" + preset.name + ".jpg"
+        val temp = File(context.cacheDir, "fanhua_save_" + System.currentTimeMillis() + ".jpg")
+        try {
+            FileOutputStream(temp).use { output ->
+                if (!bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, output)) {
+                    DebugLog.log("Photo", "JPEG 压缩失败")
+                    return null
+                }
+            }
+            if (source != null) {
+                writeExif(source, temp)
+            }
+            return publishToMediaStore(temp, name, bitmap.width, bitmap.height)
+        } catch (e: Exception) {
+            DebugLog.log("Photo", "保存失败: ${e.javaClass.simpleName}: ${e.message}")
+            return null
+        } finally {
+            temp.delete()
+        }
+    }
+
+    /** 把源文件的 EXIF 写进目标 JPEG 文件。 */
+    private fun writeExif(source: File, target: File) {
+        try {
+            if (!source.exists()) return
+            val src = ExifInterface(source.absolutePath)
+            val dst = ExifInterface(target.absolutePath)
+
+            // 相机型号、曝光参数、镜头、时间等常用标签逐个搬运
+            val tags = listOf(
+                ExifInterface.TAG_MAKE,
+                ExifInterface.TAG_MODEL,
+                ExifInterface.TAG_LENS_MODEL,
+                ExifInterface.TAG_F_NUMBER,
+                ExifInterface.TAG_EXPOSURE_TIME,
+                ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY,
+                ExifInterface.TAG_ISO_SPEED_RATINGS,
+                ExifInterface.TAG_FOCAL_LENGTH,
+                ExifInterface.TAG_FOCAL_LENGTH_IN_35MM_FILM,
+                ExifInterface.TAG_DATETIME_ORIGINAL,
+                ExifInterface.TAG_DATETIME,
+                ExifInterface.TAG_FLASH,
+                ExifInterface.TAG_WHITE_BALANCE,
+                ExifInterface.TAG_EXPOSURE_PROGRAM,
+                ExifInterface.TAG_METERING_MODE,
+                ExifInterface.TAG_EXPOSURE_BIAS_VALUE,
+                ExifInterface.TAG_SOFTWARE,
+                ExifInterface.TAG_GPS_TIMESTAMP,
+                ExifInterface.TAG_GPS_DATESTAMP
+            )
+            for (tag in tags) {
+                val value = runCatching { src.getAttribute(tag) }.getOrNull()
+                if (!value.isNullOrBlank()) {
+                    runCatching { dst.setAttribute(tag, value) }
+                }
+            }
+
+            // Make/Model 兜底：源图缺失时写设备信息，保证相册里的元信息不空
+            if (runCatching { dst.getAttribute(ExifInterface.TAG_MAKE) }.getOrNull().isNullOrBlank()) {
+                runCatching {
+                    dst.setAttribute(
+                        ExifInterface.TAG_MAKE,
+                        Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
+                    )
+                }
+            }
+            if (runCatching { dst.getAttribute(ExifInterface.TAG_MODEL) }.getOrNull().isNullOrBlank()) {
+                runCatching { dst.setAttribute(ExifInterface.TAG_MODEL, Build.MODEL) }
+            }
+
+            // 拍摄时间兜底，避免相册按时间排序时这张照片落到底部
+            if (runCatching { dst.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL) }
+                    .getOrNull().isNullOrBlank()
+            ) {
+                runCatching {
+                    dst.setAttribute(
+                        ExifInterface.TAG_DATETIME_ORIGINAL,
+                        SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US).format(Date())
+                    )
+                }
+            }
+
+            // GPS：先搬经纬度，再搬海拔
+            val latLong = FloatArray(2)
+            if (runCatching { src.getLatLong(latLong) }.getOrDefault(false)) {
+                runCatching { dst.setLatLong(latLong[0].toDouble(), latLong[1].toDouble()) }
+                val altitude = runCatching { src.getAltitude(Double.NaN) }.getOrDefault(Double.NaN)
+                if (!altitude.isNaN()) {
+                    runCatching { dst.setAltitude(altitude) }
+                }
+            }
+
+            // 像素已经按 EXIF 方向旋转过，输出方向必须写 1（NORMAL），否则查看器会二次旋转
+            runCatching {
+                dst.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL.toString())
+            }
+            dst.saveAttributes()
+            DebugLog.log("Photo", "EXIF 已写回 -> ${target.name}")
+        } catch (e: Exception) {
+            // EXIF 写失败不影响出片，只记日志
+            DebugLog.log("Photo", "EXIF 写回失败: ${e.javaClass.simpleName}: ${e.message}")
+        }
+    }
+
+    /** 把临时文件字节复制进 MediaStore。 */
+    private fun publishToMediaStore(file: File, name: String, width: Int, height: Int): Uri? {
         val values = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, name)
             put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
@@ -416,9 +787,10 @@ class PhotoProcessor(private val context: Context) {
         val uri = resolver.insert(collection, values) ?: return null
         try {
             resolver.openOutputStream(uri)?.use { output ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, output)
+                file.inputStream().use { input -> input.copyTo(output) }
             }
         } catch (e: Exception) {
+            DebugLog.log("Photo", "写入媒体库失败: ${e.message}")
             resolver.delete(uri, null, null)
             return null
         }
@@ -426,10 +798,39 @@ class PhotoProcessor(private val context: Context) {
             val done = ContentValues().apply { put(MediaStore.Images.Media.IS_PENDING, 0) }
             resolver.update(uri, done, null, null)
         }
-        DebugLog.log("Photo", "saved ${bitmap.width}x${bitmap.height} JPEG q=$JPEG_QUALITY uri=$uri name=$name")
+        DebugLog.log("Photo", "已保存 ${width}x$height JPEG q=$JPEG_QUALITY uri=$uri name=$name")
         return uri
     }
 
+    /**
+     * 只做几何处理（画幅裁切 / 镜像）不做滤镜的兜底保存路径。
+     * 用于 CUSTOM_LUT 但用户没有导入 LUT 的情况，保证画幅设置仍然生效。
+     */
+    private fun saveGeometryOnly(
+        source: File,
+        preset: FilterPreset,
+        aspect: PhotoAspect,
+        mirror: Boolean
+    ): Uri? {
+        var working: Bitmap? = null
+        return try {
+            working = loadOrientedBitmap(source) ?: return saveOriginal(source)
+            if (mirror) {
+                working = swapBitmap(working, flipHorizontal(working))
+            }
+            if (aspect != PhotoAspect.FULL) {
+                working = swapBitmap(working, cropToAspect(working, aspect))
+            }
+            save(working, preset, source)
+        } catch (e: Exception) {
+            DebugLog.log("Photo", "几何处理失败: ${e.message}")
+            saveOriginal(source)
+        } finally {
+            working?.recycle()
+        }
+    }
+
+    /** 原图直接复制：字节级搬运，EXIF 天然完整。 */
     private fun saveOriginal(source: File): Uri? {
         val name = "FH_" + System.currentTimeMillis() + ".jpg"
         val values = ContentValues().apply {
@@ -463,8 +864,27 @@ class PhotoProcessor(private val context: Context) {
         return uri
     }
 
-    private companion object {
-        const val MAX_DECODE_EDGE = 8192
+    companion object {
+        /** JPEG 压缩质量（1-100）。98 是画质与体积的折中，可按需下调。 */
         const val JPEG_QUALITY = 98
+
+        /**
+         * 字节序方案开关。
+         *
+         * `true`：`glReadPixels(GL_RGBA)` 的结果直接 `copyPixelsFromBuffer`（快，默认）。
+         * `false`：逐像素交换 R/B 通道（保守回退）。
+         * 判断依据见 [readPixels] 的注释；若实机出现红蓝互换/偏色，改成 false 即可。
+         */
+        private const val USE_DIRECT_COPY = true
+
+        private const val MAX_DECODE_EDGE = 8192
+
+        /** 超分输出长边上限。 */
+        private const val MAX_SUPER_RES_EDGE = 4096f
+
+        /** 源图长边达到该值时，放大系数限制到 1.5 倍以内。 */
+        private const val LARGE_SOURCE_EDGE = 3000f
+        private const val LARGE_SOURCE_MAX_FACTOR = 1.5f
+        private const val DEFAULT_MAX_FACTOR = 2f
     }
 }

@@ -2,36 +2,62 @@
 <resources>
     <string name="app_name">繁花如夢相機</string>
 
+    <!-- 拍攝模式 -->
     <string name="mode_photo">照片</string>
     <string name="mode_video">影片</string>
     <string name="mode_pro">專業</string>
     <string name="mode_superres">超解析</string>
 
+    <!-- 濾鏡 -->
     <string name="filter_original">原圖</string>
     <string name="filter_dream">繁花如夢</string>
     <string name="filter_leica">徠卡一瞬</string>
+    <string name="filter_leica_vivid">徠卡鮮豔</string>
+    <string name="filter_leica_natural">徠卡自然</string>
     <string name="filter_leica_mono">徠卡黑白</string>
+    <string name="filter_leica_bw_hc">徠卡黑白 HC</string>
+    <string name="filter_leica_brown">徠卡懷舊棕</string>
+    <string name="filter_leica_bw_blue">徠卡黑白藍</string>
     <string name="filter_leica_portrait">徠卡人像</string>
+    <string name="filter_leica_classic">徠卡經典</string>
+    <string name="filter_leica_group">徠卡</string>
+    <string name="filter_fuji_classic">富士正片</string>
+    <string name="filter_kodak_portra">柯達波特拉</string>
+    <string name="filter_teal_orange">青橙電影</string>
+    <string name="filter_cinematic">電影質感</string>
+    <string name="filter_film_grain">底片顆粒</string>
+    <string name="filter_group_film">底片</string>
     <string name="filter_apple_log">Apple Log</string>
+    <string name="filter_custom_lut">自訂 LUT</string>
+    <string name="filter_sdr">SDR 標準</string>
 
+    <!-- 閃光與補光 -->
     <string name="flash_auto">自動</string>
     <string name="flash_on">開啟</string>
     <string name="flash_off">關閉</string>
+    <string name="torch_on">常亮補光</string>
+    <string name="torch_off">關閉補光</string>
 
+    <!-- 通用動作 -->
     <string name="action_settings">設定</string>
     <string name="action_close">關閉</string>
     <string name="action_switch_camera">切換鏡頭</string>
     <string name="action_confirm">確定</string>
     <string name="action_cancel">取消</string>
+    <string name="action_reset">重設</string>
 
+    <!-- 權限 -->
     <string name="permission_title">需要相機權限</string>
     <string name="permission_message">請允許存取相機與麥克風，以使用拍攝與錄影功能</string>
     <string name="permission_grant">授予權限</string>
 
+    <!-- 提示訊息 -->
     <string name="message_photo_saved">照片已儲存</string>
     <string name="message_video_saved">影片已儲存</string>
     <string name="message_recording_started">正在錄影</string>
     <string name="message_recording_stopped">錄影已結束</string>
+    <string name="message_recording_paused">錄影已暫停</string>
+    <string name="message_recording_resumed">繼續錄影</string>
     <string name="message_saving">正在儲存</string>
     <string name="message_processing">正在處理</string>
     <string name="message_error_camera">相機無法使用</string>
@@ -41,24 +67,57 @@
     <string name="message_high_speed_unavailable">目前裝置不支援高幀率錄影</string>
     <string name="message_superres_unavailable">目前裝置不支援超解析輸出</string>
     <string name="message_stabilization_unavailable">目前裝置不支援此防手震設定</string>
+    <string name="message_quality_reduced">畫質已降級，相機仍可使用</string>
+    <string name="message_torch_unavailable">目前裝置不支援常亮補光</string>
+    <string name="message_exposure_unavailable">目前裝置不支援曝光補償</string>
+    <string name="message_focus_locked">焦點已鎖定</string>
+    <string name="message_focus_reset">已恢復自動對焦</string>
 
+    <!-- 設定 -->
     <string name="settings_title">設定</string>
     <string name="settings_language">介面語言</string>
     <string name="settings_language_system">跟隨系統</string>
+    <string name="settings_capture">拍攝</string>
+    <string name="settings_photo_aspect">照片比例</string>
+    <string name="settings_photo_aspect_desc">所見即所得，儲存時依所選比例置中裁切</string>
+    <string name="settings_mirror">前置鏡像</string>
+    <string name="settings_mirror_desc">自拍時水平翻轉，與取景畫面一致</string>
+    <string name="settings_watermark">徠卡相框</string>
+    <string name="settings_watermark_desc">使用「徠卡一瞬」濾鏡時疊加品牌相框與拍攝參數</string>
+    <string name="settings_shutter_sound">快門音效</string>
+    <string name="settings_shutter_sound_desc">拍照時播放系統快門聲</string>
     <string name="settings_filter_intensity">濾鏡強度</string>
+    <string name="settings_image">影像</string>
     <string name="settings_stabilization">影片防手震</string>
     <string name="settings_stabilization_desc">優先使用硬體防手震，超解析錄影時啟用陀螺儀補償</string>
+    <string name="settings_horizon">地平線防手震</string>
+    <string name="settings_horizon_desc">以陀螺儀補償平移並保持地平線水平，取景器顯示金色水平儀，最大回正 8 度</string>
     <string name="settings_superres">拍照超解析</string>
     <string name="settings_superres_desc">拍攝後將照片放大至更高解析度</string>
     <string name="settings_autocomposition">自動構圖</string>
     <string name="settings_autocomposition_desc">偵測主體位置並提供構圖引導與裁切建議</string>
     <string name="settings_capability">裝置能力</string>
     <string name="settings_capability_desc">查看目前裝置實際支援的錄影規格</string>
+    <string name="settings_lut">LUT 濾鏡</string>
+    <string name="settings_lut_desc">支援匯入 .cube 3D LUT（Blackmagic、光子相機等），匯入後在濾鏡列選擇「自訂 LUT」即可使用</string>
+    <string name="settings_debug">偵錯模式</string>
+    <string name="settings_debug_desc">僅記錄偵錯日誌，不影響正常使用；測試完複製日誌傳給開發者即可</string>
     <string name="settings_about">關於</string>
     <string name="settings_about_desc">繁花如夢相機 · 多語系攝影</string>
+    <string name="settings_reset">恢復預設設定</string>
+    <string name="settings_reset_desc">清除所有拍攝偏好，不會刪除照片與影片</string>
+    <string name="settings_reset_done">已恢復預設設定</string>
 
+    <!-- 比例 -->
+    <string name="aspect_full">全畫幅</string>
+    <string name="aspect_4_3">4:3</string>
+    <string name="aspect_16_9">16:9</string>
+    <string name="aspect_1_1">1:1</string>
+
+    <!-- 裝置能力 -->
     <string name="capability_title">裝置能力報告</string>
     <string name="capability_max_video">最大錄影規格</string>
+    <string name="capability_max_photo">最大照片規格</string>
     <string name="capability_encode_4k30">4K 30FPS 編碼</string>
     <string name="capability_encode_4k60">4K 60FPS 編碼</string>
     <string name="capability_encode_4k120">4K 120FPS 編碼</string>
@@ -72,11 +131,14 @@
     <string name="value_unsupported">不支援</string>
     <string name="value_none">無</string>
 
+    <!-- 專業模式 -->
     <string name="pro_manual_focus">手動對焦</string>
-    <string name="pro_speed_normal">一般</string>
-    <string name="pro_speed_slow_motion">慢動作</string>
+    <string name="pro_exposure">曝光補償</string>
+    <string name="pro_exposure_auto">自動</string>
+    <string name="pro_focus_auto">自動對焦</string>
     <string name="pro_output_spec">輸出規格</string>
 
+    <!-- 構圖提示 -->
     <string name="composition_hint_center">將主體移至三分線交點</string>
     <string name="composition_hint_left">主體偏右，向左調整</string>
     <string name="composition_hint_right">主體偏左，向右調整</string>
@@ -84,16 +146,34 @@
     <string name="composition_hint_down">主體偏上，向下調整</string>
     <string name="composition_aligned">構圖良好</string>
 
+    <!-- 相簿 -->
     <string name="gallery_title">拍攝結果</string>
     <string name="gallery_empty">尚無內容</string>
+    <string name="gallery_share">分享</string>
+    <string name="gallery_open">在系統中開啟</string>
     <string name="gallery_interpolate">產生高幀率</string>
     <string name="gallery_upscale">超解析至 4K</string>
     <string name="processing_title">正在處理</string>
     <string name="processing_done">處理完成</string>
     <string name="processing_failed">處理失敗</string>
 
+    <!-- 取景與控制項 -->
     <string name="zoom_label">變焦</string>
     <string name="live_photo">實況</string>
+    <string name="grid">格線</string>
+    <string name="timer_off">關閉</string>
+    <string name="flip_camera">翻轉</string>
+    <string name="filter_strip_expand">展開濾鏡</string>
+    <string name="filter_strip_collapse">收起濾鏡</string>
+    <string name="countdown_cancel">輕點取消</string>
+    <string name="video_pause">暫停</string>
+    <string name="video_resume">繼續</string>
+    <string name="hide_controls">隱藏控制項</string>
+    <string name="show_controls">顯示控制項</string>
+    <string name="camera_starting">正在啟動相機…</string>
+    <string name="double_tap_switch">連點兩下切換前後鏡頭</string>
+
+    <!-- 回饋與關於 -->
     <string name="bug_feedback">回報 Bug</string>
     <string name="bug_feedback_desc">一鍵複製日誌，方便定位問題</string>
     <string name="copy_log">一鍵複製日誌</string>
@@ -102,7 +182,7 @@
     <string name="author">作者</string>
     <string name="open_homepage">開啟首頁</string>
     <string name="device_info">裝置資訊</string>
-    <string name="app_log">應用日誌</string>
+    <string name="app_log">應用程式日誌</string>
     <string name="open_source">開源倉庫</string>
     <string name="delete">刪除</string>
     <string name="reprocess">重新處理</string>
@@ -110,7 +190,8 @@
     <string name="confirm_delete_title">刪除這張照片？</string>
     <string name="confirm_delete_message">刪除後無法復原</string>
     <string name="open_with_system">在系統中開啟</string>
-    <string name="camera_starting">正在啟動相機…</string>
+
+    <!-- 更新 -->
     <string name="check_update">檢查更新</string>
     <string name="update_available">發現新版本</string>
     <string name="update_latest">已是最新版本</string>
@@ -120,6 +201,22 @@
     <string name="downloading">正在下載</string>
     <string name="download_done">下載完成</string>
     <string name="install_update">安裝更新</string>
-    <string name="message_quality_reduced">畫質已降級，相機仍可用</string>
+    <string name="install_permission_hint">請先允許「安裝未知的應用程式」，返回應用程式後再次點選安裝</string>
+
+    <!-- 偵錯 -->
+    <string name="debug_copy_log">複製偵錯日誌</string>
+    <string name="debug_clear_log">清空日誌</string>
+    <string name="debug_log_empty">日誌為空，請先開啟偵錯模式並拍攝幾張照片</string>
+    <string name="debug_log_copied">偵錯日誌已複製</string>
+
+    <!-- LUT -->
+    <string name="lut_import">匯入 LUT (.cube)</string>
+    <string name="lut_none">尚未匯入 LUT</string>
+    <string name="lut_imported">LUT 匯入成功</string>
+    <string name="lut_invalid">LUT 檔案無效或解析失敗</string>
+    <string name="lut_removed">已移除該 LUT</string>
+    <string name="lut_remove">移除</string>
+    <string name="lut_use_tip">選擇「自訂 LUT」濾鏡後生效</string>
+
     <string name="live_photo_saved">實況照片已儲存</string>
 </resources>

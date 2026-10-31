@@ -2,36 +2,62 @@
 <resources>
     <string name="app_name">Cámara Fanhua</string>
 
+    <!-- Modos de captura -->
     <string name="mode_photo">Foto</string>
     <string name="mode_video">Vídeo</string>
     <string name="mode_pro">Pro</string>
     <string name="mode_superres">Súper</string>
 
+    <!-- Filtros -->
     <string name="filter_original">Original</string>
     <string name="filter_dream">Sueño Floral</string>
     <string name="filter_leica">Instante Leica</string>
+    <string name="filter_leica_vivid">Leica Vívido</string>
+    <string name="filter_leica_natural">Leica Natural</string>
     <string name="filter_leica_mono">Leica Mono</string>
+    <string name="filter_leica_bw_hc">Leica B&amp;N AC</string>
+    <string name="filter_leica_brown">Leica Sepia</string>
+    <string name="filter_leica_bw_blue">Leica Mono Azul</string>
     <string name="filter_leica_portrait">Leica Retrato</string>
+    <string name="filter_leica_classic">Leica Clásico</string>
+    <string name="filter_leica_group">Leica</string>
+    <string name="filter_fuji_classic">Fuji Classic Chrome</string>
+    <string name="filter_kodak_portra">Kodak Portra</string>
+    <string name="filter_teal_orange">Turquesa y Naranja</string>
+    <string name="filter_cinematic">Cinematográfico</string>
+    <string name="filter_film_grain">Grano de Película</string>
+    <string name="filter_group_film">Película</string>
     <string name="filter_apple_log">Apple Log</string>
+    <string name="filter_custom_lut">LUT personalizado</string>
+    <string name="filter_sdr">SDR estándar</string>
 
-    <string name="flash_auto">Auto</string>
+    <!-- Flash e iluminación continua -->
+    <string name="flash_auto">Automático</string>
     <string name="flash_on">Activado</string>
     <string name="flash_off">Desactivado</string>
+    <string name="torch_on">Luz continua activada</string>
+    <string name="torch_off">Luz continua desactivada</string>
 
+    <!-- Acciones comunes -->
     <string name="action_settings">Ajustes</string>
     <string name="action_close">Cerrar</string>
     <string name="action_switch_camera">Cambiar cámara</string>
     <string name="action_confirm">Aceptar</string>
     <string name="action_cancel">Cancelar</string>
+    <string name="action_reset">Restablecer</string>
 
+    <!-- Permisos -->
     <string name="permission_title">Se necesita permiso de cámara</string>
     <string name="permission_message">Permite el acceso a la cámara y al micrófono para tomar fotos y grabar vídeo</string>
     <string name="permission_grant">Conceder permiso</string>
 
+    <!-- Avisos -->
     <string name="message_photo_saved">Foto guardada</string>
     <string name="message_video_saved">Vídeo guardado</string>
     <string name="message_recording_started">Grabando</string>
     <string name="message_recording_stopped">Grabación finalizada</string>
+    <string name="message_recording_paused">Grabación en pausa</string>
+    <string name="message_recording_resumed">Grabación reanudada</string>
     <string name="message_saving">Guardando</string>
     <string name="message_processing">Procesando</string>
     <string name="message_error_camera">Cámara no disponible</string>
@@ -41,24 +67,57 @@
     <string name="message_high_speed_unavailable">Este dispositivo no admite grabación de alta velocidad</string>
     <string name="message_superres_unavailable">Este dispositivo no admite salida superresolución</string>
     <string name="message_stabilization_unavailable">Este dispositivo no admite este ajuste de estabilización</string>
+    <string name="message_quality_reduced">Calidad reducida, la cámara sigue funcionando</string>
+    <string name="message_torch_unavailable">Este dispositivo no admite la luz continua</string>
+    <string name="message_exposure_unavailable">Este dispositivo no admite la compensación de exposición</string>
+    <string name="message_focus_locked">Enfoque bloqueado</string>
+    <string name="message_focus_reset">Enfoque automático restaurado</string>
 
+    <!-- Ajustes -->
     <string name="settings_title">Ajustes</string>
     <string name="settings_language">Idioma de la interfaz</string>
     <string name="settings_language_system">Seguir el sistema</string>
+    <string name="settings_capture">Captura</string>
+    <string name="settings_photo_aspect">Relación de aspecto</string>
+    <string name="settings_photo_aspect_desc">Lo que ves es lo que obtienes: la foto se recorta al centro según la proporción elegida</string>
+    <string name="settings_mirror">Espejo en selfi</string>
+    <string name="settings_mirror_desc">Voltea horizontalmente con la cámara frontal para igualar la vista previa</string>
+    <string name="settings_watermark">Marco Leica</string>
+    <string name="settings_watermark_desc">Superpone el marco de marca y los parámetros de disparo al usar el filtro Instante Leica</string>
+    <string name="settings_shutter_sound">Sonido de obturador</string>
+    <string name="settings_shutter_sound_desc">Reproduce el sonido de obturador del sistema al hacer una foto</string>
     <string name="settings_filter_intensity">Intensidad del filtro</string>
+    <string name="settings_image">Imagen</string>
     <string name="settings_stabilization">Estabilización de vídeo</string>
-    <string name="settings_stabilization_desc">Usar estabilización por hardware y compensación por giroscopio al grabar en superresolución</string>
+    <string name="settings_stabilization_desc">Prioriza la estabilización por hardware y usa compensación por giroscopio al grabar en superresolución</string>
+    <string name="settings_horizon">Bloqueo de horizonte</string>
+    <string name="settings_horizon_desc">Compensa el giro con el giroscopio y mantiene el horizonte recto; el visor muestra un nivel dorado y corrige hasta 8 grados</string>
     <string name="settings_superres">Superresolución de foto</string>
-    <string name="settings_superres_desc">Ampliar la foto a una resolución mayor tras el disparo</string>
+    <string name="settings_superres_desc">Amplía la foto a una resolución mayor tras el disparo</string>
     <string name="settings_autocomposition">Encuadre automático</string>
-    <string name="settings_autocomposition_desc">Detectar el sujeto y ofrecer guía de encuadre y recorte</string>
+    <string name="settings_autocomposition_desc">Detecta el sujeto y ofrece guía de encuadre y recorte</string>
     <string name="settings_capability">Capacidades del dispositivo</string>
-    <string name="settings_capability_desc">Consultar las especificaciones de grabación realmente compatibles</string>
+    <string name="settings_capability_desc">Consulta las especificaciones de grabación que este dispositivo admite de verdad</string>
+    <string name="settings_lut">Filtros LUT</string>
+    <string name="settings_lut_desc">Importa LUT 3D .cube (Blackmagic, PhotonCamera, etc.) y elige «LUT personalizado» en la tira de filtros para aplicarlo</string>
+    <string name="settings_debug">Modo de depuración</string>
+    <string name="settings_debug_desc">Solo registra registros de depuración y no afecta al uso normal; copia el registro y envíalo al desarrollador al terminar</string>
     <string name="settings_about">Acerca de</string>
     <string name="settings_about_desc">Cámara Fanhua · Fotografía multilingüe</string>
+    <string name="settings_reset">Restaurar valores predeterminados</string>
+    <string name="settings_reset_desc">Borra todas las preferencias de captura; las fotos y los vídeos no se eliminan</string>
+    <string name="settings_reset_done">Valores predeterminados restaurados</string>
 
+    <!-- Relación de aspecto -->
+    <string name="aspect_full">Completo</string>
+    <string name="aspect_4_3">4:3</string>
+    <string name="aspect_16_9">16:9</string>
+    <string name="aspect_1_1">1:1</string>
+
+    <!-- Capacidades del dispositivo -->
     <string name="capability_title">Informe de capacidades</string>
     <string name="capability_max_video">Grabación máxima</string>
+    <string name="capability_max_photo">Foto máxima</string>
     <string name="capability_encode_4k30">Codificación 4K 30FPS</string>
     <string name="capability_encode_4k60">Codificación 4K 60FPS</string>
     <string name="capability_encode_4k120">Codificación 4K 120FPS</string>
@@ -72,11 +131,14 @@
     <string name="value_unsupported">No compatible</string>
     <string name="value_none">Ninguno</string>
 
+    <!-- Modo Pro -->
     <string name="pro_manual_focus">Enfoque manual</string>
-    <string name="pro_speed_normal">Normal</string>
-    <string name="pro_speed_slow_motion">Cámara lenta</string>
+    <string name="pro_exposure">Compensación de exposición</string>
+    <string name="pro_exposure_auto">Automático</string>
+    <string name="pro_focus_auto">Enfoque automático</string>
     <string name="pro_output_spec">Especificación de salida</string>
 
+    <!-- Guías de composición -->
     <string name="composition_hint_center">Mueve el sujeto a una intersección de tercios</string>
     <string name="composition_hint_left">Sujeto a la derecha, mueve a la izquierda</string>
     <string name="composition_hint_right">Sujeto a la izquierda, mueve a la derecha</string>
@@ -84,16 +146,34 @@
     <string name="composition_hint_down">Sujeto arriba, baja</string>
     <string name="composition_aligned">Buen encuadre</string>
 
+    <!-- Galería -->
     <string name="gallery_title">Resultados</string>
     <string name="gallery_empty">Sin contenido</string>
+    <string name="gallery_share">Compartir</string>
+    <string name="gallery_open">Abrir en el sistema</string>
     <string name="gallery_interpolate">Generar alta tasa</string>
     <string name="gallery_upscale">Superresolución a 4K</string>
     <string name="processing_title">Procesando</string>
     <string name="processing_done">Proceso completado</string>
     <string name="processing_failed">Proceso fallido</string>
 
+    <!-- Visor y controles -->
     <string name="zoom_label">Zoom</string>
     <string name="live_photo">Foto en vivo</string>
+    <string name="grid">Cuadrícula</string>
+    <string name="timer_off">Desactivado</string>
+    <string name="flip_camera">Voltear</string>
+    <string name="filter_strip_expand">Expandir filtros</string>
+    <string name="filter_strip_collapse">Contraer filtros</string>
+    <string name="countdown_cancel">Toca para cancelar</string>
+    <string name="video_pause">Pausar</string>
+    <string name="video_resume">Reanudar</string>
+    <string name="hide_controls">Ocultar controles</string>
+    <string name="show_controls">Mostrar controles</string>
+    <string name="camera_starting">Iniciando cámara…</string>
+    <string name="double_tap_switch">Doble toque para cambiar de cámara</string>
+
+    <!-- Comentarios y acerca de -->
     <string name="bug_feedback">Informar de un error</string>
     <string name="bug_feedback_desc">Copia los registros de un toque para localizar el problema</string>
     <string name="copy_log">Copiar registros</string>
@@ -110,7 +190,8 @@
     <string name="confirm_delete_title">¿Eliminar esta foto?</string>
     <string name="confirm_delete_message">No se puede deshacer</string>
     <string name="open_with_system">Abrir en el sistema</string>
-    <string name="camera_starting">Iniciando cámara…</string>
+
+    <!-- Actualizaciones -->
     <string name="check_update">Buscar actualizaciones</string>
     <string name="update_available">Nueva versión disponible</string>
     <string name="update_latest">Ya está actualizado</string>
@@ -120,6 +201,22 @@
     <string name="downloading">Descargando</string>
     <string name="download_done">Descarga completada</string>
     <string name="install_update">Instalar actualización</string>
-    <string name="message_quality_reduced">Calidad reducida, la cámara sigue funcionando</string>
+    <string name="install_permission_hint">Permite «Instalar apps desconocidas», vuelve a la app y pulsa Instalar de nuevo</string>
+
+    <!-- Depuración -->
+    <string name="debug_copy_log">Copiar registro de depuración</string>
+    <string name="debug_clear_log">Borrar registro</string>
+    <string name="debug_log_empty">El registro está vacío. Activa el modo de depuración y haz algunas fotos primero</string>
+    <string name="debug_log_copied">Registro de depuración copiado</string>
+
+    <!-- LUT -->
+    <string name="lut_import">Importar LUT (.cube)</string>
+    <string name="lut_none">Aún no hay LUT importado</string>
+    <string name="lut_imported">LUT importado</string>
+    <string name="lut_invalid">Archivo LUT no válido o no se pudo analizar</string>
+    <string name="lut_removed">LUT eliminado</string>
+    <string name="lut_remove">Quitar</string>
+    <string name="lut_use_tip">Se aplica al elegir el filtro «LUT personalizado»</string>
+
     <string name="live_photo_saved">Foto en vivo guardada</string>
 </resources>

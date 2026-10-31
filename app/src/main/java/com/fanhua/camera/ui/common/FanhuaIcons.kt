@@ -282,6 +282,72 @@ object FanhuaIcons {
         }
     }
 
+    val Pause: ImageVector = vector("Pause") {
+        path(fill = SolidColor(Color.Black)) {
+            moveTo(7.2f, 5.2f)
+            lineTo(10.6f, 5.2f)
+            lineTo(10.6f, 18.8f)
+            lineTo(7.2f, 18.8f)
+            close()
+        }
+        path(fill = SolidColor(Color.Black)) {
+            moveTo(13.4f, 5.2f)
+            lineTo(16.8f, 5.2f)
+            lineTo(16.8f, 18.8f)
+            lineTo(13.4f, 18.8f)
+            close()
+        }
+    }
+
+    val Exposure: ImageVector = vector("Exposure") {
+        path(
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.7f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round
+        ) {
+            circle(12f, 12f, 8.2f)
+            moveTo(6.2f, 17.8f)
+            lineTo(17.8f, 6.2f)
+        }
+    }
+
+    val Torch: ImageVector = vector("Torch") {
+        path(
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.7f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round
+        ) {
+            moveTo(9f, 3.4f)
+            lineTo(15f, 3.4f)
+            lineTo(15f, 8.2f)
+            lineTo(14f, 10f)
+            lineTo(14f, 20.6f)
+            lineTo(10f, 20.6f)
+            lineTo(10f, 10f)
+            lineTo(9f, 8.2f)
+            close()
+            moveTo(10.6f, 6.4f)
+            lineTo(13.4f, 6.4f)
+        }
+    }
+
+    val Aspect: ImageVector = vector("Aspect") {
+        path(
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.7f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round
+        ) {
+            moveTo(3.6f, 6.4f)
+            lineTo(20.4f, 6.4f)
+            lineTo(20.4f, 17.6f)
+            lineTo(3.6f, 17.6f)
+            close()
+        }
+    }
+
     val Record: ImageVector = vector("Record") {
         path(
             stroke = SolidColor(Color.Black),

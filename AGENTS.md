@@ -18,11 +18,12 @@
 1. **修改代码**：完成功能/修复，本地编译验证通过。
 2. **修改版本号**：编辑 `app/build.gradle.kts` 的 `defaultConfig`：
    - `versionName`：语义化版本号，正式版形如 `1.0.0`，预发布版形如 `0.1.12-beta`
-   - `versionCode`：单调递增整数（当前为 12），每次发布必须 +1
+   - `versionCode`：单调递增整数（当前为 23），每次发布必须 +1
 3. **编译**：
    - Debug：`./gradlew :app:assembleDebug` → `app/build/outputs/apk/debug/app-debug.apk`
    - Release：`./gradlew :app:assembleRelease` → `app/build/outputs/apk/release/app-release.apk`
-   - 要求：JDK 21、Gradle 8.7，Android 项目根目录为 `app/`
+   - 要求：JDK 17+、Gradle 8.7+，Android 项目根目录为 `app/`
+   - 推荐用仓库自带的辅助脚本：`bash build.sh :app:assembleRelease`（自动准备 JDK/Gradle/SDK 并规避 HOME 只读问题）
 4. **提交并推送**：提交信息按项目惯例写（如 `v0.1.12-beta: <变更摘要>`），push 到 `origin main`。
 5. **发布 GitHub Release**：在 GitHub 上打 tag（如 `v0.1.12-beta`）并创建 Release，附上编译好的 APK，填写更新说明（中文）。
 6. Release 发布后，等待 GitHub Actions 完成 Gitee 同步（代码 + Release + version.json），再告知用户发布完成。
@@ -38,4 +39,8 @@
 - Android 相机应用（Kotlin + Jetpack Compose + CameraX），包名 `com.fanhua.camera`
 - minSdk 26 / targetSdk 34 / compileSdk 34
 - 源码根目录：`app/src/main/java/com/fanhua/camera/`（ui / camera / media / data 模块）
+  - `camera/detect/`：TFLite 目标检测（模型不内嵌，运行时多源下载）、检测器与推理层
+  - `camera/analyzer/`：取景分析器（目标检测 + 人脸）与构图评估引擎
+- AI 自动构图依赖运行时下载的 `.tflite` 模型，**模型文件不入库**；单元测试覆盖纯逻辑
+- 发布前请跑 `bash build.sh :app:testDebugUnitTest`（当前 63 个用例）
 - 应用内更新检查依赖 Gitee 的版本通道 `https://gitee.com/TDSI/file/raw/master/fanhua/version.json`（由 Release 工作流维护）

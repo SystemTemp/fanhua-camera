@@ -1,8 +1,10 @@
 package com.fanhua.camera.camera.gl
 
 import android.graphics.Bitmap
+import android.opengl.EGL14
 import android.opengl.GLES20
 import android.opengl.GLUtils
+import com.fanhua.camera.debug.DebugLog
 import com.fanhua.camera.lut.LutData
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -193,15 +195,81 @@ object GlUtil {
         return texture
     }
 
+    /**
+     * 1x1 全黑纹理缓存，用于「跳过 bloom 链路」时给 finishPass 的 uBloom 占位。
+     *
+     * 为什么按 EGL 上下文分开缓存：纹理名（GLuint）只在创建它的 EGL 上下文内有效，
+     * 预览（FilterSurfaceProcessor）与成片（PhotoProcessor）各自创建独立的 EglCore，
+     * 若共用一个全局 id，另一路上下文里拿到的会是一个不存在或指向别的纹理的名字。
+     *
+     * key 用 nativeHandle（long）而不是 EGLContext 对象本身：EGLContext 的 equals 语义依赖
+     * 平台实现，若退化成引用比较，每帧都会生成新 key 并泄漏一张纹理；直接用原生句柄比较则稳定可靠。
+     */
+    private val blackTextureLock = Any()
+    private val blackTextures = HashMap<Long, Int>()
+
+    /**
+     * 取当前 EGL 上下文下的 1x1 全黑纹理（RGBA = 0,0,0,255）。
+     * 必须在已 makeCurrent 的 GL 线程上调用；纹理会被缓存，不要手动删除。
+     */
+    fun blackTexture(): Int {
+        val current = EGL14.eglGetCurrentContext()
+        val key = current?.nativeHandle ?: 0L
+        synchronized(blackTextureLock) {
+            val cached = blackTextures[key]
+            if (cached != null && cached != 0 && GLES20.glIsTexture(cached)) return cached
+            // 上下文重建后旧纹理名已失效，重新创建
+            val texture = createTexture()
+            val pixel = ByteBuffer.allocateDirect(4).order(ByteOrder.nativeOrder())
+            pixel.put(0).put(0).put(0).put((-1).toByte())
+            pixel.rewind()
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture)
+            GLES20.glTexImage2D(
+                GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, 1, 1, 0,
+                GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, pixel
+            )
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+            blackTextures[key] = texture
+            return texture
+        }
+    }
+
+    /** 丢弃当前 EGL 上下文下的黑纹理缓存（在 EGL 上下文销毁前调用，避免 id 泄漏）。 */
+    fun releaseBlackTexture() {
+        val current = EGL14.eglGetCurrentContext()
+        val key = current?.nativeHandle ?: 0L
+        synchronized(blackTextureLock) {
+            val cached = blackTextures.remove(key) ?: return
+            if (cached != 0) deleteTexture(cached)
+        }
+    }
+
+    /**
+     * 检查并清空 GL 错误队列，用于 DebugLog 排查。
+     * 每次都把队列读干净，否则一次错误会让后续所有检查都误报。
+     */
+    fun checkGlError(tag: String) {
+        var error = GLES20.glGetError()
+        var guard = 0
+        while (error != GLES20.GL_NO_ERROR && guard < 8) {
+            DebugLog.log("GL", tag + " 出错: 0x" + Integer.toHexString(error))
+            error = GLES20.glGetError()
+            guard++
+        }
+    }
+
     fun createLutTexture(lut: LutData): Int {
         val grid = ceil(sqrt(lut.size.toFloat())).toInt()
         val side = grid * lut.size
         val bytes = ByteBuffer.allocateDirect(side * side * 4).order(ByteOrder.nativeOrder())
         val n1 = (lut.size - 1).coerceAtLeast(1)
+        val lastSlice = (lut.size - 1).coerceAtLeast(0)
         for (gy in 0 until grid) {
             for (gx in 0 until grid) {
-                val b = gy * grid + gx
-                if (b >= lut.size) continue
+                val cell = gy * grid + gx
+                // grid 铺不满的格子（如 33 切片的 6x6 网格，只用了 33 格）用最后一个合法切片填充。
+                // 早先这里是 continue，剩余格子保持全 0（黑），LUT 采样在 grid 边界会插值到黑边。
+                val b = cell.coerceAtMost(lastSlice)
                 for (y in 0 until lut.size) {
                     val g = y.toDouble() / n1
                     for (x in 0 until lut.size) {
@@ -255,6 +323,17 @@ object GlUtil {
         return target
     }
 
+    /**
+     * 调整 FBO 尺寸。
+     *
+     * 这里刻意保持「尺寸必须精确匹配」的语义，不做 5% 阈值复用：
+     * 1. 各 pass 的输入采样坐标都是按 1/width、1/height 精确计算的（EASU/RCAS 的 uTexel、
+     *    BlurPass 的 uDirection），FBO 实际尺寸与 viewport 不一致会让采样步长错位，出现半像素偏移；
+     * 2. finishPass 会把 FBO 纹理直接拉伸到输出 viewport，尺寸不符会导致画面缩放模糊；
+     * 3. glViewport 决定写入区域，若 FBO 更大，边缘残留上一帧内容会被后续 pass 采样到（脏边）。
+     * 预览分辨率变化本身是低频事件（由 SurfaceRequest 分辨率与输出 Surface 尺寸驱动），
+     * 复用阈值省下的重建开销远小于画质风险，因此以正确性优先，只在尺寸真正变化时重建。
+     */
     fun resizeFramebuffer(framebuffer: Framebuffer, width: Int, height: Int) {
         if (width <= 0 || height <= 0) return
         if (framebuffer.width == width && framebuffer.height == height) return

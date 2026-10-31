@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.fanhua.camera.camera.core.PhotoAspect
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -23,7 +24,11 @@ data class AppSettings(
     val debugEnabled: Boolean = false,
     val lutPath: String = "",
     val gridEnabled: Boolean = false,
-    val timerSeconds: Int = 0
+    val timerSeconds: Int = 0,
+    val photoAspectKey: String = PhotoAspect.FULL.name,
+    val mirrorSelfie: Boolean = false,
+    val watermarkEnabled: Boolean = true,
+    val shutterSoundEnabled: Boolean = true
 )
 
 class SettingsRepository(private val context: Context) {
@@ -39,6 +44,10 @@ class SettingsRepository(private val context: Context) {
     private val keyHorizon = booleanPreferencesKey("horizon")
     private val keyGrid = booleanPreferencesKey("grid")
     private val keyTimer = intPreferencesKey("timer")
+    private val keyAspect = stringPreferencesKey("photo_aspect")
+    private val keyMirror = booleanPreferencesKey("mirror_selfie")
+    private val keyWatermark = booleanPreferencesKey("watermark")
+    private val keyShutterSound = booleanPreferencesKey("shutter_sound")
 
     val settings: Flow<AppSettings> = context.settingsDataStore.data.map { prefs ->
         AppSettings(
@@ -52,7 +61,11 @@ class SettingsRepository(private val context: Context) {
             debugEnabled = prefs[keyDebug] ?: false,
             lutPath = prefs[keyLut] ?: "",
             gridEnabled = prefs[keyGrid] ?: false,
-            timerSeconds = prefs[keyTimer] ?: 0
+            timerSeconds = prefs[keyTimer] ?: 0,
+            photoAspectKey = prefs[keyAspect] ?: PhotoAspect.FULL.name,
+            mirrorSelfie = prefs[keyMirror] ?: false,
+            watermarkEnabled = prefs[keyWatermark] ?: true,
+            shutterSoundEnabled = prefs[keyShutterSound] ?: true
         )
     }
 
@@ -98,5 +111,26 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setTimerSeconds(value: Int) {
         context.settingsDataStore.edit { it[keyTimer] = value }
+    }
+
+    suspend fun setPhotoAspect(value: PhotoAspect) {
+        context.settingsDataStore.edit { it[keyAspect] = value.name }
+    }
+
+    suspend fun setMirrorSelfie(value: Boolean) {
+        context.settingsDataStore.edit { it[keyMirror] = value }
+    }
+
+    suspend fun setWatermarkEnabled(value: Boolean) {
+        context.settingsDataStore.edit { it[keyWatermark] = value }
+    }
+
+    suspend fun setShutterSoundEnabled(value: Boolean) {
+        context.settingsDataStore.edit { it[keyShutterSound] = value }
+    }
+
+    /** 清空全部拍摄偏好（照片与视频不受影响）。 */
+    suspend fun resetAll() {
+        context.settingsDataStore.edit { it.clear() }
     }
 }

@@ -35,17 +35,25 @@ import com.fanhua.camera.R
 import com.fanhua.camera.camera.core.CameraUiState
 import com.fanhua.camera.camera.core.CaptureMode
 import com.fanhua.camera.camera.core.FlashMode
+import com.fanhua.camera.camera.core.PhotoAspect
 import com.fanhua.camera.ui.common.FanhuaIcons
 import com.fanhua.camera.ui.common.GlassIconButton
 import com.fanhua.camera.ui.theme.FanhuaGold
-import com.fanhua.camera.ui.theme.FanhuaStroke
 import com.fanhua.camera.ui.theme.FanhuaText
 import com.fanhua.camera.ui.theme.FanhuaTextDim
 
+/**
+ * 顶栏。
+ *
+ * 左侧：闪光 / 常亮补光胶囊。
+ * 右侧：画幅（非视频模式）、自动构图、超分（仅照片）、设置、隐藏控件。
+ */
 @Composable
 fun TopBar(
     state: CameraUiState,
     onFlashToggle: () -> Unit,
+    onTorchToggle: () -> Unit,
+    onAspectToggle: () -> Unit,
     onAutoCompositionToggle: () -> Unit,
     onSuperResToggle: () -> Unit,
     onSettings: () -> Unit,
@@ -57,7 +65,10 @@ fun TopBar(
         modifier = modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(horizontal = if (landscape) 14.dp else 18.dp, vertical = if (landscape) 8.dp else 12.dp),
+            .padding(
+                horizontal = if (landscape) 14.dp else 16.dp,
+                vertical = if (landscape) 8.dp else 11.dp
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
@@ -70,32 +81,50 @@ fun TopBar(
         ) {
             Box(
                 modifier = Modifier
-                    .size(30.dp)
+                    .size(29.dp)
                     .clip(CircleShape)
-                    .background(if (state.flashMode == FlashMode.OFF) Color.Transparent else Color(0x2EFFC53D)),
+                    .background(
+                        when {
+                            state.torchEnabled -> Color(0x3DFFC53D)
+                            state.flashMode == FlashMode.OFF -> Color.Transparent
+                            else -> Color(0x2EFFC53D)
+                        }
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Crossfade(
-                    targetState = state.flashMode,
-                    animationSpec = tween(durationMillis = 220),
+                    targetState = state.torchEnabled to state.flashMode,
+                    animationSpec = tween(durationMillis = 200),
                     label = "flashIcon"
-                ) { mode ->
+                ) { target ->
+                    val torch = target.first
+                    val mode = target.second
                     Icon(
-                        imageVector = flashIcon(mode),
+                        imageVector = if (torch) FanhuaIcons.Torch else flashIcon(mode),
                         contentDescription = stringResource(R.string.flash_auto),
-                        tint = if (mode == FlashMode.OFF) FanhuaTextDim else FanhuaGold,
-                        modifier = Modifier.size(17.dp)
+                        tint = if (!torch && mode == FlashMode.OFF) FanhuaTextDim else FanhuaGold,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
             if (!landscape) {
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(7.dp))
                 Text(
-                    text = stringResource(state.flashMode.labelRes),
-                    color = if (state.flashMode == FlashMode.OFF) FanhuaTextDim else FanhuaText,
+                    text = if (state.torchEnabled) {
+                        stringResource(R.string.torch_on)
+                    } else {
+                        stringResource(state.flashMode.labelRes)
+                    },
+                    color = if (state.torchEnabled) {
+                        FanhuaGold
+                    } else if (state.flashMode == FlashMode.OFF) {
+                        FanhuaTextDim
+                    } else {
+                        FanhuaText
+                    },
                     style = MaterialTheme.typography.labelMedium
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(9.dp))
             }
         }
 
@@ -109,6 +138,18 @@ fun TopBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
+            AnimatedVisibility(
+                visible = state.mode != CaptureMode.VIDEO,
+                enter = fadeIn(tween(180)) + scaleIn(tween(220), initialScale = 0.8f),
+                exit = fadeOut(tween(150)) + scaleOut(tween(180), targetScale = 0.8f)
+            ) {
+                TopAction(
+                    icon = FanhuaIcons.Aspect,
+                    active = state.photoAspect != PhotoAspect.FULL,
+                    contentDescription = stringResource(R.string.settings_photo_aspect),
+                    onClick = onAspectToggle
+                )
+            }
             TopAction(
                 icon = FanhuaIcons.Sparkle,
                 active = state.autoCompositionEnabled,
@@ -117,10 +158,8 @@ fun TopBar(
             )
             AnimatedVisibility(
                 visible = state.mode == CaptureMode.PHOTO,
-                enter = fadeIn(animationSpec = tween(180)) +
-                    scaleIn(initialScale = 0.8f, animationSpec = tween(220)),
-                exit = fadeOut(animationSpec = tween(150)) +
-                    scaleOut(targetScale = 0.8f, animationSpec = tween(180))
+                enter = fadeIn(tween(180)) + scaleIn(tween(220), initialScale = 0.8f),
+                exit = fadeOut(tween(150)) + scaleOut(tween(180), targetScale = 0.8f)
             ) {
                 TopAction(
                     icon = FanhuaIcons.Aperture,
@@ -157,9 +196,8 @@ private fun TopAction(
         contentDescription = contentDescription,
         onClick = onClick,
         active = active,
-        buttonSize = 34.dp,
-        iconSize = 17.dp,
-        modifier = Modifier
+        buttonSize = 33.dp,
+        iconSize = 16.dp
     )
 }
 

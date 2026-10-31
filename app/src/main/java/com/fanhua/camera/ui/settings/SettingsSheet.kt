@@ -6,11 +6,11 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -45,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fanhua.camera.R
 import com.fanhua.camera.camera.core.CameraController
 import com.fanhua.camera.camera.core.CapabilityReport
+import com.fanhua.camera.camera.core.PhotoAspect
 import com.fanhua.camera.camera.filters.FilterPreset
 import com.fanhua.camera.data.LocaleManager
 import com.fanhua.camera.data.SettingsRepository
@@ -55,6 +56,7 @@ import com.fanhua.camera.ui.common.FanhuaButton
 import com.fanhua.camera.ui.common.FanhuaButtonStyle
 import com.fanhua.camera.ui.common.FanhuaIcons
 import com.fanhua.camera.ui.common.GroupDivider
+import com.fanhua.camera.ui.common.HyperConfirmDialog
 import com.fanhua.camera.ui.common.HyperGroup
 import com.fanhua.camera.ui.common.HyperSheet
 import com.fanhua.camera.ui.common.InfoRow
@@ -65,6 +67,7 @@ import com.fanhua.camera.ui.common.ToggleRow
 import com.fanhua.camera.ui.common.ValueRow
 import com.fanhua.camera.ui.theme.FanhuaGold
 import com.fanhua.camera.ui.theme.FanhuaRose
+import com.fanhua.camera.ui.theme.FanhuaStroke
 import com.fanhua.camera.ui.theme.FanhuaText
 import com.fanhua.camera.ui.theme.FanhuaTextDim
 import kotlinx.coroutines.Dispatchers
@@ -73,6 +76,10 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Locale
 
+/**
+ * 设置页。分组顺序：
+ * 界面语言 → 拍摄 → 影像 → 设备能力 → LUT 滤镜 → 调试模式 → 关于 → 恢复默认设置。
+ */
 @Composable
 fun SettingsSheet(
     visible: Boolean,
@@ -91,6 +98,8 @@ fun SettingsSheet(
     val clipboard = LocalClipboardManager.current
     var debugEnabled by remember { mutableStateOf(DebugLog.enabled) }
     var debugNote by remember { mutableStateOf<String?>(null) }
+    var resetConfirming by remember { mutableStateOf(false) }
+    var resetNote by remember { mutableStateOf<String?>(null) }
 
     var lutNames by remember { mutableStateOf(LutStore.listNames(context)) }
     var selectedLut by remember { mutableStateOf(LutStore.path) }
@@ -127,6 +136,7 @@ fun SettingsSheet(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 18.dp)
         ) {
+            // ---------- 1. 界面语言 ----------
             SectionHeader(stringResource(R.string.settings_language))
             HyperGroup {
                 SelectableRow(
@@ -150,33 +160,81 @@ fun SettingsSheet(
                 }
             }
 
+            // ---------- 2. 拍摄 ----------
             Spacer(modifier = Modifier.height(20.dp))
-            SectionHeader(stringResource(R.string.settings_filter_intensity))
+            SectionHeader(stringResource(R.string.settings_capture))
             HyperGroup {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Slider(
-                        value = state.filterIntensity,
-                        onValueChange = controller::setFilterIntensity,
-                        valueRange = 0f..1f,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
+                // 照片画幅：4 个胶囊横向分段控件，比 4 行列表更省空间
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                     Text(
-                        text = "${(state.filterIntensity * 100).toInt()}%",
-                        color = FanhuaGold,
-                        style = MaterialTheme.typography.labelMedium
+                        text = stringResource(R.string.settings_photo_aspect),
+                        color = FanhuaText,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text(
+                        text = stringResource(R.string.settings_photo_aspect_desc),
+                        color = FanhuaTextDim,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    AspectSegment(
+                        selected = state.photoAspect,
+                        onSelect = controller::setPhotoAspect
                     )
                 }
+                GroupDivider()
+                ToggleRow(
+                    title = stringResource(R.string.settings_mirror),
+                    description = stringResource(R.string.settings_mirror_desc),
+                    checked = state.mirrorSelfie,
+                    onCheckedChange = controller::setMirrorSelfie
+                )
+                GroupDivider()
+                ToggleRow(
+                    title = stringResource(R.string.settings_watermark),
+                    description = stringResource(R.string.settings_watermark_desc),
+                    checked = state.watermarkEnabled,
+                    onCheckedChange = controller::setWatermarkEnabled
+                )
+                GroupDivider()
+                ToggleRow(
+                    title = stringResource(R.string.settings_shutter_sound),
+                    description = stringResource(R.string.settings_shutter_sound_desc),
+                    checked = state.shutterSoundEnabled,
+                    onCheckedChange = controller::setShutterSoundEnabled
+                )
             }
 
+            // ---------- 3. 影像 ----------
             Spacer(modifier = Modifier.height(20.dp))
-            SectionHeader(stringResource(R.string.capability_stabilization))
+            SectionHeader(stringResource(R.string.settings_image))
             HyperGroup {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                    Text(
+                        text = stringResource(R.string.settings_filter_intensity),
+                        color = FanhuaText,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Slider(
+                            value = state.filterIntensity,
+                            onValueChange = controller::setFilterIntensity,
+                            valueRange = 0f..1f,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "${(state.filterIntensity * 100).toInt()}%",
+                            color = FanhuaGold,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+                GroupDivider()
                 ToggleRow(
                     title = stringResource(R.string.settings_stabilization),
                     description = stringResource(R.string.settings_stabilization_desc),
@@ -206,12 +264,25 @@ fun SettingsSheet(
                 )
             }
 
+            // ---------- 3.5 AI 自动构图模型 ----------
+            Spacer(modifier = Modifier.height(20.dp))
+            DetectorSection(controller = controller)
+
+            // ---------- 4. 设备能力 ----------
             Spacer(modifier = Modifier.height(20.dp))
             SectionHeader(stringResource(R.string.settings_capability))
             HyperGroup {
                 CapabilityRows(capability)
             }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = stringResource(R.string.settings_capability_desc),
+                color = FanhuaTextDim,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(horizontal = 6.dp)
+            )
 
+            // ---------- 5. LUT 滤镜 ----------
             Spacer(modifier = Modifier.height(20.dp))
             SectionHeader(stringResource(R.string.settings_lut))
             HyperGroup {
@@ -279,6 +350,7 @@ fun SettingsSheet(
                 )
             }
 
+            // ---------- 6. 调试模式 ----------
             Spacer(modifier = Modifier.height(20.dp))
             SectionHeader(stringResource(R.string.settings_debug))
             HyperGroup {
@@ -330,9 +402,16 @@ fun SettingsSheet(
                 )
             }
 
+            // ---------- 7. 关于 ----------
             Spacer(modifier = Modifier.height(20.dp))
             SectionHeader(stringResource(R.string.settings_about))
             HyperGroup {
+                // 版本号显示
+                InfoRow(
+                    label = stringResource(R.string.app_name),
+                    value = "v${updateController.currentVersion}"
+                )
+                GroupDivider()
                 ValueRow(
                     label = stringResource(R.string.author),
                     value = "SystemTemp",
@@ -345,9 +424,10 @@ fun SettingsSheet(
                     onClick = { openUrl(context, "https://github.com/SystemTemp/fanhua-camera") }
                 )
                 GroupDivider()
-                ValueRow(
+                // 检查更新：点击行本身触发（selected=false 时不显示勾选与箭头）
+                SelectableRow(
                     label = stringResource(R.string.check_update),
-                    value = updateController.currentVersion,
+                    selected = false,
                     onClick = { updateController.check() }
                 )
             }
@@ -358,8 +438,7 @@ fun SettingsSheet(
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.padding(horizontal = 6.dp)
             )
-
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             FanhuaButton(
                 text = stringResource(R.string.bug_feedback),
                 onClick = onBugReport,
@@ -367,8 +446,67 @@ fun SettingsSheet(
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = FanhuaIcons.Feedback
             )
-            Spacer(modifier = Modifier.height(28.dp))
+
+            // ---------- 8. 恢复默认设置（危险操作，置底） ----------
+            Spacer(modifier = Modifier.height(24.dp))
+            DangerButton(
+                text = stringResource(R.string.settings_reset),
+                onClick = { resetConfirming = true }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.settings_reset_desc),
+                color = FanhuaTextDim,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(horizontal = 6.dp)
+            )
+            resetNote?.let { note ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = note,
+                    color = FanhuaGold,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = 6.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(40.dp))
         }
+    }
+
+    if (resetConfirming) {
+        HyperConfirmDialog(
+            title = stringResource(R.string.settings_reset),
+            message = stringResource(R.string.settings_reset_desc),
+            confirmText = stringResource(R.string.action_reset),
+            dismissText = stringResource(R.string.action_cancel),
+            onConfirm = {
+                resetConfirming = false
+                scope.launch {
+                    settingsRepository.resetAll()
+                    // 立即把默认值同步回相机，无需重启应用
+                    controller.setPreset(FilterPreset.DREAM)
+                    controller.setFilterIntensity(1f)
+                    controller.setStabilizationEnabled(true)
+                    controller.setHorizonEnabled(false)
+                    controller.setSuperResEnabled(false)
+                    controller.setAutoCompositionEnabled(false)
+                    controller.setPhotoAspect(PhotoAspect.FULL)
+                    controller.setMirrorSelfie(false)
+                    controller.setWatermarkEnabled(true)
+                    controller.setShutterSoundEnabled(true)
+                    // LUT 记录已被清除，同步清掉内存缓存
+                    LutStore.clear()
+                    selectedLut = null
+                    lutNames = LutStore.listNames(context)
+                    // 调试开关不属于 DataStore 的默认值，单独归位
+                    DebugLog.enabled = false
+                    debugEnabled = false
+                    debugNote = null
+                    resetNote = context.getString(R.string.settings_reset_done)
+                }
+            },
+            onDismiss = { resetConfirming = false }
+        )
     }
 
     UpdateDialog(
@@ -377,6 +515,66 @@ fun SettingsSheet(
         onInstall = updateController::install,
         onDismiss = updateController::dismiss
     )
+}
+
+/**
+ * 画幅横向分段控件：4 个胶囊，选中态金色。
+ */
+@Composable
+private fun AspectSegment(
+    selected: PhotoAspect,
+    onSelect: (PhotoAspect) -> Unit
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        PhotoAspect.entries.forEach { aspect ->
+            val active = aspect == selected
+            val shape = RoundedCornerShape(50)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(shape)
+                    .background(if (active) Color(0x33FFC53D) else Color(0x14FFFFFF))
+                    .border(1.dp, if (active) FanhuaGold else FanhuaStroke, shape)
+                    .clickable { onSelect(aspect) }
+                    .padding(vertical = 9.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(aspect.labelRes),
+                    color = if (active) FanhuaGold else FanhuaTextDim,
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 危险操作按钮：沿用 Outline 描边样式，文字与描边为警示红。
+ */
+@Composable
+private fun DangerButton(
+    text: String,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(50)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Color(0x1FFF6F5E))
+            .border(1.dp, FanhuaRose.copy(alpha = 0.55f), shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 22.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = text,
+            color = FanhuaRose,
+            style = MaterialTheme.typography.labelLarge
+        )
+    }
 }
 
 private fun importLut(context: android.content.Context, uri: Uri): String? {
@@ -479,6 +677,14 @@ private fun CapabilityRows(capability: CapabilityReport) {
             stringResource(R.string.capability_max_video) to
                 if (capability.maxVideoWidth > 0) {
                     "${capability.maxVideoWidth}x${capability.maxVideoHeight}"
+                } else {
+                    stringResource(R.string.value_none)
+                }
+        )
+        add(
+            stringResource(R.string.capability_max_photo) to
+                if (capability.maxPhotoWidth > 0) {
+                    "${capability.maxPhotoWidth}x${capability.maxPhotoHeight}"
                 } else {
                     stringResource(R.string.value_none)
                 }

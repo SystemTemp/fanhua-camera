@@ -1,6 +1,7 @@
 package com.fanhua.camera.ui.camera
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -10,7 +11,6 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -18,6 +18,10 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -26,7 +30,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,11 +48,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -70,6 +75,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -80,11 +86,10 @@ import androidx.compose.ui.unit.dp
 import com.fanhua.camera.R
 import com.fanhua.camera.camera.core.CameraController
 import com.fanhua.camera.camera.core.CameraUiState
-import com.fanhua.camera.camera.core.CapabilityReport
 import com.fanhua.camera.camera.core.CaptureMode
 import com.fanhua.camera.camera.core.OutputSpec
-import com.fanhua.camera.camera.core.RecordingSpeed
 import com.fanhua.camera.camera.filters.FilterGrade
+import com.fanhua.camera.camera.filters.FilterGroup
 import com.fanhua.camera.camera.filters.FilterPreset
 import com.fanhua.camera.ui.common.FanhuaIcons
 import com.fanhua.camera.ui.common.FrostedChip
@@ -101,11 +106,16 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.math.abs
 
+/**
+ * 底部控制区。
+ *
+ * 竖屏结构（自上而下）：模式专属面板 → 滤镜条 → 快捷工具 → 模式选择 → 快门行 → 变焦条。
+ * 横屏结构（自左向右贴右边缘）：快捷工具 → 模式 → 快门 → 相册。
+ */
 @Composable
 fun BottomControls(
     controller: CameraController,
     state: CameraUiState,
-    capability: CapabilityReport,
     onOpenGallery: () -> Unit,
     modifier: Modifier = Modifier,
     landscape: Boolean = false
@@ -115,33 +125,38 @@ fun BottomControls(
             .fillMaxWidth()
             .then(if (landscape) Modifier.fillMaxHeight() else Modifier)
             .navigationBarsPadding()
-            .padding(bottom = if (landscape) 0.dp else 14.dp, end = if (landscape) 12.dp else 0.dp),
+            .padding(
+                bottom = if (landscape) 0.dp else 12.dp,
+                end = if (landscape) 12.dp else 0.dp
+            ),
         horizontalAlignment = if (landscape) Alignment.End else Alignment.CenterHorizontally
     ) {
-        AnimatedVisibility(visible = !landscape) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                if (state.mode == CaptureMode.PRO) {
-                    ProExtras(controller = controller, state = state)
-                    Spacer(modifier = Modifier.height(10.dp))
+        if (!landscape) {
+            AnimatedVisibility(visible = state.mode == CaptureMode.PRO) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    ProPanel(controller = controller, state = state)
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
-                if (state.mode == CaptureMode.VIDEO && state.availableSpecs.isNotEmpty()) {
+            }
+            AnimatedVisibility(
+                visible = state.mode == CaptureMode.VIDEO && state.availableSpecs.isNotEmpty()
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     VideoSpecBar(state = state, onSelect = controller::selectSpec)
-                    Spacer(modifier = Modifier.height(10.dp))
-                }
-                if (state.mode == CaptureMode.SUPER_RES) {
-                    SuperResInfo(state = state, capability = capability)
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
-        }
+            AnimatedVisibility(visible = state.mode == CaptureMode.SUPER_RES) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    SuperResInfo(state = state)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
 
-        AnimatedVisibility(visible = !landscape) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                FilterStrip(state = state, onSelect = controller::setPreset)
-                Spacer(modifier = Modifier.height(10.dp))
-                QuickTools(state = state, controller = controller)
-                Spacer(modifier = Modifier.height(12.dp))
-            }
+            FilterStrip(state = state, onSelect = controller::setPreset)
+            Spacer(modifier = Modifier.height(8.dp))
+            QuickTools(state = state, controller = controller)
+            Spacer(modifier = Modifier.height(10.dp))
         }
 
         if (landscape) {
@@ -149,21 +164,26 @@ fun BottomControls(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.Center
             ) {
-                QuickTools(state = state, controller = controller)
-                Spacer(modifier = Modifier.height(12.dp))
+                QuickTools(state = state, controller = controller, compact = true)
+                Spacer(modifier = Modifier.height(10.dp))
                 ModeSelector(state = state, onSelect = controller::setMode, compact = true)
-                Spacer(modifier = Modifier.height(16.dp))
-                ShutterButton(state = state, controller = controller)
                 Spacer(modifier = Modifier.height(14.dp))
-                GalleryButton(captureCount = state.captureCount, size = 50, onClick = onOpenGallery)
+                ShutterButton(state = state, controller = controller)
+                Spacer(modifier = Modifier.height(12.dp))
+                GalleryButton(
+                    captureCount = state.captureCount,
+                    lastCaptureUri = state.lastCaptureUri,
+                    size = 48,
+                    onClick = onOpenGallery
+                )
             }
         } else {
             ModeSelector(state = state, onSelect = controller::setMode)
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(14.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
+                    .padding(horizontal = 18.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
@@ -171,10 +191,12 @@ fun BottomControls(
                         LensSwitcher(state = state, onSelect = controller::setLens)
                         AnimatedVisibility(visible = state.mode == CaptureMode.PHOTO) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(7.dp))
                                 LivePhotoToggle(
                                     enabled = state.livePhotoEnabled,
-                                    onClick = { controller.setLivePhotoEnabled(!state.livePhotoEnabled) }
+                                    onClick = {
+                                        controller.setLivePhotoEnabled(!state.livePhotoEnabled)
+                                    }
                                 )
                             }
                         }
@@ -182,19 +204,27 @@ fun BottomControls(
                 }
                 ShutterButton(state = state, controller = controller)
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                    GalleryButton(captureCount = state.captureCount, size = 50, onClick = onOpenGallery)
+                    GalleryButton(
+                        captureCount = state.captureCount,
+                        lastCaptureUri = state.lastCaptureUri,
+                        size = 50,
+                        onClick = onOpenGallery
+                    )
                 }
             }
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             ZoomBar(controller = controller, state = state)
         }
     }
 }
 
+/* ------------------------------------------------------------------ 快捷工具 */
+
 @Composable
 private fun QuickTools(
     state: CameraUiState,
-    controller: CameraController
+    controller: CameraController,
+    compact: Boolean = false
 ) {
     Row(
         modifier = Modifier
@@ -205,30 +235,51 @@ private fun QuickTools(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        ToolChip(
-            icon = FanhuaIcons.Grid,
-            label = stringResource(R.string.grid),
-            active = state.gridEnabled,
-            onClick = { controller.setGridEnabled(!state.gridEnabled) }
-        )
-        ToolChip(
-            icon = FanhuaIcons.Timer,
-            label = timerLabel(state.timerSeconds),
-            active = state.timerSeconds > 0,
-            onClick = { controller.setTimerSeconds(nextTimerSeconds(state.timerSeconds)) }
-        )
-        ToolChip(
-            icon = FanhuaIcons.SwitchCamera,
-            label = stringResource(R.string.flip_camera),
-            active = state.frontCamera,
-            onClick = { controller.switchCamera() }
-        )
+        if (compact) {
+            ToolIcon(
+                icon = FanhuaIcons.Grid,
+                active = state.gridEnabled,
+                contentDescription = stringResource(R.string.grid),
+                onClick = { controller.setGridEnabled(!state.gridEnabled) }
+            )
+            ToolIcon(
+                icon = FanhuaIcons.Timer,
+                active = state.timerSeconds > 0,
+                contentDescription = timerLabel(state.timerSeconds),
+                onClick = { controller.setTimerSeconds(nextTimerSeconds(state.timerSeconds)) }
+            )
+            ToolIcon(
+                icon = FanhuaIcons.SwitchCamera,
+                active = state.frontCamera,
+                contentDescription = stringResource(R.string.flip_camera),
+                onClick = { controller.switchCamera() }
+            )
+        } else {
+            ToolChip(
+                icon = FanhuaIcons.Grid,
+                label = stringResource(R.string.grid),
+                active = state.gridEnabled,
+                onClick = { controller.setGridEnabled(!state.gridEnabled) }
+            )
+            ToolChip(
+                icon = FanhuaIcons.Timer,
+                label = timerLabel(state.timerSeconds),
+                active = state.timerSeconds > 0,
+                onClick = { controller.setTimerSeconds(nextTimerSeconds(state.timerSeconds)) }
+            )
+            ToolChip(
+                icon = FanhuaIcons.SwitchCamera,
+                label = stringResource(R.string.flip_camera),
+                active = state.frontCamera,
+                onClick = { controller.switchCamera() }
+            )
+        }
     }
 }
 
 @Composable
 private fun ToolChip(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     label: String,
     active: Boolean,
     onClick: () -> Unit
@@ -258,71 +309,88 @@ private fun ToolChip(
             modifier = Modifier.size(13.dp)
         )
         Spacer(modifier = Modifier.width(5.dp))
-        Text(
-            text = label,
-            color = color,
-            style = MaterialTheme.typography.labelSmall
+        Text(text = label, color = color, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+@Composable
+private fun ToolIcon(
+    icon: ImageVector,
+    active: Boolean,
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+    val color by animateColorAsState(
+        targetValue = if (active) FanhuaGold else FanhuaTextDim,
+        animationSpec = tween(durationMillis = 200),
+        label = "toolIconColor"
+    )
+    Box(
+        modifier = Modifier
+            .size(34.dp)
+            .clip(CircleShape)
+            .background(if (active) Color(0x24FFC53D) else Color.Transparent)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = color,
+            modifier = Modifier.size(15.dp)
         )
     }
 }
 
 @Composable
-private fun timerLabel(seconds: Int): String {
-    return if (seconds == 0) stringResource(R.string.timer_off) else "${seconds}s"
+private fun timerLabel(seconds: Int): String =
+    if (seconds == 0) stringResource(R.string.timer_off) else "${seconds}s"
+
+private fun nextTimerSeconds(seconds: Int): Int = when (seconds) {
+    0 -> 3
+    3 -> 5
+    5 -> 10
+    else -> 0
 }
 
-private fun nextTimerSeconds(seconds: Int): Int {
-    return when (seconds) {
-        0 -> 3
-        3 -> 5
-        5 -> 10
-        else -> 0
-    }
-}
+/* ------------------------------------------------------------------ 滤镜条 */
 
 @Composable
 private fun FilterStrip(
     state: CameraUiState,
     onSelect: (FilterPreset) -> Unit
 ) {
-    val leicaGroup = listOf(
-        FilterPreset.LEICA_MOMENT,
-        FilterPreset.LEICA_VIVID,
-        FilterPreset.LEICA_NATURAL,
-        FilterPreset.LEICA_MONO,
-        FilterPreset.LEICA_BW_HC,
-        FilterPreset.LEICA_BROWN,
-        FilterPreset.LEICA_BW_BLUE,
-        FilterPreset.LEICA_PORTRAIT
-    )
-    val singles = FilterPreset.entries.filter { it !in leicaGroup }
     var expanded by rememberSaveable { mutableStateOf(false) }
-    var leicaExpanded by rememberSaveable { mutableStateOf(state.preset in leicaGroup) }
-    val activeLeica = state.preset in leicaGroup
+    var activeGroup by rememberSaveable { mutableStateOf(state.preset.group.name) }
+    val group = remember(activeGroup) {
+        FilterGroup.entries.firstOrNull { it.name == activeGroup } ?: FilterGroup.BASIC
+    }
+    val items = remember(group) { FilterPreset.ofGroup(group) }
 
     FrostedPanel(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 18.dp),
+            .padding(horizontal = 16.dp),
         cornerRadius = 26.dp,
-        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 9.dp)
     ) {
         Column {
+            // 收起态：显示当前滤镜名 + 展开按钮
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .clickable { expanded = !expanded }
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 FilterSwatch(
                     preset = state.preset,
                     modifier = Modifier
-                        .size(28.dp)
-                        .clip(RoundedCornerShape(9.dp))
+                        .size(26.dp)
+                        .clip(RoundedCornerShape(8.dp))
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(9.dp))
                 Text(
                     text = stringResource(state.preset.labelRes),
                     color = FanhuaText,
@@ -336,85 +404,64 @@ private fun FilterStrip(
                     color = FanhuaTextDim,
                     style = MaterialTheme.typography.labelSmall
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(5.dp))
                 Icon(
                     imageVector = if (expanded) FanhuaIcons.ArrowUp else FanhuaIcons.ArrowDown,
                     contentDescription = null,
                     tint = FanhuaTextDim,
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(13.dp)
                 )
             }
-            if (expanded) {
+
+            AnimatedVisibility(visible = expanded) {
                 Column {
                     Spacer(modifier = Modifier.height(8.dp))
+                    // 分组标签
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(bottom = 2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        FilterGroup.entries.forEach { entry ->
+                            val selected = entry == group
+                            val bg by animateColorAsState(
+                                targetValue = if (selected) Color(0x2EFFC53D) else Color.Transparent,
+                                animationSpec = tween(durationMillis = 180),
+                                label = "groupBg"
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(bg)
+                                    .clickable { activeGroup = entry.name }
+                                    .padding(horizontal = 11.dp, vertical = 5.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(entry.labelRes),
+                                    color = if (selected) FanhuaGold else FanhuaTextDim,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        singles.forEach { preset ->
+                        items.forEach { preset ->
                             FilterCell(
                                 preset = preset,
                                 selected = state.preset == preset,
                                 onSelect = {
                                     onSelect(preset)
-                                    if (preset == FilterPreset.CUSTOM_LUT) leicaExpanded = false
+                                    expanded = false
                                 }
                             )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .clickable { leicaExpanded = !leicaExpanded }
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(if (activeLeica) FanhuaGold else Color(0x33FFFFFF))
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (activeLeica) {
-                                stringResource(state.preset.labelRes)
-                            } else {
-                                stringResource(R.string.filter_leica_group)
-                            },
-                            color = if (activeLeica) FanhuaGold else FanhuaTextDim,
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        Icon(
-                            imageVector = if (leicaExpanded) FanhuaIcons.ArrowUp else FanhuaIcons.ArrowDown,
-                            contentDescription = null,
-                            tint = FanhuaTextDim,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
-                    if (leicaExpanded) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 4.dp, bottom = 2.dp)
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            leicaGroup.forEach { preset ->
-                                FilterCell(
-                                    preset = preset,
-                                    selected = state.preset == preset,
-                                    onSelect = {
-                                        onSelect(preset)
-                                        leicaExpanded = false
-                                    }
-                                )
-                            }
                         }
                     }
                 }
@@ -445,8 +492,8 @@ private fun FilterCell(
     ) {
         Box(
             modifier = Modifier
-                .size(width = 58.dp, height = 58.dp)
-                .clip(RoundedCornerShape(18.dp))
+                .size(56.dp)
+                .clip(RoundedCornerShape(17.dp))
                 .border(
                     width = if (selected) 2.dp else 1.dp,
                     brush = if (selected) {
@@ -454,23 +501,23 @@ private fun FilterCell(
                     } else {
                         Brush.linearGradient(listOf(Color(0x33FFFFFF), Color(0x14FFFFFF)))
                     },
-                    shape = RoundedCornerShape(18.dp)
+                    shape = RoundedCornerShape(17.dp)
                 )
                 .padding(if (selected) 3.dp else 2.dp)
-                .clip(RoundedCornerShape(15.dp))
+                .clip(RoundedCornerShape(14.dp))
         ) {
             FilterSwatch(
                 preset = preset,
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(13.dp))
             )
             if (selected) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(4.dp)
-                        .size(14.dp)
+                        .padding(3.dp)
+                        .size(13.dp)
                         .clip(CircleShape)
                         .background(FanhuaGold),
                     contentAlignment = Alignment.Center
@@ -479,19 +526,77 @@ private fun FilterCell(
                         imageVector = FanhuaIcons.Check,
                         contentDescription = null,
                         tint = Color(0xFF241A00),
-                        modifier = Modifier.size(9.dp)
+                        modifier = Modifier.size(8.dp)
                     )
                 }
             }
         }
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(5.dp))
         Text(
             text = stringResource(preset.labelRes),
             color = if (selected) FanhuaText else FanhuaTextDim,
-            style = MaterialTheme.typography.labelSmall
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1
         )
     }
 }
+
+/** 用滤镜的调色参数渲染 3x6 的色块预览，避免为每个滤镜准备图片资源。 */
+@Composable
+private fun FilterSwatch(
+    preset: FilterPreset,
+    modifier: Modifier = Modifier
+) {
+    val grade = remember(preset) { FilterGrade.of(preset) }
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val steps = 6
+        val cellW = w / steps
+        val cellH = h / 3
+        val hues = floatArrayOf(
+            0.86f, 0.22f, 0.20f,
+            0.92f, 0.58f, 0.16f,
+            0.84f, 0.80f, 0.24f,
+            0.24f, 0.68f, 0.32f,
+            0.20f, 0.64f, 0.78f,
+            0.22f, 0.34f, 0.84f
+        )
+        for (row in 0 until 3) {
+            val level = when (row) {
+                0 -> 0.16f
+                1 -> 0.5f
+                else -> 0.86f
+            }
+            for (col in 0 until steps) {
+                val base = col * 3
+                val out = grade.apply(
+                    hues[base] * level,
+                    hues[base + 1] * level,
+                    hues[base + 2] * level
+                )
+                drawRect(
+                    color = Color(out[0], out[1], out[2]),
+                    topLeft = Offset(col * cellW, row * cellH),
+                    size = androidx.compose.ui.geometry.Size(cellW + 0.6f, cellH + 0.6f)
+                )
+            }
+        }
+        val vig = grade.vignette.coerceIn(0f, 0.6f)
+        if (vig > 0.01f) {
+            drawRect(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = vig)),
+                    center = Offset(w / 2f, h / 2f),
+                    radius = maxOf(w, h) * 0.72f
+                ),
+                size = androidx.compose.ui.geometry.Size(w, h)
+            )
+        }
+    }
+}
+
+/* ------------------------------------------------------------------ 模式选择 */
 
 @Composable
 private fun ModeSelector(
@@ -526,7 +631,7 @@ private fun ModeSelector(
                     .background(background)
                     .clickable { onSelect(mode) }
                     .padding(
-                        horizontal = if (compact) 12.dp else 16.dp,
+                        horizontal = if (compact) 11.dp else 16.dp,
                         vertical = if (compact) 7.dp else 9.dp
                     ),
                 contentAlignment = Alignment.Center
@@ -545,6 +650,8 @@ private fun ModeSelector(
     }
 }
 
+/* ------------------------------------------------------------------ 快门 */
+
 @Composable
 private fun ShutterButton(
     state: CameraUiState,
@@ -552,14 +659,29 @@ private fun ShutterButton(
 ) {
     val haptic = LocalHapticFeedback.current
     var holding by remember { mutableStateOf(false) }
-    val photoMode = state.mode != CaptureMode.VIDEO
-    val showPhoto = photoMode && (!state.recording || holding)
+    val videoMode = state.mode == CaptureMode.VIDEO
+    // 视频/专业模式直接显示录像键；照片模式在长按后切换为录像键。
+    val showRecord = videoMode || state.recording || holding
     Crossfade(
-        targetState = showPhoto,
-        animationSpec = tween(durationMillis = 240),
+        targetState = showRecord,
+        animationSpec = tween(durationMillis = 220),
         label = "shutterMode"
-    ) { isPhoto ->
-        if (isPhoto) {
+    ) { isRecord ->
+        if (isRecord) {
+            RecordButton(
+                recording = state.recording,
+                paused = state.recordingPaused,
+                durationMs = state.recordingDurationMs,
+                onTap = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    if (state.recording) controller.stopRecording() else controller.startRecording()
+                },
+                onPauseToggle = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    if (state.recordingPaused) controller.resumeRecording() else controller.pauseRecording()
+                }
+            )
+        } else {
             PhotoShutter(
                 onTap = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -573,15 +695,6 @@ private fun ShutterButton(
                 onHoldEnd = {
                     holding = false
                     controller.stopRecording()
-                }
-            )
-        } else {
-            RecordButton(
-                recording = state.recording,
-                durationMs = state.recordingDurationMs,
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    if (state.recording) controller.stopRecording() else controller.startRecording()
                 }
             )
         }
@@ -606,7 +719,7 @@ private fun PhotoShutter(
 
     Box(
         modifier = Modifier
-            .size(86.dp)
+            .size(84.dp)
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
@@ -625,7 +738,10 @@ private fun PhotoShutter(
                         } else {
                             scope.launch {
                                 ripple.snapTo(0f)
-                                ripple.animateTo(1f, tween(durationMillis = 480, easing = LinearEasing))
+                                ripple.animateTo(
+                                    1f,
+                                    tween(durationMillis = 460, easing = LinearEasing)
+                                )
                                 ripple.snapTo(0f)
                             }
                             onTap()
@@ -637,19 +753,19 @@ private fun PhotoShutter(
     ) {
         Box(
             modifier = Modifier
-                .size(86.dp)
+                .size(84.dp)
                 .graphicsLayer {
                     val p = ripple.value
-                    scaleX = 1f + 0.3f * p
-                    scaleY = 1f + 0.3f * p
-                    alpha = (1f - p) * 0.55f
+                    scaleX = 1f + 0.28f * p
+                    scaleY = 1f + 0.28f * p
+                    alpha = (1f - p) * 0.5f
                 }
                 .clip(CircleShape)
-                .background(FanhuaGold.copy(alpha = 0.35f))
+                .background(FanhuaGold.copy(alpha = 0.32f))
         )
         Box(
             modifier = Modifier
-                .size(80.dp)
+                .size(78.dp)
                 .clip(CircleShape)
                 .border(
                     width = 3.dp,
@@ -670,17 +786,19 @@ private fun PhotoShutter(
 @Composable
 private fun RecordButton(
     recording: Boolean,
+    paused: Boolean,
     durationMs: Long,
-    onClick: () -> Unit
+    onTap: () -> Unit,
+    onPauseToggle: () -> Unit
 ) {
     val interaction = remember { MutableInteractionSource() }
     val corner by animateDpAsState(
-        targetValue = if (recording) 24.dp else 9.dp,
+        targetValue = if (recording) 22.dp else 9.dp,
         animationSpec = spring(dampingRatio = 0.62f, stiffness = 520f),
         label = "recordCorner"
     )
     val innerSize by animateDpAsState(
-        targetValue = if (recording) 34.dp else 46.dp,
+        targetValue = if (recording) 32.dp else 44.dp,
         animationSpec = spring(dampingRatio = 0.62f, stiffness = 520f),
         label = "recordSize"
     )
@@ -689,52 +807,108 @@ private fun RecordButton(
     LaunchedEffect(recording) {
         if (previousRecording && !recording) {
             stopFlash.snapTo(1f)
-            stopFlash.animateTo(0f, tween(durationMillis = 460))
+            stopFlash.animateTo(0f, tween(durationMillis = 440))
         }
         previousRecording = recording
     }
+    val pulse by rememberInfiniteTransition(label = "recPulse").animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(680, easing = LinearEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "recPulseAlpha"
+    )
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(modifier = Modifier.size(86.dp), contentAlignment = Alignment.Center) {
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .graphicsLayer {
-                        val flash = stopFlash.value
-                        val s = 1f + flash * 0.08f
-                        scaleX = s
-                        scaleY = s
-                        alpha = 0.4f + 0.6f * flash
-                    }
-                    .clip(CircleShape)
-                    .border(3.dp, FanhuaGold.copy(alpha = 0.5f), CircleShape)
-            )
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .border(
-                        width = 3.dp,
-                        brush = Brush.linearGradient(listOf(FanhuaGold, FanhuaGoldDeep)),
-                        shape = CircleShape
-                    )
-                    .clickable(interactionSource = interaction, indication = null, onClick = onClick),
-                contentAlignment = Alignment.Center
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // 录制中显示暂停/继续
+            AnimatedVisibility(
+                visible = recording,
+                enter = fadeIn(tween(180)) + scaleIn(tween(200), initialScale = 0.7f),
+                exit = fadeOut(tween(140)) + scaleOut(tween(160), targetScale = 0.7f)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(innerSize)
-                        .clip(RoundedCornerShape(corner))
-                        .background(Color(0xFFFF453A))
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color(0x22FFFFFF))
+                        .border(1.dp, FanhuaStroke, CircleShape)
+                        .clickable(onClick = onPauseToggle),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (paused) FanhuaIcons.Play else FanhuaIcons.Pause,
+                        contentDescription = stringResource(
+                            if (paused) R.string.video_resume else R.string.video_pause
+                        ),
+                        tint = FanhuaText,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+            }
+
+            Box(modifier = Modifier.size(84.dp), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .size(78.dp)
+                        .graphicsLayer {
+                            val flash = stopFlash.value
+                            val s = 1f + flash * 0.08f
+                            scaleX = s
+                            scaleY = s
+                            alpha = 0.4f + 0.6f * flash
+                        }
+                        .clip(CircleShape)
+                        .border(3.dp, FanhuaGold.copy(alpha = 0.5f), CircleShape)
                 )
+                Box(
+                    modifier = Modifier
+                        .size(78.dp)
+                        .clip(CircleShape)
+                        .border(
+                            width = 3.dp,
+                            brush = Brush.linearGradient(listOf(FanhuaGold, FanhuaGoldDeep)),
+                            shape = CircleShape
+                        )
+                        .clickable(
+                            interactionSource = interaction,
+                            indication = null,
+                            onClick = onTap
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(innerSize)
+                            .graphicsLayer {
+                                if (recording && !paused) alpha = 0.6f + 0.4f * pulse
+                            }
+                            .clip(RoundedCornerShape(corner))
+                            .background(Color(0xFFFF453A))
+                    )
+                }
+            }
+
+            AnimatedVisibility(
+                visible = recording,
+                enter = fadeIn(tween(180)) + scaleIn(tween(200), initialScale = 0.7f),
+                exit = fadeOut(tween(140)) + scaleOut(tween(160), targetScale = 0.7f)
+            ) {
+                Spacer(modifier = Modifier.width(16.dp))
+                // 占位，保持快门居中
+                Box(modifier = Modifier.size(40.dp))
             }
         }
-        Box(modifier = Modifier.height(20.dp), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.height(18.dp), contentAlignment = Alignment.Center) {
             if (recording) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
                             .size(7.dp)
+                            .graphicsLayer { alpha = if (paused) 0.4f else pulse }
                             .clip(CircleShape)
                             .background(Color(0xFFFF453A))
                     )
@@ -744,11 +918,21 @@ private fun RecordButton(
                         color = FanhuaGold,
                         style = MaterialTheme.typography.labelMedium
                     )
+                    if (paused) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(R.string.video_pause),
+                            color = FanhuaTextDim,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 }
             }
         }
     }
 }
+
+/* ------------------------------------------------------------------ 镜头与变焦 */
 
 @Composable
 private fun LensSwitcher(
@@ -779,7 +963,7 @@ private fun LensSwitcher(
             )
             Box(
                 modifier = Modifier
-                    .size(38.dp)
+                    .size(37.dp)
                     .clip(CircleShape)
                     .background(background)
                     .clickable { onSelect(lens.id) },
@@ -811,187 +995,21 @@ private fun LivePhotoToggle(
             .background(if (enabled) Color(0x24FFC53D) else Color(0x14FFFFFF))
             .border(1.dp, if (enabled) FanhuaGold.copy(alpha = 0.5f) else FanhuaStroke, CircleShape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
+            .padding(horizontal = 11.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = FanhuaIcons.LivePhoto,
             contentDescription = stringResource(R.string.live_photo),
             tint = color,
-            modifier = Modifier.size(14.dp)
+            modifier = Modifier.size(13.dp)
         )
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.width(5.dp))
         Text(
             text = stringResource(R.string.live_photo),
             color = color,
             style = MaterialTheme.typography.labelSmall
         )
-    }
-}
-
-@Composable
-private fun VideoSpecBar(
-    state: CameraUiState,
-    onSelect: (OutputSpec) -> Unit
-) {
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 22.dp)
-    ) {
-        items(state.availableSpecs, key = { "${it.width}x${it.height}@${it.fps}" }) { spec ->
-            val selected = state.selectedSpec == spec
-            FrostedChip(
-                selected = selected,
-                modifier = Modifier.clickable { onSelect(spec) }
-            ) {
-                Text(
-                    text = shortLabel(spec),
-                    color = if (selected) FanhuaGold else FanhuaTextDim,
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-        }
-    }
-}
-
-private fun shortLabel(spec: OutputSpec): String {
-    val res = when {
-        spec.height >= 2160 -> "4K"
-        spec.height >= 1080 -> "1080P"
-        else -> "720P"
-    }
-    return "$res${spec.fps}"
-}
-
-@Composable
-private fun FilterSwatch(
-    preset: FilterPreset,
-    modifier: Modifier = Modifier
-) {
-    val grade = remember(preset) { FilterGrade.of(preset) }
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val steps = 6
-        val cellW = w / steps
-        val cellH = h / 3
-        val hues = floatArrayOf(
-            0.86f, 0.22f, 0.20f,
-            0.92f, 0.58f, 0.16f,
-            0.84f, 0.80f, 0.24f,
-            0.24f, 0.68f, 0.32f,
-            0.20f, 0.64f, 0.78f,
-            0.22f, 0.34f, 0.84f
-        )
-        for (row in 0 until 3) {
-            val level = when (row) {
-                0 -> 0.16f
-                1 -> 0.5f
-                else -> 0.86f
-            }
-            for (col in 0 until steps) {
-                val base = col * 3
-                val out = grade.apply(hues[base] * level, hues[base + 1] * level, hues[base + 2] * level)
-                drawRect(
-                    color = Color(out[0], out[1], out[2]),
-                    topLeft = Offset(col * cellW, row * cellH),
-                    size = androidx.compose.ui.geometry.Size(cellW + 0.6f, cellH + 0.6f)
-                )
-            }
-        }
-        val vig = grade.vignette.coerceIn(0f, 0.6f)
-        if (vig > 0.01f) {
-            drawRect(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = vig)),
-                    center = Offset(w / 2f, h / 2f),
-                    radius = maxOf(w, h) * 0.72f
-                ),
-                size = androidx.compose.ui.geometry.Size(w, h)
-            )
-        }
-    }
-}
-
-@Composable
-private fun GalleryButton(
-    captureCount: Int,
-    size: Int,
-    onClick: () -> Unit
-) {
-    val context = LocalContext.current
-    val thumbnail by produceState<ImageBitmap?>(initialValue = null, key1 = captureCount) {
-        value = withContext(Dispatchers.IO) {
-            val uri = LatestMedia.latestPhotoUri(context)
-            if (uri != null) {
-                runCatching {
-                    val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        context.contentResolver.loadThumbnail(uri, Size(160, 160), null)
-                    } else {
-                        null
-                    }
-                    bitmap?.asImageBitmap()
-                }.getOrNull()
-            } else {
-                null
-            }
-        }
-    }
-    Box(
-        modifier = Modifier
-            .size(size.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(Color(0x14FFFFFF))
-            .border(1.dp, FanhuaStroke, RoundedCornerShape(18.dp))
-            .padding(3.dp)
-            .clip(RoundedCornerShape(15.dp))
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        val image = thumbnail
-        if (image != null) {
-            Image(
-                bitmap = image,
-                contentDescription = stringResource(R.string.gallery_title),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
-            Icon(
-                imageVector = FanhuaIcons.Gallery,
-                contentDescription = stringResource(R.string.gallery_title),
-                tint = FanhuaText,
-                modifier = Modifier.size(21.dp)
-            )
-        }
-    }
-}
-
-private object LatestMedia {
-    fun latestPhotoUri(context: Context): Uri? {
-        val projection = arrayOf(MediaStore.Images.Media._ID)
-        val selection = MediaStore.Images.Media.DISPLAY_NAME + " LIKE ?"
-        val args = arrayOf("FH_%")
-        val sortOrder = MediaStore.Images.Media.DATE_ADDED + " DESC LIMIT 1"
-        return try {
-            context.contentResolver.query(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                projection,
-                selection,
-                args,
-                sortOrder
-            )?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val id = cursor.getLong(0)
-                    Uri.withAppendedPath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id.toString())
-                } else {
-                    null
-                }
-            }
-        } catch (e: Exception) {
-            null
-        }
     }
 }
 
@@ -1006,21 +1024,25 @@ private fun ZoomBar(
         val fromLenses = state.lensOptions
             .map { it.zoomRatio }
             .filter { it >= state.minZoomRatio && it <= state.maxZoomRatio }
-        if (fromLenses.size >= 2) fromLenses.sorted()
-        else listOf(state.minZoomRatio, (state.minZoomRatio + state.maxZoomRatio) / 2f, state.maxZoomRatio)
+        if (fromLenses.size >= 2) {
+            fromLenses.sorted()
+        } else {
+            listOf(
+                state.minZoomRatio,
+                (state.minZoomRatio + state.maxZoomRatio) / 2f,
+                state.maxZoomRatio
+            )
+        }
     }
     fun fraction(ratio: Float): Float = ((ratio - state.minZoomRatio) / range).coerceIn(0f, 1f)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 34.dp),
+            .padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = stringResource(R.string.zoom_label),
                 color = FanhuaTextDim,
@@ -1036,7 +1058,7 @@ private fun ZoomBar(
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(28.dp)
+                .height(26.dp)
                 .pointerInput(state.minZoomRatio, state.maxZoomRatio) {
                     detectHorizontalDragGestures(
                         onDragEnd = {
@@ -1068,11 +1090,10 @@ private fun ZoomBar(
                     cap = StrokeCap.Round
                 )
                 ticks.forEach { tick ->
-                    val x = fraction(tick) * size.width
                     drawCircle(
                         color = Color(0x66FFFFFF),
                         radius = 2.5f,
-                        center = Offset(x, y)
+                        center = Offset(fraction(tick) * size.width, y)
                     )
                 }
                 drawCircle(color = Color(0xFF16171A), radius = 11f, center = Offset(cx, y))
@@ -1082,83 +1103,150 @@ private fun ZoomBar(
     }
 }
 
+/* ------------------------------------------------------------------ 模式专属面板 */
+
 @Composable
-private fun ProExtras(
+private fun VideoSpecBar(
+    state: CameraUiState,
+    onSelect: (OutputSpec) -> Unit
+) {
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp)
+    ) {
+        items(state.availableSpecs, key = { "${it.width}x${it.height}@${it.fps}" }) { spec ->
+            val selected = state.selectedSpec == spec
+            FrostedChip(selected = selected, modifier = Modifier.clickable { onSelect(spec) }) {
+                Text(
+                    text = shortLabel(spec),
+                    color = if (selected) FanhuaGold else FanhuaTextDim,
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+        }
+    }
+}
+
+private fun shortLabel(spec: OutputSpec): String {
+    val res = when {
+        spec.height >= 2160 -> "4K"
+        spec.height >= 1080 -> "1080P"
+        else -> "720P"
+    }
+    return "$res${spec.fps}"
+}
+
+@Composable
+private fun ProPanel(
     controller: CameraController,
     state: CameraUiState
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            RecordingSpeed.entries.forEach { speed ->
-                val selected = state.recordingSpeed == speed
-                FrostedChip(
-                    selected = selected,
-                    modifier = Modifier.clickable { controller.setRecordingSpeed(speed) }
-                ) {
+    FrostedPanel(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        cornerRadius = 22.dp,
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
+    ) {
+        Column {
+            // 曝光补偿
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(R.string.pro_exposure),
+                    color = FanhuaTextDim,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.width(58.dp)
+                )
+                if (state.exposure.available) {
+                    Slider(
+                        value = state.exposure.index.toFloat(),
+                        onValueChange = { controller.setExposureCompensation(it.toInt()) },
+                        valueRange = state.exposure.minIndex.toFloat()..state.exposure.maxIndex.toFloat(),
+                        steps = (state.exposure.maxIndex - state.exposure.minIndex - 1).coerceAtLeast(0),
+                        colors = SliderDefaults.colors(
+                            thumbColor = FanhuaGold,
+                            activeTrackColor = FanhuaGold,
+                            inactiveTrackColor = Color(0x33FFFFFF)
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = stringResource(speed.labelRes),
-                        color = if (selected) FanhuaGold else FanhuaTextDim,
-                        style = MaterialTheme.typography.labelMedium
+                        text = formatEv(state.exposure.ev),
+                        color = FanhuaGold,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.width(46.dp)
+                    )
+                } else {
+                    Text(
+                        text = stringResource(R.string.value_unsupported),
+                        color = FanhuaTextDim,
+                        style = MaterialTheme.typography.labelSmall
                     )
                 }
             }
-        }
-        if (state.availableSpecs.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(10.dp))
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(horizontal = 22.dp)
-            ) {
-                items(state.availableSpecs) { spec ->
-                    val selected = state.selectedSpec == spec
-                    FrostedChip(
-                        selected = selected,
-                        modifier = Modifier.clickable { controller.selectSpec(spec) }
-                    ) {
-                        Text(
-                            text = spec.label,
-                            color = if (selected) FanhuaGold else FanhuaTextDim,
-                            style = MaterialTheme.typography.labelSmall
+            Spacer(modifier = Modifier.height(4.dp))
+            // 手动对焦
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(R.string.pro_manual_focus),
+                    color = FanhuaTextDim,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.width(58.dp)
+                )
+                Slider(
+                    value = state.manualFocusPosition,
+                    onValueChange = controller::setManualFocus,
+                    valueRange = 0f..1f,
+                    colors = SliderDefaults.colors(
+                        thumbColor = if (state.manualFocusActive) FanhuaGold else Color(0xFFE8E9EB),
+                        activeTrackColor = FanhuaGold,
+                        inactiveTrackColor = Color(0x33FFFFFF)
+                    ),
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(
+                            if (state.manualFocusActive) Color(0x24FFC53D) else Color(0x14FFFFFF)
                         )
+                        .clickable { controller.resetManualFocus() }
+                        .padding(horizontal = 9.dp, vertical = 5.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.pro_focus_auto),
+                        color = if (state.manualFocusActive) FanhuaGold else FanhuaTextDim,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+            if (state.availableSpecs.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    items(state.availableSpecs) { spec ->
+                        val selected = state.selectedSpec == spec
+                        FrostedChip(
+                            selected = selected,
+                            modifier = Modifier.clickable { controller.selectSpec(spec) }
+                        ) {
+                            Text(
+                                text = spec.label,
+                                color = if (selected) FanhuaGold else FanhuaTextDim,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                     }
                 }
             }
-        }
-        Spacer(modifier = Modifier.height(6.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 22.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.pro_manual_focus),
-                color = FanhuaTextDim,
-                style = MaterialTheme.typography.labelSmall
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Slider(
-                value = state.manualFocusPosition,
-                onValueChange = controller::setManualFocus,
-                modifier = Modifier.width(180.dp)
-            )
         }
     }
 }
 
 @Composable
-private fun SuperResInfo(
-    state: CameraUiState,
-    capability: CapabilityReport
-) {
+private fun SuperResInfo(state: CameraUiState) {
     val value = state.selectedSpec?.label
-        ?: if (capability.superResTargetWidth > 0) {
-            "${capability.superResTargetWidth}x${capability.superResTargetHeight}"
-        } else {
-            stringResource(R.string.value_none)
-        }
+        ?: "${state.photoAspect.labelRes.let { "" }}"
     FrostedPanel(
         modifier = Modifier.padding(horizontal = 20.dp),
         cornerRadius = 22.dp,
@@ -1173,7 +1261,7 @@ private fun SuperResInfo(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = value,
+                    text = if (value.isBlank()) "4K" else value,
                     color = FanhuaGold,
                     style = MaterialTheme.typography.labelLarge
                 )
@@ -1182,13 +1270,120 @@ private fun SuperResInfo(
                 text = stringResource(R.string.settings_superres_desc),
                 color = FanhuaTextDim,
                 style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.width(150.dp)
+                modifier = Modifier.width(148.dp)
             )
         }
     }
 }
 
+/* ------------------------------------------------------------------ 相册入口 */
+
+@Composable
+private fun GalleryButton(
+    captureCount: Int,
+    lastCaptureUri: String?,
+    size: Int,
+    onClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val thumbnail by produceState<ImageBitmap?>(
+        initialValue = null,
+        key1 = captureCount,
+        key2 = lastCaptureUri
+    ) {
+        value = withContext(Dispatchers.IO) {
+            val uri = lastCaptureUri?.let { Uri.parse(it) } ?: LatestMedia.latestPhotoUri(context)
+            if (uri != null) {
+                runCatching {
+                    val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        context.contentResolver.loadThumbnail(uri, Size(160, 160), null)
+                    } else {
+                        MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+                            ?.let { scaleDown(it, 160) }
+                    }
+                    bitmap?.asImageBitmap()
+                }.getOrNull()
+            } else {
+                null
+            }
+        }
+    }
+    Box(
+        modifier = Modifier
+            .size(size.dp)
+            .clip(RoundedCornerShape(17.dp))
+            .background(Color(0x14FFFFFF))
+            .border(1.dp, FanhuaStroke, RoundedCornerShape(17.dp))
+            .padding(3.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        val image = thumbnail
+        if (image != null) {
+            Image(
+                bitmap = image,
+                contentDescription = stringResource(R.string.gallery_title),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Icon(
+                imageVector = FanhuaIcons.Gallery,
+                contentDescription = stringResource(R.string.gallery_title),
+                tint = FanhuaText,
+                modifier = Modifier.size(21.dp)
+            )
+        }
+    }
+}
+
+private fun scaleDown(bitmap: Bitmap, target: Int): Bitmap {
+    val maxEdge = maxOf(bitmap.width, bitmap.height)
+    if (maxEdge <= target) return bitmap
+    val ratio = target.toFloat() / maxEdge
+    return Bitmap.createScaledBitmap(
+        bitmap,
+        (bitmap.width * ratio).toInt().coerceAtLeast(1),
+        (bitmap.height * ratio).toInt().coerceAtLeast(1),
+        true
+    )
+}
+
+private object LatestMedia {
+    fun latestPhotoUri(context: Context): Uri? {
+        val projection = arrayOf(MediaStore.Images.Media._ID)
+        val selection = MediaStore.Images.Media.DISPLAY_NAME + " LIKE ?"
+        val args = arrayOf("FH_%")
+        val sortOrder = MediaStore.Images.Media.DATE_ADDED + " DESC LIMIT 1"
+        return try {
+            context.contentResolver.query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                selection,
+                args,
+                sortOrder
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val id = cursor.getLong(0)
+                    Uri.withAppendedPath(
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                        id.toString()
+                    )
+                } else {
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+}
+
 private fun formatZoom(ratio: Float): String = String.format(Locale.US, "%.1fx", ratio)
+
+private fun formatEv(ev: Float): String =
+    if (abs(ev) < 0.01f) "±0" else String.format(Locale.US, "%+.1f", ev)
 
 private fun formatDuration(durationMs: Long): String {
     val totalSeconds = durationMs / 1000

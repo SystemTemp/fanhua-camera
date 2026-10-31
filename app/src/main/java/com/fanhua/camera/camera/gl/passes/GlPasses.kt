@@ -65,10 +65,44 @@ internal class GradePass(private val oes: Boolean) : GlPass(
         GLES20.glUniform1f(program.uniforms[15], grade.greenHue)
         GLES20.glUniform1f(program.uniforms[16], grade.greenSat)
         GLES20.glUniform1f(program.uniforms[17], grade.greenLum)
+        GLES20.glUniform1f(program.uniforms[20], grade.clarity)
+        GLES20.glUniform1f(program.uniforms[21], grade.halation)
+        GLES20.glUniform1f(program.uniforms[22], grade.curveShadow)
+        GLES20.glUniform1f(program.uniforms[23], grade.curveHighlight)
         drawQuad()
     }
 
     private companion object {
+        /**
+         * uniform 索引表（共 24 项，必须与 draw() 中的 program.uniforms[N] 一一对应，顺序不可错位）：
+         *
+         *  0  uTexMatrix       mat4  VERT_GRADE 顶点矩阵（OES 纹理变换）
+         *  1  uStabMatrix      mat3  VERT_GRADE 防抖矩阵
+         *  2  uCrop            float VERT_GRADE 裁切系数
+         *  3  uTexture         sampler 输入纹理
+         *  4  uIntensity       float 滤镜强度
+         *  5  uContrast        float 对比度
+         *  6  uSaturation      float 饱和度
+         *  7  uTemperature     float 色温
+         *  8  uFade            float 褪色
+         *  9  uLift            vec3  暗部抬升
+         * 10  uGain            vec3  增益
+         * 11  uShadowTint      vec3  暗部染色
+         * 12  uHighlightTint   vec3  高光染色
+         * 13  uHighlights      float 高光压缩（CPU apply() 未实现，GPU 专属扩展）
+         * 14  uShadows         float 暗部提亮（CPU apply() 未实现，GPU 专属扩展）
+         * 15  uGreenH          float 绿色色相偏移（CPU apply() 未实现，GPU 专属扩展）
+         * 16  uGreenS          float 绿色饱和度增益（同上）
+         * 17  uGreenL          float 绿色明度增益（同上）
+         * 18  uAspect          float VERT_GRADE 画面宽高比
+         * 19  uStabScale       float VERT_GRADE 防抖缩放
+         * 20  uClarity         float 局部对比（新增）
+         * 21  uHalation        float 高光红晕（新增）
+         * 22  uCurveShadow     float S 曲线暗部压缩（新增）
+         * 23  uCurveHighlight  float S 曲线亮部提亮（新增）
+         *
+         * 总计 24 个 uniform，其中 vec4 当量约 9 个，远低于 GLES2 保证的 128 个 vec4 上限。
+         */
         val UNIFORMS = arrayOf(
             "uTexMatrix",
             "uStabMatrix",
@@ -89,7 +123,11 @@ internal class GradePass(private val oes: Boolean) : GlPass(
             "uGreenS",
             "uGreenL",
             "uAspect",
-            "uStabScale"
+            "uStabScale",
+            "uClarity",
+            "uHalation",
+            "uCurveShadow",
+            "uCurveHighlight"
         )
 
         val BODY = """
@@ -107,6 +145,10 @@ internal class GradePass(private val oes: Boolean) : GlPass(
             uniform float uGreenH;
             uniform float uGreenS;
             uniform float uGreenL;
+            uniform float uClarity;
+            uniform float uHalation;
+            uniform float uCurveShadow;
+            uniform float uCurveHighlight;
             varying vec2 vTexCoord;
             const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
             vec3 rgb2hsl(vec3 c) {
@@ -134,14 +176,20 @@ internal class GradePass(private val oes: Boolean) : GlPass(
             }
             void main() {
                 vec3 src = texture2D(uTexture, vTexCoord).rgb;
+                // 1. 对比度（与 FilterGrade.apply 一致）
                 vec3 c = (src - 0.5) * uContrast + 0.5;
+                // 2. 色温
                 c *= vec3(1.0 + uTemperature * 0.12, 1.0 + uTemperature * 0.02, 1.0 - uTemperature * 0.12);
+                // 3. 饱和度
                 float l = dot(c, LUMA);
                 c = mix(vec3(l), c, uSaturation);
-                c += uLift * (1.0 - l);
+                // 4. lift / 暗部染色 / 高光染色（同一次加法，与 CPU 顺序一致）
+                float shadowMask = 1.0 - smoothstep(0.0, 0.46, l);
+                float highlightMask = smoothstep(0.54, 1.0, l);
+                c += uLift * (1.0 - l) + uShadowTint * shadowMask + uHighlightTint * highlightMask;
+                // 5. 增益
                 c *= uGain;
-                c += uShadowTint * (1.0 - smoothstep(0.0, 0.46, l));
-                c += uHighlightTint * smoothstep(0.54, 1.0, l);
+                // 5b. GPU 专属扩展（FilterGrade.apply 尚未实现，仅影响实时画面，色卡预览不含这几项）
                 if (uHighlights != 0.0) {
                     c *= 1.0 + uHighlights * smoothstep(0.55, 1.0, l) * 0.40;
                 }
@@ -159,7 +207,35 @@ internal class GradePass(private val oes: Boolean) : GlPass(
                         c = hsl2rgb(hsl);
                     }
                 }
+                // 6. 局部对比 clarity：midMask = 1 - |2*luma - 1|，把中间调往外推
+                if (abs(uClarity) > 0.0001) {
+                    float midMask = 1.0 - abs(2.0 * l - 1.0);
+                    float amount = uClarity * midMask;
+                    c = 0.5 + (c - 0.5) * (1.0 + amount);
+                    l = dot(c, LUMA);
+                }
+                // 7. 胶片 halation：高光处叠加红光溢出
+                if (abs(uHalation) > 0.0001) {
+                    float hot = smoothstep(0.62, 1.0, l) * uHalation;
+                    c.r += hot * 0.30;
+                    c.g += hot * 0.08;
+                    c.b += hot * 0.03;
+                }
+                // 8. S 曲线暗部压缩（用 clarity 之后的 luma，压完后不重算，与 CPU 一致）
+                if (abs(uCurveShadow) > 0.0001) {
+                    float m = 1.0 - smoothstep(0.0, 0.5, l);
+                    float k = uCurveShadow * m;
+                    c -= k * 0.10 * (1.0 - c);
+                }
+                // 9. S 曲线亮部提亮
+                if (abs(uCurveHighlight) > 0.0001) {
+                    float m = smoothstep(0.5, 1.0, l);
+                    float k = uCurveHighlight * m;
+                    c += k * 0.10 * (1.0 - c);
+                }
+                // 10. 褪色
                 c = mix(c, vec3(0.5) + (c - 0.5) * 0.82 + 0.055, uFade);
+                // 11. 钳制
                 c = clamp(c, 0.0, 1.0);
                 gl_FragColor = vec4(mix(src, c, uIntensity), 1.0);
             }

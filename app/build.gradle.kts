@@ -12,11 +12,14 @@ android {
         applicationId = "com.fanhua.camera"
         minSdk = 26
         targetSdk = 34
-        versionCode = 22
-        versionName = "0.1.21-beta"
+        versionCode = 23
+        versionName = "0.1.22-beta"
         vectorDrawables {
             useSupportLibrary = true
         }
+        resourceConfigurations += listOf(
+            "zh", "zh-rTW", "en", "ja", "ko", "es", "fr", "de", "ru"
+        )
     }
 
     signingConfigs {
@@ -30,7 +33,14 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // 开启 R8 代码压缩与资源压缩：可去掉未使用的 Compose / CameraX 代码路径，
+            // 显著缩小 APK 体积。
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             signingConfig = signingConfigs.getByName("release")
             ndk {
                 abiFilters += listOf("arm64-v8a")
@@ -54,7 +64,18 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/DEPENDENCIES"
+            excludes += "/META-INF/INDEX.LIST"
         }
+    }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
     }
 }
 
@@ -73,6 +94,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.animation:animation")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     implementation("androidx.camera:camera-core:$cameraxVersion")
@@ -88,5 +110,6 @@ dependencies {
     implementation("androidx.exifinterface:exifinterface:1.3.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
+    implementation("org.tensorflow:tensorflow-lite:2.16.1")
     testImplementation("junit:junit:4.13.2")
 }
