@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -53,6 +54,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fanhua.camera.R
@@ -81,6 +83,16 @@ import com.fanhua.camera.ui.theme.FanhuaRose
 import com.fanhua.camera.ui.theme.FanhuaStroke
 import com.fanhua.camera.ui.theme.FanhuaText
 import com.fanhua.camera.ui.theme.FanhuaTextDim
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.rotate
+import com.fanhua.camera.ui.common.IndeterminateWaveBar
+import kotlinx.coroutines.delay
 
 @Composable
 fun FanhuaCameraApp(controller: CameraController) {
@@ -94,6 +106,12 @@ fun FanhuaCameraApp(controller: CameraController) {
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var showGallery by rememberSaveable { mutableStateOf(false) }
     var showBugReport by rememberSaveable { mutableStateOf(false) }
+    // 启动动画至少展示 1.2 秒，否则相机 ready 太快会让动画一闪而过甚至看不到
+    var splashMinElapsed by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(1200)
+        splashMinElapsed = true
+    }
     var controlsVisible by rememberSaveable { mutableStateOf(true) }
 
     val scope = rememberCoroutineScope()
@@ -122,9 +140,7 @@ fun FanhuaCameraApp(controller: CameraController) {
     Box(modifier = Modifier.fillMaxSize().background(FanhuaInk)) {
         Viewfinder(controller = controller, state = state, modifier = Modifier.fillMaxSize())
 
-        if (state.permissionGranted && !state.ready && state.cameraAvailable) {
-            CameraStartingOverlay(modifier = Modifier.fillMaxSize())
-        }
+
 
         AnimatedVisibility(
             visible = controlsVisible,
@@ -159,7 +175,8 @@ fun FanhuaCameraApp(controller: CameraController) {
                     controller.setPhotoAspect(next)
                 },
                 onAutoCompositionToggle = {
-                    controller.setAutoCompositionEnabled(!state.autoCompositionEnabled)
+                    // 点击直接执行自动构图（裁切到建议构图），而不是切换开关状态
+                    controller.applyAutoComposition()
                 },
                 onSuperResToggle = {
                     controller.setSuperResEnabled(!state.superResEnabled)
@@ -187,6 +204,14 @@ fun FanhuaCameraApp(controller: CameraController) {
             )
         }
 
+        // 启动动画放在最上层（在所有控件之后绘制），避免被滤镜条等控件遮挡
+        val showSplash = state.permissionGranted &&
+            state.cameraAvailable &&
+            (!state.ready || !splashMinElapsed)
+        if (showSplash) {
+            CameraStartingOverlay(modifier = Modifier.fillMaxSize().zIndex(10f))
+        }
+
         CountdownOverlay(
             remaining = state.countdownRemaining,
             onCancel = controller::cancelCountdown,
@@ -203,7 +228,12 @@ fun FanhuaCameraApp(controller: CameraController) {
             enter = fadeIn(animationSpec = tween(180)),
             exit = fadeOut(animationSpec = tween(160)),
             modifier = if (isLandscape) {
-                Modifier.align(Alignment.CenterEnd)
+                // 横屏：贴右侧竖直排列，同时避让顶部状态栏与底部导航栏，
+                // 避免与 TopBar 或系统手势区重叠。
+                Modifier
+                    .align(Alignment.CenterEnd)
+                    .fillMaxHeight()
+                    .padding(top = 64.dp, bottom = 24.dp)
             } else {
                 Modifier.align(Alignment.BottomCenter)
             }
@@ -271,30 +301,143 @@ fun FanhuaCameraApp(controller: CameraController) {
     )
 }
 
+/**
+ * 相机启动动画。
+ *
+ * Google 风格：光圈环缓慢旋转 + 品牌名淡入 + 波浪进度条。
+ * 动画分三段落：0~300ms 图标放大淡入，300ms 后文字与进度条浮现。
+ */
 @Composable
 private fun CameraStartingOverlay(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "starting")
+    val spin by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "spin"
+    )
+    val pulse by transition.animateFloat(
+        initialValue = 0.86f,
+        targetValue = 1.06f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1100, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
+    // 入场动画：图标先出现，文字稍后
+    var revealed by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(220)
+        revealed = true
+    }
+    val iconAlpha by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(420, easing = LinearEasing),
+        label = "iconAlpha"
+    )
+    val textAlpha by animateFloatAsState(
+        targetValue = if (revealed) 1f else 0f,
+        animationSpec = tween(520, easing = LinearEasing),
+        label = "textAlpha"
+    )
+
+    val accent = MaterialTheme.colorScheme.primary
     Box(
-        modifier = modifier.background(Color(0xA6000000)),
+        modifier = modifier
+            .background(Color(0xF2000000))
+            .graphicsLayer { alpha = iconAlpha },
         contentAlignment = Alignment.Center
     ) {
-        FrostedPanel(
-            cornerRadius = 28.dp,
-            contentPadding = PaddingValues(horizontal = 28.dp, vertical = 22.dp)
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator(
-                    color = FanhuaGold,
-                    trackColor = FanhuaOutline,
-                    strokeWidth = 3.dp,
-                    modifier = Modifier.size(32.dp)
-                )
-                Spacer(modifier = Modifier.height(14.dp))
-                Text(
-                    text = stringResource(R.string.camera_starting),
-                    color = FanhuaText,
-                    style = MaterialTheme.typography.labelMedium
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                modifier = Modifier
+                    .size(96.dp)
+                    .graphicsLayer {
+                        scaleX = pulse
+                        scaleY = pulse
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                // 旋转的光圈环
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val radius = size.minDimension / 2f - 4f
+                    val rect = androidx.compose.ui.geometry.Size(
+                        radius * 2f, radius * 2f
+                    )
+                    val topLeft = androidx.compose.ui.geometry.Offset(
+                        (size.width - radius * 2f) / 2f,
+                        (size.height - radius * 2f) / 2f
+                    )
+                    // 底环
+                    drawArc(
+                        color = Color(0x1FFFFFFF),
+                        startAngle = 0f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = rect,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(
+                            width = 3.5f,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round
+                        )
+                    )
+                    // 旋转的渐变弧
+                    rotate(spin) {
+                        drawArc(
+                            brush = androidx.compose.ui.graphics.Brush.sweepGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    accent.copy(alpha = 0.25f),
+                                    accent,
+                                    accent.copy(alpha = 0.25f),
+                                    Color.Transparent
+                                )
+                            ),
+                            startAngle = 0f,
+                            sweepAngle = 270f,
+                            useCenter = false,
+                            topLeft = topLeft,
+                            size = rect,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                width = 3.5f,
+                                cap = androidx.compose.ui.graphics.StrokeCap.Round
+                            )
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = FanhuaIcons.Aperture,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(38.dp)
                 )
             }
+            Spacer(modifier = Modifier.height(22.dp))
+            Text(
+                text = stringResource(R.string.app_name),
+                color = FanhuaText,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.graphicsLayer { alpha = textAlpha }
+            )
+            Spacer(modifier = Modifier.height(14.dp))
+            Box(modifier = Modifier.graphicsLayer { alpha = textAlpha }) {
+                IndeterminateWaveBar(
+                    modifier = Modifier.width(120.dp),
+                    height = 3.dp,
+                    color = accent
+                )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = stringResource(R.string.camera_starting),
+                color = FanhuaTextDim,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.graphicsLayer { alpha = textAlpha }
+            )
         }
     }
 }

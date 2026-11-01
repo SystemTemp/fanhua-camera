@@ -48,6 +48,7 @@ import com.fanhua.camera.camera.detect.DetectorModels
 import com.fanhua.camera.camera.detect.DetectorStore
 import com.fanhua.camera.camera.detect.ModelDefinition
 import com.fanhua.camera.ui.common.FanhuaButton
+import com.fanhua.camera.ui.common.WaveProgressBar
 import com.fanhua.camera.ui.common.FanhuaButtonStyle
 import com.fanhua.camera.ui.common.FanhuaIcons
 import com.fanhua.camera.ui.common.GroupDivider
@@ -141,38 +142,65 @@ fun DetectorSection(
                 )
             }
 
-            // 下载进度
+            // 下载进度：波浪进度条 + 速度 + 已下载/总量
             val percent = state.detectorDownloadPercent
             AnimatedVisibility(visible = percent != null) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = stringResource(R.string.detector_downloading),
-                            color = FanhuaGold,
-                            style = MaterialTheme.typography.labelMedium
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelLarge
                         )
                         Spacer(modifier = Modifier.weight(1f))
+                        // 速度：始终显示，未知时显示占位
                         Text(
-                            text = "${percent ?: 0}%",
-                            color = FanhuaGold,
+                            text = formatSpeed(state.detectorDownloadSpeed),
+                            color = FanhuaTextDim,
                             style = MaterialTheme.typography.labelMedium
                         )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "${percent ?: 0}%",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelLarge
+                        )
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     val animated by animateFloatAsState(
                         targetValue = (percent ?: 0) / 100f,
-                        animationSpec = tween(durationMillis = 260),
+                        animationSpec = tween(durationMillis = 300),
                         label = "downloadProgress"
                     )
-                    LinearProgressIndicator(
-                        progress = { animated },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(4.dp)
-                            .clip(CircleShape),
-                        color = FanhuaGold,
-                        trackColor = Color(0x22FFFFFF)
+                    // Google 风格波浪进度条：进度从左往右增长，波浪流动表示进行中
+                    WaveProgressBar(
+                        progress = animated,
+                        modifier = Modifier.fillMaxWidth(),
+                        height = 6.dp,
+                        color = MaterialTheme.colorScheme.primary
                     )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = formatBytes(state.detectorDownloadedBytes),
+                            color = FanhuaTextDim,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                        Text(
+                            text = " / " + formatBytes(state.detectorTotalBytes),
+                            color = FanhuaTextDim,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        val remain = remainingSeconds(state)
+                        if (remain > 0) {
+                            Text(
+                                text = "剩余 " + formatDuration(remain),
+                                color = FanhuaTextDim,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
                 }
             }
 
@@ -377,4 +405,39 @@ private fun ModelRow(
             }
         }
     }
+}
+
+
+/** 字节数 → 人类可读（B / KB / MB）。 */
+private fun formatBytes(bytes: Long): String = when {
+    bytes <= 0L -> "0 B"
+    bytes < 1024L -> "$bytes B"
+    bytes < 1024L * 1024L -> String.format(java.util.Locale.US, "%.1f KB", bytes / 1024.0)
+    else -> String.format(java.util.Locale.US, "%.1f MB", bytes / 1024.0 / 1024.0)
+}
+
+/** 下载速度 → 人类可读，速度未知时返回「—」。 */
+private fun formatSpeed(bytesPerSecond: Long): String = when {
+    bytesPerSecond <= 0L -> "—"
+    bytesPerSecond < 1024L -> "$bytesPerSecond B/s"
+    bytesPerSecond < 1024L * 1024L ->
+        String.format(java.util.Locale.US, "%.0f KB/s", bytesPerSecond / 1024.0)
+    else -> String.format(java.util.Locale.US, "%.1f MB/s", bytesPerSecond / 1024.0 / 1024.0)
+}
+
+/** 按当前速度估算剩余秒数。 */
+private fun remainingSeconds(state: com.fanhua.camera.camera.core.CameraUiState): Long {
+    val speed = state.detectorDownloadSpeed
+    val total = state.detectorTotalBytes
+    val done = state.detectorDownloadedBytes
+    if (speed <= 0L || total <= done) return 0L
+    return (total - done) / speed
+}
+
+/** 秒数 → mm:ss。 */
+private fun formatDuration(seconds: Long): String {
+    if (seconds <= 0L) return "0:00"
+    val m = seconds / 60
+    val s = seconds % 60
+    return String.format(java.util.Locale.US, "%d:%02d", m, s)
 }

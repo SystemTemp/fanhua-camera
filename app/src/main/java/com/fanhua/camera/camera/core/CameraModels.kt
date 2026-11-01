@@ -143,6 +143,12 @@ data class CameraUiState(
     val detectorModelId: String? = null,
     /** 正在下载模型时的进度（0..100），未下载时为 null。 */
     val detectorDownloadPercent: Int? = null,
+    /** 下载速度（字节/秒），用于 UI 展示。 */
+    val detectorDownloadSpeed: Long = 0L,
+    /** 已下载字节数。 */
+    val detectorDownloadedBytes: Long = 0L,
+    /** 总字节数。 */
+    val detectorTotalBytes: Long = 0L,
     val recording: Boolean = false,
     val recordingPaused: Boolean = false,
     val recordingDurationMs: Long = 0L,
@@ -151,6 +157,10 @@ data class CameraUiState(
     val manualFocusPosition: Float = 0.5f,
     val manualFocusActive: Boolean = false,
     val photoAspect: PhotoAspect = PhotoAspect.FULL,
+    /** 自动构图产生的裁切框（归一化），null 表示未裁切。 */
+    val autoCropRect: com.fanhua.camera.camera.detect.NormRect? = null,
+    /** 自动构图是否正在计算。 */
+    val autoComposing: Boolean = false,
     val mirrorSelfie: Boolean = false,
     val watermarkEnabled: Boolean = true,
     val shutterSoundEnabled: Boolean = true,

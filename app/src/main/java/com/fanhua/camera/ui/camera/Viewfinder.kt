@@ -4,6 +4,10 @@ import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -90,6 +94,11 @@ fun Viewfinder(
             },
             modifier = Modifier.fillMaxSize()
         )
+
+        // 自动构图裁切遮罩：压暗裁切框以外的区域
+        state.autoCropRect?.let { crop ->
+            AutoCropMask(crop = crop, accent = MaterialTheme.colorScheme.primary)
+        }
 
         // 画幅遮罩：把超出所选画幅的部分压暗
         if (state.photoAspect != PhotoAspect.FULL) {
@@ -414,5 +423,55 @@ private fun CompositionGuide(hint: CompositionHint, subjectLabel: String?) {
                     .padding(horizontal = 14.dp, vertical = 7.dp)
             )
         }
+    }
+}
+
+
+/**
+ * 自动构图裁切遮罩。
+ *
+ * 把裁切框以外的区域压暗，框内保持原样，并在四角画出对焦括号，
+ * 让用户一眼看出「点了自动构图之后会裁成什么样」。
+ */
+@Composable
+private fun AutoCropMask(
+    crop: com.fanhua.camera.camera.detect.NormRect,
+    accent: Color
+) {
+    val transition = rememberInfiniteTransition(label = "autoCrop")
+    val breathe by transition.animateFloat(
+        initialValue = 0.55f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "cropBreathe"
+    )
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+        val left = crop.left * w
+        val top = crop.top * h
+        val right = crop.right * w
+        val bottom = crop.bottom * h
+        val scrim = Color(0xB3000000)
+        // 上、下、左、右四块压暗
+        drawRect(scrim, Offset(0f, 0f), Size(w, top))
+        drawRect(scrim, Offset(0f, bottom), Size(w, h - bottom))
+        drawRect(scrim, Offset(0f, top), Size(left, bottom - top))
+        drawRect(scrim, Offset(right, top), Size(w - right, bottom - top))
+        // 四角括号
+        val arm = 26f
+        val stroke = 3f
+        val color = accent.copy(alpha = breathe)
+        fun corner(cx: Float, cy: Float, dx: Float, dy: Float) {
+            drawLine(color, Offset(cx, cy), Offset(cx + dx * arm, cy), strokeWidth = stroke)
+            drawLine(color, Offset(cx, cy), Offset(cx, cy + dy * arm), strokeWidth = stroke)
+        }
+        corner(left, top, 1f, 1f)
+        corner(right, top, -1f, 1f)
+        corner(left, bottom, 1f, -1f)
+        corner(right, bottom, -1f, -1f)
     }
 }

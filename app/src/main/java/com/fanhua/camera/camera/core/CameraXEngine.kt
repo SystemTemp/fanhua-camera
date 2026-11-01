@@ -926,10 +926,24 @@ class CameraXEngine(
         val downloader = ModelDownloader(context)
         val result = withContext(Dispatchers.IO) {
             downloader.download(definition) { progress ->
-                _state.update { it.copy(detectorDownloadPercent = progress.percent) }
+                _state.update {
+                    it.copy(
+                        detectorDownloadPercent = progress.percent,
+                        detectorDownloadSpeed = progress.bytesPerSecond,
+                        detectorDownloadedBytes = progress.downloadedBytes,
+                        detectorTotalBytes = progress.totalBytes
+                    )
+                }
             }
         }
-        _state.update { it.copy(detectorDownloadPercent = null) }
+        _state.update {
+            it.copy(
+                detectorDownloadPercent = null,
+                detectorDownloadSpeed = 0L,
+                detectorDownloadedBytes = 0L,
+                detectorTotalBytes = 0L
+            )
+        }
         return when (result) {
             is ModelDownloader.Result.Success -> {
                 DetectorStore.select(context, modelId)
@@ -973,6 +987,64 @@ class CameraXEngine(
         loadSelectedDetector()
         if (_state.value.autoCompositionEnabled) bind()
         return _state.value.detectorReady
+    }
+
+    /* ------------------------------------------------------------ 自动构图 */
+
+    /**
+     * 点击即构图：开启检测 → 等一帧结果 → 按建议裁切。
+     *
+     * 若模型未就绪，先提示下载；若已有构图建议，直接应用。
+     */
+    override fun applyAutoComposition() {
+        // 已开启引导时，直接用最新的建议裁切
+        val existing = _state.value.compositionHint
+        if (existing?.cropRect != null) {
+            _state.update { it.copy(autoCropRect = existing.cropRect) }
+            setStatus(R.string.composition_aligned, false)
+            return
+        }
+        if (!detector.ready) {
+            loadSelectedDetector()
+            if (!detector.ready) {
+                setStatus(R.string.detector_need_model, true)
+                return
+            }
+        }
+        // 临时开启检测，等待一帧结果后再裁切
+        _state.update { it.copy(autoComposing = true) }
+        val wasEnabled = _state.value.autoCompositionEnabled
+        if (!wasEnabled) {
+            _state.update { it.copy(autoCompositionEnabled = true) }
+            bind()
+        }
+        scope.launch {
+            // 最多等 1.5 秒拿到一次检测结果
+            var waited = 0
+            while (waited < 1500 && _state.value.compositionHint == null) {
+                delay(100)
+                waited += 100
+            }
+            val hint = _state.value.compositionHint
+            val crop = hint?.cropRect
+            if (crop != null) {
+                _state.update { it.copy(autoCropRect = crop, autoComposing = false) }
+                setStatus(R.string.composition_aligned, false)
+            } else {
+                _state.update { it.copy(autoComposing = false) }
+                setStatus(R.string.detector_no_subject, true)
+            }
+            // 若原本没开，用完就关掉，避免持续耗电
+            if (!wasEnabled) {
+                _state.update { it.copy(autoCompositionEnabled = false) }
+                bind()
+            }
+        }
+    }
+
+    override fun clearAutoComposition() {
+        if (_state.value.autoCropRect == null) return
+        _state.update { it.copy(autoCropRect = null) }
     }
 
     override fun setGridEnabled(enabled: Boolean) {

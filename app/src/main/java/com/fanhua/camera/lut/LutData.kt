@@ -99,6 +99,7 @@ object LutStore {
         path = "$name.lut"
         source = LutData.SOURCE_BUILTIN
         cached = parsed
+        android.util.Log.i("FanhuaLut", "select builtin LUT=$name parsed=${parsed?.size} source=$source")
         DebugLog.log("Lut", "select builtin LUT=$name parsed=${parsed?.size}")
         onChanged()
     }

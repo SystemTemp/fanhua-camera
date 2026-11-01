@@ -26,6 +26,17 @@ interface CameraController {
     fun setLivePhotoEnabled(enabled: Boolean)
     fun setAutoCompositionEnabled(enabled: Boolean)
 
+    /**
+     * 立即执行一次自动构图：检测当前画面主体，把取景框裁切到建议构图。
+     *
+     * 与 [setAutoCompositionEnabled] 的区别：后者是「持续开启构图引导」，
+     * 前者是「点一下就直接裁好」，更符合普通用户的使用直觉。
+     */
+    fun applyAutoComposition()
+
+    /** 撤销自动构图裁切，恢复全画幅。 */
+    fun clearAutoComposition()
+
     /** 下载并启用指定检测模型；下载失败返回 false。 */
     suspend fun downloadDetectorModel(modelId: String): Boolean
 
