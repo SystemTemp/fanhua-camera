@@ -113,7 +113,9 @@ class PhotoProcessor(private val context: Context) {
         upscale: Boolean,
         aspect: PhotoAspect = PhotoAspect.FULL,
         mirror: Boolean = false,
-        watermark: Boolean = true
+        watermark: Boolean = true,
+        /** 自动构图裁切框（归一化坐标）；null 表示不裁切。 */
+        autoCrop: com.fanhua.camera.camera.detect.NormRect? = null
     ): Uri? {
         DebugLog.log(
             "Photo",
@@ -132,7 +134,7 @@ class PhotoProcessor(private val context: Context) {
         // 不走 GL 是因为 ORIGINAL 预设的 FinishPass 仍会叠加 bloom，会改变「原图」的观感。
         if (preset == FilterPreset.ORIGINAL && !upscale) {
             DebugLog.log("Photo", "原图 + 画幅/镜像 -> 纯 CPU 几何处理")
-            return saveGeometryOnly(source, preset, aspect, mirror)
+            return saveGeometryOnly(source, preset, aspect, mirror, autoCrop)
         }
 
         val lut = if (preset == FilterPreset.CUSTOM_LUT) LutStore.cached else null
@@ -140,7 +142,7 @@ class PhotoProcessor(private val context: Context) {
             DebugLog.log("Photo", "CUSTOM_LUT 未导入 LUT")
             // 没有 LUT 时仍要保证画幅/镜像生效，所以需要几何处理时走纯 CPU 路径
             return if (needsGeometry) {
-                saveGeometryOnly(source, preset, aspect, mirror)
+                saveGeometryOnly(source, preset, aspect, mirror, autoCrop)
             } else {
                 saveOriginal(source)
             }
@@ -170,6 +172,10 @@ class PhotoProcessor(private val context: Context) {
             // 3) 画幅裁切（旋转/镜像之后、加徕卡框之前）
             if (aspect != PhotoAspect.FULL) {
                 working = swapBitmap(working, cropToAspect(working, aspect))
+                // 自动构图裁切：按检测到的主体框裁切画面
+                if (autoCrop != null) {
+                    working = swapBitmap(working, cropToRect(working, autoCrop))
+                }
                 decoded = working
                 DebugLog.log("Photo", "画幅裁切 ${aspect.name} -> ${working.width}x${working.height}")
             }
@@ -478,6 +484,33 @@ class PhotoProcessor(private val context: Context) {
      * 竖拍处理：手机竖拍时图片高 > 宽，此时 [PhotoAspect.ratio] 应按「长边/短边」理解，
      * 目标比例取 `1f / ratio`（例如 4:3 的竖拍结果是 3:4 而不是 4:3）。
      */
+    /**
+     * 按归一化矩形裁切位图。
+     *
+     * 用于「自动构图」：检测到主体后，把画面裁到建议构图范围内。
+     * 裁切结果的长宽比保持不变（按目标框在原图中的相对位置与大小换算）。
+     */
+    private fun cropToRect(
+        bitmap: Bitmap,
+        rect: com.fanhua.camera.camera.detect.NormRect
+    ): Bitmap {
+        val left = (rect.left.coerceIn(0f, 1f) * bitmap.width).toInt()
+        val top = (rect.top.coerceIn(0f, 1f) * bitmap.height).toInt()
+        val right = (rect.right.coerceIn(0f, 1f) * bitmap.width).toInt()
+        val bottom = (rect.bottom.coerceIn(0f, 1f) * bitmap.height).toInt()
+        val w = (right - left).coerceAtLeast(1)
+        val h = (bottom - top).coerceAtLeast(1)
+        // 全画幅或无效框直接跳过
+        if (w >= bitmap.width - 2 && h >= bitmap.height - 2) return bitmap
+        if (w <= 0 || h <= 0) return bitmap
+        return try {
+            Bitmap.createBitmap(bitmap, left, top, w, h)
+        } catch (e: Exception) {
+            DebugLog.log("Photo", "自动构图裁切失败: ${e.message}")
+            bitmap
+        }
+    }
+
     private fun cropToAspect(bitmap: Bitmap, aspect: PhotoAspect): Bitmap {
         val ratio = aspect.ratio
         if (ratio <= 0f) return bitmap
@@ -810,7 +843,8 @@ class PhotoProcessor(private val context: Context) {
         source: File,
         preset: FilterPreset,
         aspect: PhotoAspect,
-        mirror: Boolean
+        mirror: Boolean,
+        autoCrop: com.fanhua.camera.camera.detect.NormRect? = null
     ): Uri? {
         var working: Bitmap? = null
         return try {
@@ -820,6 +854,10 @@ class PhotoProcessor(private val context: Context) {
             }
             if (aspect != PhotoAspect.FULL) {
                 working = swapBitmap(working, cropToAspect(working, aspect))
+                // 自动构图裁切：按检测到的主体框裁切画面
+                if (autoCrop != null) {
+                    working = swapBitmap(working, cropToRect(working, autoCrop))
+                }
             }
             save(working, preset, source)
         } catch (e: Exception) {

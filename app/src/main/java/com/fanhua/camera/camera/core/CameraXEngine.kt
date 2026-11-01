@@ -1234,7 +1234,10 @@ class CameraXEngine(
         )
         scope.launch {
             val uri = withContext(Dispatchers.IO) {
-                photoProcessor.process(file, preset, intensity, upscale, aspect, mirror, watermark)
+                photoProcessor.process(
+                    file, preset, intensity, upscale, aspect, mirror, watermark,
+                    autoCrop = _state.value.autoCropRect
+                )
             }
             file.delete()
             if (uri == null) {
