@@ -16,12 +16,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 21
-
       - name: Set up Gradle cache
         uses: actions/cache@v4
         with:
@@ -32,10 +26,29 @@ jobs:
           restore-keys: |
             gradle-${{ runner.os }}-
 
-      - name: Build debug & release APK
+      - name: Restore signing key (本机固定签名优先)
+        # 优先用本机签名文件（secret SIGNING_P12 为本机 fanhua-release.p12 的 base64），
+        # 未设置时回退到自动生成的临时 debug 密钥（仅用于 CI 验证，不建议作为正式发布签名）。
+        env:
+          SIGNING_P12: ${{ secrets.SIGNING_P12 }}
         run: |
-          chmod +x ./gradlew
-          ./gradlew :app:assembleDebug :app:assembleRelease --no-daemon
+          mkdir -p signing
+          if [ -n "$SIGNING_P12" ]; then
+            echo "$SIGNING_P12" | base64 -d > signing/fanhua-release.p12
+            echo "已还原本机固定签名 fanhua-release.p12"
+          else
+            echo "未提供 SIGNING_P12，生成临时 debug 签名（非正式发布签名）"
+            keytool -genkeypair -v -keystore signing/fanhua-release.p12 -storetype PKCS12 \
+              -alias fanhua -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass fanhua2026 -keypass fanhua2026 \
+              -dname "CN=fanhua, OU=CI, O=CI, L=CI, S=CI, C=CN"
+          fi
+
+      - name: Build debug & release APK
+        # 使用仓库自带 build.sh（自动准备 JDK/Gradle/Android SDK，规避 CI 缺 SDK 的问题）
+        run: |
+          chmod +x ./build.sh
+          bash build.sh :app:assembleDebug :app:assembleRelease
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4
@@ -54,18 +67,9 @@ jobs:
             ## 繁花如梦相机 ${{ github.ref_name }}
 
             ### 本次更新
-            - 修复照片偏色：保存管线 R/B 通道互换（蓝裤子拍成棕色）已修复
-            - 画质提升：最高画质拍照 + 保存锐化 + JPEG 98 + 8K 解码
-            - 抑制拍太阳时的高光光球（柔化 bloom 高光提取）
-            - 徕卡水印改为圆形徽章 + 徕卡风格字体（Futura 近似）
-            - 新增「电影感」滤镜（绿色 HSL 调整、高光/阴影压暗、暗角、锐化）
-            - 新增「SDR 标准」色调滤镜（柔和高光压缩）
-            - 新增自定义 3D LUT 导入（.cube，支持 Blackmagic / 光子相机）
-            - 新增地平线防抖（陀螺仪自动保持画面水平）
-            - 新增调试模式：一键复制 / 清空日志
-            - 徕卡滤镜组折叠，滤镜条更紧凑
-            - 专业 / 超分模式实时预览修复（统一 CameraX PreviewView）
-            - 拍照控件可隐藏；横屏快门移至屏幕右侧，不再遮挡主体
+            - 滤镜色卡改用相机整合中徕卡一瞬包的真实 LUT 预览图，色卡与实际出片观感一致。
+            - 徕卡水印支持三态可切换：关闭 / 白边画框（徕卡 92 号）/ 照片内叠加（标准 7 号）。
+            - 设置页水印项改为三态选择，覆盖简/繁/英/日/韩/西/法/德/俄 9 语种。
         run: |
           cp app/build/outputs/apk/release/app-release.apk "fanhua-camera-${GITHUB_REF_NAME}.apk"
           gh release create "$GITHUB_REF_NAME" "fanhua-camera-${GITHUB_REF_NAME}.apk" \
