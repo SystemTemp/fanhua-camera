@@ -17,3 +17,6 @@ signing/
 # 本机构建环境（JDK / Gradle / Android SDK），体积大且与仓库无关
 .buildenv/
 .kotlin/
+
+# 本地发布脚本（含发布流程，不入库）
+publish.sh
