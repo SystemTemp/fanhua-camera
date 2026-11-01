@@ -39,6 +39,8 @@ class GlFramePipelineImpl : GlFramePipeline {
 
     private var lutTextureId = 0
     private var lutActive = false
+    /** 真实 LUT 的强度，与用户可调的滤镜强度分开控制。 */
+    private var lutIntensity = 1f
     private var currentLutSize = 0
     private var currentLutRef: LutData? = null
 
@@ -65,6 +67,9 @@ class GlFramePipelineImpl : GlFramePipeline {
     override fun setPreset(preset: FilterPreset, intensity: Float) {
         this.preset = preset
         this.intensity = intensity.coerceIn(0f, 1f)
+        // 用户强度与预设默认强度相乘：例如「繁花如梦」默认 70%，
+        // 用户拉到 100% 时实际为 70%，拉到 0 时完全关闭 LUT。
+        this.lutIntensity = (this.intensity * preset.lutStrength).coerceIn(0f, 1f)
     }
 
     override fun setSuperResolutionEnabled(enabled: Boolean) {
@@ -157,20 +162,10 @@ class GlFramePipelineImpl : GlFramePipeline {
 
         val gradeTarget = GlUtil.ensureFramebuffer(gradeBuffer, inputWidth, inputHeight)
         gradeBuffer = gradeTarget
-        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, gradeTarget.framebufferId)
-        GLES20.glViewport(0, 0, inputWidth, inputHeight)
-        gradePass(oes).draw(
-            textureId,
-            textureMatrix,
-            if (stabilizationEnabled) stabilizationMatrix else GlUtil.IDENTITY_3X3,
-            if (stabilizationEnabled) stabilizationCrop else 1f,
-            if (outputHeight > 0) outputWidth.toFloat() / outputHeight.toFloat() else 1f,
-            1f,
-            grade,
-            intensity
-        )
-
-        var baseTexture = gradeTarget.textureId
+        // ── 处理顺序：LUT（真实 3D LUT）→ 参数调色 → 超分 → bloom/颗粒/暗角 ──
+        // 这样参数化调色可以叠加在真实 LUT 之上，而 LUT 滤镜的 grade 是恒等参数，
+        // 两者互不干扰。LUT 强度用 lutIntensity，与用户可调的 intensity 分开。
+        var baseTexture = textureId
         var baseWidth = inputWidth
         var baseHeight = inputHeight
 
@@ -182,15 +177,30 @@ class GlFramePipelineImpl : GlFramePipeline {
             val lutSize = currentLutSize
             val grid = ceil(sqrt(lutSize.toDouble())).toInt()
             ensureLut().draw(
-                gradeTarget.textureId,
+                textureId,
                 lutTextureId,
                 lutSize.toFloat(),
                 grid.toFloat(),
                 1f / (grid * lutSize),
-                intensity
+                lutIntensity
             )
             baseTexture = lutTarget.textureId
         }
+
+        // 参数调色（对 LUT 结果做二次微调）
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, gradeTarget.framebufferId)
+        GLES20.glViewport(0, 0, inputWidth, inputHeight)
+        gradePass(oes).draw(
+            baseTexture,
+            if (lutActive) GlUtil.IDENTITY_4X4 else textureMatrix,
+            if (stabilizationEnabled) stabilizationMatrix else GlUtil.IDENTITY_3X3,
+            if (stabilizationEnabled) stabilizationCrop else 1f,
+            if (outputHeight > 0) outputWidth.toFloat() / outputHeight.toFloat() else 1f,
+            1f,
+            grade,
+            intensity
+        )
+        baseTexture = gradeTarget.textureId
 
         if (superResolution && (outputWidth > inputWidth || outputHeight > inputHeight)) {
             val easuTarget = GlUtil.ensureFramebuffer(easuBuffer, outputWidth, outputHeight)

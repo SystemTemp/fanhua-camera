@@ -68,24 +68,25 @@ class FilterGradeTest {
     }
 
     @Test
-    fun `黑白滤镜输出三通道相等`() {
-        val monoPresets = presets.filter { it.monochrome }
-        assertTrue("应至少有一个黑白滤镜", monoPresets.isNotEmpty())
-        for (preset in monoPresets) {
+    fun `基于 LUT 的滤镜参数部分应为恒等`() {
+        // 真实 LUT 滤镜的调色完全由 LUT 负责，参数部分必须是恒等，
+        // 否则会与 LUT 叠加出偏差。
+        for (preset in presets.filter { it.usesRealLut }) {
             val grade = FilterGrade.of(preset)
-            val out = grade.apply(0.75f, 0.35f, 0.55f)
-            assertEquals("$preset 应输出中性灰", out[0], out[1], 0.02f)
-            assertEquals("$preset 应输出中性灰", out[1], out[2], 0.02f)
+            assertEquals("$preset 的对比度应为 1", 1f, grade.contrast, 0.0001f)
+            assertEquals("$preset 的饱和度应为 1", 1f, grade.saturation, 0.0001f)
+            assertEquals("$preset 的色温应为 0", 0f, grade.temperature, 0.0001f)
+            assertEquals("$preset 的颗粒应为 0", 0f, grade.grain, 0.0001f)
+            assertEquals("$preset 的暗角应为 0", 0f, grade.vignette, 0.0001f)
         }
     }
 
     @Test
-    fun `单色滤镜标记与饱和度参数一致`() {
+    fun `每个预设都有对应的调色参数`() {
         for (preset in presets) {
             val grade = FilterGrade.of(preset)
-            if (preset.monochrome) {
-                assertEquals("$preset 被标记为单色，饱和度必须为 0", 0f, grade.saturation, 0.0001f)
-            }
+            assertTrue("$preset 的对比度应在合理范围", grade.contrast in 0.1f..3f)
+            assertTrue("$preset 的饱和度应在合理范围", grade.saturation in 0f..2f)
         }
     }
 
@@ -108,7 +109,7 @@ class FilterGradeTest {
     fun `滤镜强度为 0 时输出应接近原图`() {
         // 强度 0 的语义由渲染层通过 mix(src, graded, intensity) 实现，
         // 这里验证 graded 与 src 混合后等于 src。
-        val grade = FilterGrade.of(FilterPreset.LEICA_MOMENT)
+        val grade = FilterGrade.of(FilterPreset.FUJI_CLASSIC)
         val src = floatArrayOf(0.4f, 0.6f, 0.3f)
         val graded = grade.apply(src[0], src[1], src[2])
         val intensity = 0f
@@ -120,7 +121,7 @@ class FilterGradeTest {
 
     @Test
     fun `对比度大于 1 的滤镜会拉开明暗差`() {
-        val grade = FilterGrade.of(FilterPreset.LEICA_BW_HC)
+        val grade = FilterGrade.of(FilterPreset.CINEMATIC)
         val dark = grade.apply(0.25f, 0.25f, 0.25f)[0]
         val bright = grade.apply(0.75f, 0.75f, 0.75f)[0]
         val originalGap = 0.75f - 0.25f
@@ -132,10 +133,11 @@ class FilterGradeTest {
     }
 
     @Test
-    fun `褪色参数为正的滤镜会抬升纯黑`() {
-        val grade = FilterGrade.of(FilterPreset.DREAM)
-        assertTrue("DREAM 应带褪色", grade.fade > 0.1f)
-        val black = grade.apply(0f, 0f, 0f)
-        assertTrue("褪色后纯黑应被抬升，实际 ${black[0]}", black[0] > 0.005f)
+    fun `褪色参数为正的滤镜会抬升中间调`() {
+        val grade = FilterGrade.of(FilterPreset.FILM_GRAIN)
+        assertTrue("FILM_GRAIN 应带褪色", grade.fade > 0.1f)
+        // 褪色（fade）把中间调往 0.5 拉，因此中灰应被提亮
+        val gray = grade.apply(0.3f, 0.3f, 0.3f)
+        assertTrue("褪色后中灰应被抬亮，实际 ${gray[0]}", gray[0] > 0.3f)
     }
 }

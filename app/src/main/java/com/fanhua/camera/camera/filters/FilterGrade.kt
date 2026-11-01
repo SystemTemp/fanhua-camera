@@ -202,177 +202,359 @@ data class FilterGrade(
                 vignette = 0f
             )
 
+            // DREAM 走真实 LUT（lut_effect_fbld），参数部分完全恒等，
+            // 避免与 LUT 叠加产生偏差。
             FilterPreset.DREAM -> FilterGrade(
-                contrast = 0.93f,
-                saturation = 1.08f,
-                temperature = 1f,
-                fade = 0.32f,
-                lift = floatArrayOf(0.038f, 0.019f, 0.030f),
-                gain = floatArrayOf(1.030f, 1.0f, 1.020f),
-                shadowTint = floatArrayOf(0.022f, -0.004f, 0.036f),
-                highlightTint = floatArrayOf(0.058f, 0.021f, 0.012f),
-                bloomStrength = 0.24f,
-                bloomThreshold = 0.82f,
-                grain = 0.030f,
-                vignette = 0.20f,
-                halation = 0.35f,
-                curveHighlight = 0.20f
-            )
-
-            FilterPreset.LEICA_MOMENT -> FilterGrade(
-                contrast = 1.19f,
-                saturation = 1.02f,
-                temperature = 0.30f,
-                fade = 0.03f,
-                lift = floatArrayOf(-0.012f, -0.010f, -0.006f),
-                gain = floatArrayOf(1.036f, 1.012f, 0.982f),
-                shadowTint = floatArrayOf(-0.006f, -0.004f, 0.016f),
-                highlightTint = floatArrayOf(0.040f, 0.026f, 0.008f),
-                bloomStrength = 0.07f,
-                bloomThreshold = 0.88f,
-                grain = 0.018f,
-                vignette = 0.34f,
-                clarity = 0.10f,
-                curveShadow = 0.22f,
-                curveHighlight = 0.12f
-            )
-
-            FilterPreset.LEICA_VIVID -> FilterGrade(
-                contrast = 1.14f,
-                saturation = 1.30f,
-                temperature = 0.12f,
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
                 fade = 0f,
-                lift = floatArrayOf(-0.012f, -0.010f, -0.008f),
-                gain = floatArrayOf(1.032f, 1.010f, 0.978f),
-                shadowTint = floatArrayOf(0f, 0.002f, 0.014f),
-                highlightTint = floatArrayOf(0.032f, 0.016f, 0f),
-                bloomStrength = 0.06f,
-                bloomThreshold = 0.90f,
-                grain = 0.012f,
-                vignette = 0.18f,
-                greenSat = 0.10f,
-                clarity = 0.08f
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
             )
 
-            FilterPreset.LEICA_NATURAL -> FilterGrade(
-                contrast = 1.06f,
-                saturation = 1.06f,
-                temperature = 0.04f,
-                fade = 0.02f,
-                lift = floatArrayOf(-0.004f, -0.004f, -0.002f),
-                gain = floatArrayOf(1.010f, 1.004f, 0.996f),
-                shadowTint = floatArrayOf(0f, 0.001f, 0.008f),
-                highlightTint = floatArrayOf(0.014f, 0.010f, 0.004f),
-                bloomStrength = 0.04f,
-                bloomThreshold = 0.92f,
-                grain = 0.008f,
-                vignette = 0.10f
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.LEICA_IA -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
             )
 
-            // 徕卡经典：低饱和、青绿暗部、暖金高光。
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
             FilterPreset.LEICA_CLASSIC -> FilterGrade(
-                contrast = 1.24f,
-                saturation = 0.94f,
-                temperature = 0.16f,
-                fade = 0.04f,
-                lift = floatArrayOf(-0.014f, -0.010f, -0.004f),
-                gain = floatArrayOf(1.028f, 1.014f, 0.984f),
-                shadowTint = floatArrayOf(-0.008f, 0.004f, 0.020f),
-                highlightTint = floatArrayOf(0.046f, 0.032f, 0.010f),
-                bloomStrength = 0.05f,
-                bloomThreshold = 0.90f,
-                grain = 0.022f,
-                vignette = 0.30f,
-                clarity = 0.12f,
-                curveShadow = 0.26f,
-                curveHighlight = 0.10f
-            )
-
-            FilterPreset.LEICA_MONO -> FilterGrade(
-                contrast = 1.22f,
-                saturation = 0f,
-                temperature = 0f,
-                fade = 0.04f,
-                lift = floatArrayOf(-0.008f, -0.008f, -0.008f),
-                gain = floatArrayOf(1.030f, 1.030f, 1.030f),
-                shadowTint = NEUTRAL,
-                highlightTint = NEUTRAL,
-                bloomStrength = 0.04f,
-                bloomThreshold = 0.92f,
-                grain = 0.040f,
-                vignette = 0.34f,
-                curveShadow = 0.16f,
-                curveHighlight = 0.14f
-            )
-
-            FilterPreset.LEICA_BW_HC -> FilterGrade(
-                contrast = 1.46f,
-                saturation = 0f,
+                contrast = 1f,
+                saturation = 1f,
                 temperature = 0f,
                 fade = 0f,
-                lift = floatArrayOf(-0.020f, -0.020f, -0.020f),
-                gain = floatArrayOf(1.060f, 1.060f, 1.060f),
+                lift = NEUTRAL,
+                gain = UNIT,
                 shadowTint = NEUTRAL,
                 highlightTint = NEUTRAL,
-                bloomStrength = 0.03f,
-                bloomThreshold = 0.94f,
-                grain = 0.062f,
-                vignette = 0.42f,
-                highlights = -0.16f,
-                clarity = 0.16f,
-                curveShadow = 0.34f
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
             )
 
-            FilterPreset.LEICA_BROWN -> FilterGrade(
-                contrast = 1.18f,
-                saturation = 0f,
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.LEICA_CHROME -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
                 temperature = 0f,
-                fade = 0.08f,
-                lift = floatArrayOf(-0.010f, -0.010f, -0.012f),
-                gain = floatArrayOf(1.024f, 1.020f, 1.010f),
-                shadowTint = floatArrayOf(0.052f, 0.030f, 0.008f),
-                highlightTint = floatArrayOf(0.062f, 0.046f, 0.022f),
-                bloomStrength = 0.05f,
-                bloomThreshold = 0.90f,
-                grain = 0.048f,
-                vignette = 0.34f,
-                halation = 0.18f
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
             )
 
-            FilterPreset.LEICA_BW_BLUE -> FilterGrade(
-                contrast = 1.26f,
-                saturation = 0f,
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.LEICA_CONTEMPORARY -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
                 temperature = 0f,
-                fade = 0.06f,
-                lift = floatArrayOf(-0.008f, -0.006f, -0.004f),
-                gain = floatArrayOf(1.020f, 1.028f, 1.036f),
-                shadowTint = floatArrayOf(0.002f, 0.022f, 0.052f),
-                highlightTint = floatArrayOf(0.010f, 0.030f, 0.058f),
-                bloomStrength = 0.04f,
-                bloomThreshold = 0.92f,
-                grain = 0.045f,
-                vignette = 0.32f,
-                curveShadow = 0.20f
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
             )
 
-            FilterPreset.LEICA_PORTRAIT -> FilterGrade(
-                contrast = 0.92f,
-                saturation = 0.88f,
-                temperature = 0.22f,
-                fade = 0.18f,
-                lift = floatArrayOf(0.020f, 0.010f, 0.004f),
-                gain = floatArrayOf(1.018f, 1.008f, 1.002f),
-                shadowTint = floatArrayOf(-0.002f, 0.004f, 0.014f),
-                highlightTint = floatArrayOf(0.030f, 0.024f, 0.016f),
-                bloomStrength = 0.14f,
-                bloomThreshold = 0.84f,
-                grain = 0.016f,
-                vignette = 0.16f,
-                halation = 0.22f,
-                curveHighlight = 0.16f
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.LEICA_ETERNAL -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
             )
 
-            // 富士正片：偏青的绿、暗部偏品红，高对比低饱和。
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.LEICA_BRASS -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
+            )
+
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.LEICA_TEAL -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
+            )
+
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.FILM_VIVID -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
+            )
+
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.FILM_CLASSIC -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
+            )
+
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.FILM_NATURE -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
+            )
+
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.FILM_NEUTRAL -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
+            )
+
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.FILM_FRESH -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
+            )
+
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.FILM_CLEAR -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
+            )
+
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.FILM_WHITENING -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
+            )
+
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.FILM_COLD_WHITE -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
+            )
+
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.FILM_BLACKGOLD -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
+            )
+
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.FILM_RED -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
+            )
+
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.FILM_TEAL_BLUE -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
+            )
+
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.FILM_HIGH_CONTRAST -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
+            )
+
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.FILM_TEXTURE -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
+            )
+
+            // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
+            FilterPreset.FILM_BW -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
+            )
+
             FilterPreset.FUJI_CLASSIC -> FilterGrade(
                 contrast = 1.18f,
                 saturation = 0.92f,

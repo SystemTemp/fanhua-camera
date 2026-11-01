@@ -6,52 +6,77 @@ import com.fanhua.camera.R
 /**
  * 滤镜预设。
  *
- * 滤镜分为四组，滤镜条按组呈现：
- * - 基础：原图、繁花如梦
- * - 徕卡：一瞬 / 鲜艳 / 自然 / 经典 / 单色 / 单色HC / 漂棕 / 单色蓝 / 人像
- * - 胶片：富士正片 / 柯达波特拉 / 胶片颗粒
- * - 视频：青橙电影 / 电影质感 / Apple Log / SDR 标准
- * - 自定义：导入的 .cube LUT
+ * 分四组：
+ * - **基础**：原图 / 繁花如梦（源自小米相机电影模式 LUT）
+ * - **徕卡**：源自「徕卡一瞬」App 的真实 3D LUT（`res/raw/lut_l_*.cube`）
+ * - **电影**：源自「徕卡一瞬」的其它真实 LUT（`lut_effect_*` / `lut_normal_*` / `lut_portrait_*`）
+ * - **风格**：本项目自研的参数化调色
+ *
+ * 带 [lutAsset] 的滤镜走真实 3D LUT 采样；为 null 的走 [FilterGrade] 参数化调色。
  */
-enum class FilterPreset(@StringRes val labelRes: Int) {
+enum class FilterPreset(
+    @StringRes val labelRes: Int,
+    /** res/raw 下的 .cube 资源名（不含扩展名），null 表示用参数化调色。 */
+    val lutAsset: String? = null,
+    /** 真实 LUT 的默认强度（1 = 100%）。 */
+    val lutStrength: Float = 1f
+) {
+    // ───────── 基础 ─────────
     ORIGINAL(R.string.filter_original),
-    DREAM(R.string.filter_dream),
+    DREAM(R.string.filter_dream, "lut_effect_fbld", 0.7f),
 
-    LEICA_MOMENT(R.string.filter_leica),
-    LEICA_VIVID(R.string.filter_leica_vivid),
-    LEICA_NATURAL(R.string.filter_leica_natural),
-    LEICA_CLASSIC(R.string.filter_leica_classic),
-    LEICA_MONO(R.string.filter_leica_mono),
-    LEICA_BW_HC(R.string.filter_leica_bw_hc),
-    LEICA_BROWN(R.string.filter_leica_brown),
-    LEICA_BW_BLUE(R.string.filter_leica_bw_blue),
-    LEICA_PORTRAIT(R.string.filter_leica_portrait),
+    // ───────── 徕卡 Looks（真实 LUT，来自徕卡一瞬 App 的 LC_* 系列） ─────────
+    LEICA_IA(R.string.filter_leica_ia, "lut_l_ia"),
+    LEICA_CLASSIC(R.string.filter_leica_classic, "lut_l_cls"),
+    LEICA_CHROME(R.string.filter_leica_chrome, "lut_l_chr"),
+    LEICA_CONTEMPORARY(R.string.filter_leica_contemporary, "lut_l_cnt"),
+    LEICA_ETERNAL(R.string.filter_leica_eternal, "lut_l_etn"),
+    LEICA_BRASS(R.string.filter_leica_brass, "lut_l_brs"),
+    LEICA_TEAL(R.string.filter_leica_teal, "lut_l_tel"),
 
+    // ───────── 电影 LUT（真实 LUT） ─────────
+    FILM_VIVID(R.string.filter_film_vivid, "lut_normal_distinct"),
+    FILM_CLASSIC(R.string.filter_film_classic, "lut_normal_classic"),
+    FILM_NATURE(R.string.filter_film_nature, "lut_normal_nature"),
+    FILM_NEUTRAL(R.string.filter_film_neutral, "lut_normal_neutral"),
+    FILM_FRESH(R.string.filter_film_fresh, "lut_normal_freshness"),
+    FILM_CLEAR(R.string.filter_film_clear, "lut_normal_clearness"),
+    FILM_WHITENING(R.string.filter_film_whitening, "lut_normal_whitening"),
+    FILM_COLD_WHITE(R.string.filter_film_cold_white, "lut_normal_cold_white"),
+    FILM_BLACKGOLD(R.string.filter_film_blackgold, "lut_normal_blackgold"),
+    FILM_RED(R.string.filter_film_red, "lut_effect_rh"),
+    FILM_TEAL_BLUE(R.string.filter_film_teal_blue, "lut_effect_tc"),
+    FILM_HIGH_CONTRAST(R.string.filter_film_high_contrast, "lut_portrait_style_high_contrast"),
+    FILM_TEXTURE(R.string.filter_film_texture, "lut_portrait_style_high_texture"),
+    FILM_BW(R.string.filter_film_bw, "lut_portrait_style_black_white"),
+
+    // ───────── 自研参数化 ─────────
     FUJI_CLASSIC(R.string.filter_fuji_classic),
     KODAK_PORTRA(R.string.filter_kodak_portra),
     FILM_GRAIN(R.string.filter_film_grain),
-
     TEAL_ORANGE(R.string.filter_teal_orange),
     CINEMATIC(R.string.filter_cinematic),
     APPLE_LOG(R.string.filter_apple_log),
     SDR(R.string.filter_sdr),
 
+    // ───────── 用户导入 ─────────
     CUSTOM_LUT(R.string.filter_custom_lut);
 
     val group: FilterGroup
         get() = when (this) {
             ORIGINAL, DREAM -> FilterGroup.BASIC
-            LEICA_MOMENT, LEICA_VIVID, LEICA_NATURAL, LEICA_CLASSIC, LEICA_MONO,
-            LEICA_BW_HC, LEICA_BROWN, LEICA_BW_BLUE, LEICA_PORTRAIT -> FilterGroup.LEICA
-            FUJI_CLASSIC, KODAK_PORTRA, FILM_GRAIN -> FilterGroup.FILM
-            TEAL_ORANGE, CINEMATIC, APPLE_LOG, SDR -> FilterGroup.VIDEO
+            LEICA_IA, LEICA_CLASSIC, LEICA_CHROME, LEICA_CONTEMPORARY,
+            LEICA_ETERNAL, LEICA_BRASS, LEICA_TEAL -> FilterGroup.LEICA
+            FILM_VIVID, FILM_CLASSIC, FILM_NATURE, FILM_NEUTRAL, FILM_FRESH,
+            FILM_CLEAR, FILM_WHITENING, FILM_COLD_WHITE, FILM_BLACKGOLD,
+            FILM_RED, FILM_TEAL_BLUE, FILM_HIGH_CONTRAST, FILM_TEXTURE, FILM_BW -> FilterGroup.FILM
+            FUJI_CLASSIC, KODAK_PORTRA, FILM_GRAIN, TEAL_ORANGE,
+            CINEMATIC, APPLE_LOG, SDR -> FilterGroup.STYLE
             CUSTOM_LUT -> FilterGroup.CUSTOM
         }
 
-    /** 黑白滤镜只保留亮度通道，可跳过饱和度/色相计算。 */
-    val monochrome: Boolean
-        get() = this == LEICA_MONO || this == LEICA_BW_HC ||
-            this == LEICA_BROWN || this == LEICA_BW_BLUE
+    /** 该滤镜是否基于真实 3D LUT。 */
+    val usesRealLut: Boolean get() = lutAsset != null
 
     companion object {
         fun fromKey(key: String?): FilterPreset = entries.firstOrNull { it.name == key } ?: DREAM
@@ -61,9 +86,9 @@ enum class FilterPreset(@StringRes val labelRes: Int) {
 }
 
 enum class FilterGroup(@StringRes val labelRes: Int) {
-    BASIC(R.string.filter_original),
+    BASIC(R.string.filter_group_basic),
     LEICA(R.string.filter_leica_group),
     FILM(R.string.filter_group_film),
-    VIDEO(R.string.mode_video),
+    STYLE(R.string.filter_group_style),
     CUSTOM(R.string.filter_custom_lut)
 }

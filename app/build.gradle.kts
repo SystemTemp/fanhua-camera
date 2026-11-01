@@ -17,8 +17,10 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        // 必须显式列出 zh-rCN：只写 "zh" 会让 AAPT 过滤掉 values-zh-rCN，
+        // 导致简体设备找不到精确匹配而回退到 zh-rTW（显示繁体）。
         resourceConfigurations += listOf(
-            "zh", "zh-rTW", "en", "ja", "ko", "es", "fr", "de", "ru"
+            "zh", "zh-rCN", "zh-rTW", "en", "ja", "ko", "es", "fr", "de", "ru"
         )
     }
 

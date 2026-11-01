@@ -548,6 +548,11 @@ private fun FilterSwatch(
     modifier: Modifier = Modifier
 ) {
     val grade = remember(preset) { FilterGrade.of(preset) }
+    // 真实 LUT 滤镜：直接用 LUT 采样色块，保证色卡与实际出片完全一致
+    val ctx = LocalContext.current
+    val lut = remember(preset, ctx) {
+        preset.lutAsset?.let { com.fanhua.camera.lut.LutStore.parseFromRaw(ctx, it) }
+    }
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
@@ -570,11 +575,14 @@ private fun FilterSwatch(
             }
             for (col in 0 until steps) {
                 val base = col * 3
-                val out = grade.apply(
-                    hues[base] * level,
-                    hues[base + 1] * level,
-                    hues[base + 2] * level
-                )
+                val r = hues[base] * level
+                val g = hues[base + 1] * level
+                val b = hues[base + 2] * level
+                val out = if (lut != null) {
+                    sampleLut(lut, r, g, b)
+                } else {
+                    grade.apply(r, g, b)
+                }
                 drawRect(
                     color = Color(out[0], out[1], out[2]),
                     topLeft = Offset(col * cellW, row * cellH),
@@ -1390,4 +1398,55 @@ private fun formatDuration(durationMs: Long): String {
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
     return String.format(Locale.US, "%02d:%02d", minutes, seconds)
+}
+
+
+/**
+ * 对内置 3D LUT 做三线性采样，返回 0..1 的 RGB。
+ *
+ * 数据布局与 .cube 一致：索引 = (b*size + g)*size + r，R 变化最快。
+ */
+private fun sampleLut(
+    lut: com.fanhua.camera.lut.LutData,
+    r: Float,
+    g: Float,
+    b: Float
+): FloatArray {
+    val n = lut.size
+    val last = (n - 1).toFloat()
+    val fr = (r.coerceIn(0f, 1f)) * last
+    val fg = (g.coerceIn(0f, 1f)) * last
+    val fb = (b.coerceIn(0f, 1f)) * last
+    val r0 = fr.toInt().coerceIn(0, n - 1)
+    val g0 = fg.toInt().coerceIn(0, n - 1)
+    val b0 = fb.toInt().coerceIn(0, n - 1)
+    val r1 = (r0 + 1).coerceAtMost(n - 1)
+    val g1 = (g0 + 1).coerceAtMost(n - 1)
+    val b1 = (b0 + 1).coerceAtMost(n - 1)
+    val tr = fr - r0
+    val tg = fg - g0
+    val tb = fb - b0
+
+    fun at(rr: Int, gg: Int, bb: Int): FloatArray {
+        val idx = ((bb * n + gg) * n + rr) * 3
+        if (idx + 2 >= lut.data.size) return floatArrayOf(0f, 0f, 0f)
+        return floatArrayOf(lut.data[idx], lut.data[idx + 1], lut.data[idx + 2])
+    }
+
+    val c000 = at(r0, g0, b0); val c100 = at(r1, g0, b0)
+    val c010 = at(r0, g1, b0); val c110 = at(r1, g1, b0)
+    val c001 = at(r0, g0, b1); val c101 = at(r1, g0, b1)
+    val c011 = at(r0, g1, b1); val c111 = at(r1, g1, b1)
+
+    val out = FloatArray(3)
+    for (k in 0..2) {
+        val c00 = c000[k] + (c100[k] - c000[k]) * tr
+        val c10 = c010[k] + (c110[k] - c010[k]) * tr
+        val c01 = c001[k] + (c101[k] - c001[k]) * tr
+        val c11 = c011[k] + (c111[k] - c011[k]) * tr
+        val c0 = c00 + (c10 - c00) * tg
+        val c1 = c01 + (c11 - c01) * tg
+        out[k] = c0 + (c1 - c0) * tb
+    }
+    return out
 }

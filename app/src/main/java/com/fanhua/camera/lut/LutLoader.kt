@@ -79,3 +79,49 @@ object LutLoader {
         return LutData(size, data, min, max)
     }
 }
+
+
+/**
+ * 二进制 LUT（`.lut`）的解析器。
+ *
+ * 格式：头部 4 字节大端 int32 = 网格边长 N，其后紧跟 N³ × 3 个字节（RGB888），
+ * 索引顺序与 .cube 一致：R 变化最快，其次 G，最后 B。
+ *
+ * 之所以用二进制而不是 .cube 文本：同样的 33³ LUT，
+ * 文本约 750KB（APK 压缩后仍很大），二进制只要 107KB。
+ */
+object BinaryLutLoader {
+
+    /** 解析二进制 LUT 数据。 */
+    fun parse(bytes: ByteArray): LutData? {
+        if (bytes.size < 4) return null
+        val size = ((bytes[0].toInt() and 0xFF) shl 24) or
+            ((bytes[1].toInt() and 0xFF) shl 16) or
+            ((bytes[2].toInt() and 0xFF) shl 8) or
+            (bytes[3].toInt() and 0xFF)
+        if (size !in 2..128) return null
+        val expected = 4 + size * size * size * 3
+        if (bytes.size < expected) return null
+        val data = FloatArray(size * size * size * 3)
+        var src = 4
+        for (i in data.indices) {
+            data[i] = (bytes[src].toInt() and 0xFF) / 255f
+            src++
+        }
+        return LutData(size, data)
+    }
+
+    /** 生成二进制 LUT（供构建期使用）。 */
+    fun encode(size: Int, data: FloatArray): ByteArray {
+        val out = ByteArray(4 + size * size * size * 3)
+        out[0] = (size ushr 24).toByte()
+        out[1] = (size ushr 16).toByte()
+        out[2] = (size ushr 8).toByte()
+        out[3] = size.toByte()
+        var dst = 4
+        for (v in data) {
+            out[dst++] = (v * 255f).toInt().coerceIn(0, 255).toByte()
+        }
+        return out
+    }
+}

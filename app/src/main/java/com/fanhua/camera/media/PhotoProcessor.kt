@@ -104,7 +104,7 @@ class PhotoProcessor(private val context: Context) {
      * @param upscale 是否超分放大（长边上限 [MAX_SUPER_RES_EDGE]）
      * @param aspect 照片画幅，[PhotoAspect.FULL] 表示不裁切
      * @param mirror 前置镜像，true 时水平翻转（在旋转之后、裁切之前）
-     * @param watermark 徕卡相框开关；false 时即使是 LEICA_MOMENT 也不加相框
+     * @param watermark 徕卡相框开关；false 时即使是徕卡组滤镜也不加相框
      */
     fun process(
         source: File,
@@ -225,7 +225,7 @@ class PhotoProcessor(private val context: Context) {
 
             // 7) 徕卡相框（受水印开关控制）
             var result = readback
-            if (watermark && preset == FilterPreset.LEICA_MOMENT) {
+            if (watermark && preset.group == com.fanhua.camera.camera.filters.FilterGroup.LEICA) {
                 val framed = try {
                     drawLeicaFrame(result, readExifInfo(source))
                 } catch (e: Exception) {

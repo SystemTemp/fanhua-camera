@@ -150,7 +150,7 @@ class CameraXEngine(
                 preset,
                 stored.filterIntensity,
                 false,
-                lut = if (preset == FilterPreset.CUSTOM_LUT) LutStore.cached else null
+                lut = resolveLut(preset)
             )
             _state.update {
                 it.copy(
@@ -828,7 +828,7 @@ class CameraXEngine(
     override fun setPreset(preset: FilterPreset) {
         renderState = renderState.copy(
             preset = preset,
-            lut = if (preset == FilterPreset.CUSTOM_LUT) LutStore.cached else null
+            lut = resolveLut(preset)
         )
         _state.update { it.copy(preset = preset) }
         scope.launch { settings.setPreset(preset.name) }
@@ -839,6 +839,24 @@ class CameraXEngine(
         renderState = renderState.copy(intensity = value)
         _state.update { it.copy(filterIntensity = value) }
         scope.launch { settings.setFilterIntensity(value) }
+    }
+
+    /**
+     * 解析当前预设对应的 LUT。
+     *
+     * - 带 [FilterPreset.lutAsset] 的预设：加载 res/raw 下的内置真实 LUT
+     * - CUSTOM_LUT：使用用户导入的 LUT
+     * - 其余：null（纯参数化调色）
+     */
+    private fun resolveLut(preset: FilterPreset): com.fanhua.camera.lut.LutData? {
+        return when {
+            preset.lutAsset != null -> {
+                LutStore.selectBuiltin(context, preset.lutAsset)
+                LutStore.cached
+            }
+            preset == FilterPreset.CUSTOM_LUT -> LutStore.cached
+            else -> null
+        }
     }
 
     override fun setStabilizationEnabled(enabled: Boolean) {
