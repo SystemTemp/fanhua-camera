@@ -30,6 +30,12 @@ jobs:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
           set -e
+          # 令牌缺失时必须明确失败：否则后续步骤会静默跳过，
+          # 表现为「Release 建好了但版本通道没更新」，应用内检查更新永远看不到新版本。
+          if [ -z "$GITEE_TOKEN" ]; then
+            echo "::error::缺少 secrets.GITEE_TOKEN，无法同步到 Gitee"
+            exit 1
+          fi
           CURL="curl -s --retry 3 --retry-delay 5 --connect-timeout 20"
           EXISTS=$($CURL "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases/tags/$TAG_NAME?access_token=$GITEE_TOKEN")
           RID=$(echo "$EXISTS" | python3 -c "
@@ -90,5 +96,18 @@ jobs:
               body['sha'] = os.environ['SHA']
           print(json.dumps(body))
           ")
-          $CURL -X PUT "https://gitee.com/api/v5/repos/TDSI/file/contents/fanhua/version.json" -H "Content-Type: application/json;charset=UTF-8" -d "$PAYLOAD"
-          echo
+          RESULT=$($CURL -X PUT "https://gitee.com/api/v5/repos/TDSI/file/contents/fanhua/version.json" -H "Content-Type: application/json;charset=UTF-8" -d "$PAYLOAD")
+          echo "$RESULT"
+          # 回读校验：确认版本通道真的写进去了，而不是只看到 200 就以为成功
+          ACTUAL=$($CURL "https://gitee.com/TDSI/file/raw/master/fanhua/version.json" | python3 -c "import json,sys
+          try:
+              print(json.load(sys.stdin).get('version',''))
+          except Exception:
+              print('')
+          ")
+          echo "version.json 当前版本: $ACTUAL"
+          if [ "$ACTUAL" != "${TAG_NAME#v}" ]; then
+            echo "::error::版本通道更新失败，期望 ${TAG_NAME#v}，实际 '$ACTUAL'"
+            exit 1
+          fi
+          echo "version.json 已更新到 $ACTUAL"
