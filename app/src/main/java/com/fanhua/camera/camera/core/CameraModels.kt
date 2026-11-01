@@ -12,6 +12,21 @@ enum class CaptureMode(@StringRes val labelRes: Int) {
     SUPER_RES(R.string.mode_superres)
 }
 
+/**
+ * 徕卡水印模式（参照「相机整合」徕卡一瞬包，支持多种可切换）。
+ *
+ * - [OFF]：不加任何水印；
+ * - [FRAME]：白边画框（徕卡 92 号，水印在照片外部，照片被白色边框包围）；
+ * - [EMBEDDED]：照片内叠加水印（标准 7 号，品牌 logo + 机型 + 时间叠在画面底部）。
+ *
+ * 仅当滤镜属于 [com.fanhua.camera.camera.filters.FilterGroup.LEICA] 组时才生效。
+ */
+enum class WatermarkMode(@StringRes val labelRes: Int) {
+    OFF(R.string.watermark_off),
+    FRAME(R.string.watermark_frame),
+    EMBEDDED(R.string.watermark_embedded)
+}
+
 enum class FlashMode(@StringRes val labelRes: Int) {
     AUTO(R.string.flash_auto),
     ON(R.string.flash_on),
@@ -162,7 +177,7 @@ data class CameraUiState(
     /** 自动构图是否正在计算。 */
     val autoComposing: Boolean = false,
     val mirrorSelfie: Boolean = false,
-    val watermarkEnabled: Boolean = true,
+    val watermarkMode: WatermarkMode = WatermarkMode.FRAME,
     val shutterSoundEnabled: Boolean = true,
     val busy: Boolean = false,
     val statusMessage: StatusMessage? = null,
@@ -171,4 +186,7 @@ data class CameraUiState(
 ) {
     /** 是否可用物理闪光灯（前置通常没有）。 */
     val flashAvailable: Boolean get() = !frontCamera
+
+    /** 派生布尔：是否启用水印（OFF 之外都算启用），便于兼容旧引用。 */
+    val watermarkEnabled: Boolean get() = watermarkMode != WatermarkMode.OFF
 }

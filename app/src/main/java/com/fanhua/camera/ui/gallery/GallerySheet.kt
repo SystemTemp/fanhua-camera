@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
@@ -42,6 +43,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -64,6 +66,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.fanhua.camera.R
 import com.fanhua.camera.camera.core.CameraController
@@ -76,9 +79,6 @@ import com.fanhua.camera.ui.common.FanhuaIcons
 import com.fanhua.camera.ui.common.HyperConfirmDialog
 import com.fanhua.camera.ui.common.HyperSheet
 import com.fanhua.camera.ui.common.SheetHeader
-import com.fanhua.camera.ui.theme.FanhuaGold
-import com.fanhua.camera.ui.theme.FanhuaStroke
-import com.fanhua.camera.ui.theme.FanhuaTextDim
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -88,9 +88,14 @@ import kotlin.math.roundToLong
 /** 每页条数：首次 60，滚到底部再加载 60。 */
 private const val PAGE_SIZE = 60
 
-/** 选中态描边色，与 HyperOS 金色保持一致。 */
-private val SelectedStroke = Color(0xFFFFC53D)
-
+/**
+ * 相册面板：Google Material 3 风格。
+ *
+ * 视觉要点：
+ * - 网格项 12dp 圆角，选中态 primary 2dp 描边（原先的金色描边已移除）；
+ * - 视频角标 / 播放图标用中性黑底 + primary 图标；
+ * - 预览区 20dp 圆角，操作区主按钮 primary 填充、次按钮描边、删除用 error 色。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GallerySheet(
@@ -144,7 +149,7 @@ fun GallerySheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 18.dp)
+                .padding(horizontal = 20.dp)
         ) {
             if (entries.isEmpty() && loadedOnce && !loading) {
                 Box(
@@ -155,7 +160,7 @@ fun GallerySheet(
                 ) {
                     Text(
                         text = stringResource(R.string.gallery_empty),
-                        color = FanhuaTextDim,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -195,7 +200,7 @@ fun GallerySheet(
                             ) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
-                                    color = FanhuaGold,
+                                    color = MaterialTheme.colorScheme.primary,
                                     strokeWidth = 2.dp
                                 )
                             }
@@ -203,7 +208,7 @@ fun GallerySheet(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 
@@ -294,6 +299,8 @@ fun GallerySheet(
             message = stringResource(R.string.confirm_delete_message),
             confirmText = stringResource(R.string.action_confirm),
             dismissText = stringResource(R.string.action_cancel),
+            // 删除是不可恢复的危险操作，主按钮用 error 色
+            destructive = true,
             onConfirm = {
                 confirmDelete = false
                 scope.launch {
@@ -337,7 +344,7 @@ private fun PreviewSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 18.dp)
+                .padding(horizontal = 20.dp)
         ) {
             AnimatedContent(
                 targetState = index,
@@ -397,12 +404,10 @@ private fun PreviewSheet(
                     repository = repository
                 )
             }
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(20.dp))
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (entry.isVideo) {
                     FanhuaButton(
@@ -428,19 +433,20 @@ private fun PreviewSheet(
                 )
             }
             Spacer(modifier = Modifier.height(10.dp))
+            // 删除：文字按钮 + error 色，符合 Material 3 危险操作规范
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
             ) {
-                FanhuaButton(
-                    text = stringResource(R.string.delete),
-                    onClick = onDelete,
-                    style = FanhuaButtonStyle.Outline,
-                    modifier = Modifier.weight(1f)
-                )
+                TextButton(onClick = onDelete) {
+                    Text(
+                        text = stringResource(R.string.delete),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
             }
-            Spacer(modifier = Modifier.height(22.dp))
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
@@ -476,8 +482,8 @@ private fun PreviewImage(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(max = 420.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color(0x14FFFFFF)),
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center
     ) {
         val bitmap = image ?: videoThumb
@@ -500,14 +506,14 @@ private fun PreviewImage(
                     modifier = Modifier
                         .size(56.dp)
                         .clip(CircleShape)
-                        .background(Color(0x99000000)),
+                        .background(Color.Black.copy(alpha = 0.6f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = FanhuaIcons.Play,
                         contentDescription = null,
-                        tint = FanhuaGold,
-                        modifier = Modifier.size(26.dp)
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             }
@@ -515,13 +521,16 @@ private fun PreviewImage(
             Icon(
                 imageVector = if (entry.isVideo) FanhuaIcons.Play else FanhuaIcons.Gallery,
                 contentDescription = null,
-                tint = FanhuaTextDim,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(48.dp)
             )
         }
     }
 }
 
+/**
+ * 网格单元：12dp 圆角，选中态 primary 2dp 描边，未选中无描边。
+ */
 @Composable
 private fun GalleryCell(
     entry: MediaEntry,
@@ -534,16 +543,17 @@ private fun GalleryCell(
             repository.loadThumbnail(entry.uri, entry.isVideo, 320)?.asImageBitmap()
         }
     }
+    val shape = RoundedCornerShape(12.dp)
     Box(
         modifier = Modifier
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0x1AFFFFFF))
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .then(
                 if (selected) {
-                    Modifier.border(2.dp, SelectedStroke, RoundedCornerShape(14.dp))
+                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary, shape)
                 } else {
-                    Modifier.border(1.dp, FanhuaStroke, RoundedCornerShape(14.dp))
+                    Modifier
                 }
             )
             .clickable(onClick = onClick),
@@ -563,8 +573,8 @@ private fun GalleryCell(
             Icon(
                 imageVector = if (entry.isVideo) FanhuaIcons.Play else FanhuaIcons.Gallery,
                 contentDescription = null,
-                tint = FanhuaTextDim,
-                modifier = Modifier.size(22.dp)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
             )
         }
         if (entry.isVideo) {
@@ -573,16 +583,16 @@ private fun GalleryCell(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(6.dp)
-                    .size(18.dp)
+                    .size(20.dp)
                     .clip(CircleShape)
-                    .background(Color(0xB3000000)),
+                    .background(Color.Black.copy(alpha = 0.6f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = FanhuaIcons.Play,
                     contentDescription = null,
-                    tint = FanhuaGold,
-                    modifier = Modifier.size(10.dp)
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(12.dp)
                 )
             }
             // 时长角标（右下）
@@ -591,12 +601,13 @@ private fun GalleryCell(
                     text = formatDuration(entry.durationMs),
                     color = Color.White,
                     style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(6.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(Color(0xB3000000))
-                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                        .background(Color.Black.copy(alpha = 0.6f))
+                        .padding(horizontal = 5.dp, vertical = 2.dp)
                 )
             }
         }

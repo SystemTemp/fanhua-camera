@@ -73,7 +73,9 @@
     <string name="settings_photo_aspect_desc">ファインダーで見たままを保存し、選択した比率で中央をトリミングします</string>
     <string name="settings_mirror">自撮りミラー</string>
     <string name="settings_mirror_desc">フロントカメラで左右反転し、プレビューと同じ向きで保存します</string>
-    <string name="settings_watermark">ライカフレーム</string>
+    <string name="settings_watermark">
+    <string name="watermark_off">オフ</string>\n    <string name="watermark_frame">白枠</string>\n    <string name="watermark_embedded">写真内配置</string>
+ライカフレーム</string>
     <string name="settings_watermark_desc">「ライカの瞬間」フィルター使用時にブランドフレームと撮影情報を重ねます</string>
     <string name="settings_shutter_sound">シャッター音</string>
     <string name="settings_shutter_sound_desc">撮影時にシステムのシャッター音を再生します</string>

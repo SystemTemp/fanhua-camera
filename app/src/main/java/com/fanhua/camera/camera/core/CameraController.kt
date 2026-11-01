@@ -54,6 +54,8 @@ interface CameraController {
     fun setPhotoAspect(aspect: PhotoAspect)
     fun setMirrorSelfie(enabled: Boolean)
     fun setWatermarkEnabled(enabled: Boolean)
+    /** 三态水印模式：OFF / FRAME（白边画框）/ EMBEDDED（照片内叠加）。 */
+    fun setWatermarkMode(mode: WatermarkMode)
     fun setShutterSoundEnabled(enabled: Boolean)
     fun selectSpec(spec: OutputSpec)
     fun tapToFocus(x: Float, y: Float)

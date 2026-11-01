@@ -73,7 +73,9 @@
     <string name="settings_photo_aspect_desc">Ce que vous voyez est ce que vous obtenez : la photo est recadrée au centre selon le format choisi</string>
     <string name="settings_mirror">Miroir en selfie</string>
     <string name="settings_mirror_desc">Retourne l\'image horizontalement avec la caméra frontale pour rester fidèle à l\'aperçu</string>
-    <string name="settings_watermark">Cadre Leica</string>
+    <string name="settings_watermark">
+    <string name="watermark_off">Désactivé</string>\n    <string name="watermark_frame">Cadre à bord blanc</string>\n    <string name="watermark_embedded">Incrusté dans la photo</string>
+Cadre Leica</string>
     <string name="settings_watermark_desc">Superpose le cadre de marque et les paramètres de prise de vue avec le filtre Instant Leica</string>
     <string name="settings_shutter_sound">Son de l\'obturateur</string>
     <string name="settings_shutter_sound_desc">Joue le son d\'obturateur du système lors de la prise de vue</string>

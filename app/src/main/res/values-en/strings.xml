@@ -73,7 +73,9 @@
     <string name="settings_photo_aspect_desc">What you see is what you get — the saved photo is center-cropped to the selected ratio</string>
     <string name="settings_mirror">Mirror selfie</string>
     <string name="settings_mirror_desc">Flip horizontally when using the front camera to match the preview</string>
-    <string name="settings_watermark">Leica frame</string>
+    <string name="settings_watermark">
+    <string name="watermark_off">Off</string>\n    <string name="watermark_frame">White border frame</string>\n    <string name="watermark_embedded">In-photo overlay</string>
+Leica frame</string>
     <string name="settings_watermark_desc">Overlay the branded frame and shooting parameters when using the Leica Moment filter</string>
     <string name="settings_shutter_sound">Shutter sound</string>
     <string name="settings_shutter_sound_desc">Play the system shutter sound when taking a photo</string>

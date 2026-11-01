@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.fanhua.camera.camera.core.PhotoAspect
+import com.fanhua.camera.camera.core.WatermarkMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -27,7 +28,7 @@ data class AppSettings(
     val timerSeconds: Int = 0,
     val photoAspectKey: String = PhotoAspect.FULL.name,
     val mirrorSelfie: Boolean = false,
-    val watermarkEnabled: Boolean = true,
+    val watermarkMode: String = WatermarkMode.FRAME.name,
     val shutterSoundEnabled: Boolean = true
 )
 
@@ -46,7 +47,7 @@ class SettingsRepository(private val context: Context) {
     private val keyTimer = intPreferencesKey("timer")
     private val keyAspect = stringPreferencesKey("photo_aspect")
     private val keyMirror = booleanPreferencesKey("mirror_selfie")
-    private val keyWatermark = booleanPreferencesKey("watermark")
+    private val keyWatermark = stringPreferencesKey("watermark")
     private val keyShutterSound = booleanPreferencesKey("shutter_sound")
 
     val settings: Flow<AppSettings> = context.settingsDataStore.data.map { prefs ->
@@ -64,7 +65,12 @@ class SettingsRepository(private val context: Context) {
             timerSeconds = prefs[keyTimer] ?: 0,
             photoAspectKey = prefs[keyAspect] ?: PhotoAspect.FULL.name,
             mirrorSelfie = prefs[keyMirror] ?: false,
-            watermarkEnabled = prefs[keyWatermark] ?: true,
+            // 水印模式以枚举名字符串持久化；旧版本若该 key 不存在则默认开启画框水印
+            watermarkMode = run {
+                val raw = prefs[keyWatermark]
+                WatermarkMode.entries.firstOrNull { it.name == raw }?.name
+                    ?: WatermarkMode.FRAME.name
+            },
             shutterSoundEnabled = prefs[keyShutterSound] ?: true
         )
     }
@@ -121,8 +127,13 @@ class SettingsRepository(private val context: Context) {
         context.settingsDataStore.edit { it[keyMirror] = value }
     }
 
+    suspend fun setWatermarkMode(value: WatermarkMode) {
+        context.settingsDataStore.edit { it[keyWatermark] = value.name }
+    }
+
+    /** 兼容旧调用方：布尔开关映射到三态（开→FRAME，关→OFF）。 */
     suspend fun setWatermarkEnabled(value: Boolean) {
-        context.settingsDataStore.edit { it[keyWatermark] = value }
+        setWatermarkMode(if (value) WatermarkMode.FRAME else WatermarkMode.OFF)
     }
 
     suspend fun setShutterSoundEnabled(value: Boolean) {

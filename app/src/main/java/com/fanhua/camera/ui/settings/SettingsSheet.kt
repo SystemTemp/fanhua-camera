@@ -5,8 +5,8 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,10 +22,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,13 +43,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fanhua.camera.R
 import com.fanhua.camera.camera.core.CameraController
 import com.fanhua.camera.camera.core.CapabilityReport
 import com.fanhua.camera.camera.core.PhotoAspect
+import com.fanhua.camera.camera.core.WatermarkMode
 import com.fanhua.camera.camera.filters.FilterPreset
 import com.fanhua.camera.data.LocaleManager
 import com.fanhua.camera.data.SettingsRepository
@@ -65,11 +72,6 @@ import com.fanhua.camera.ui.common.SelectableRow
 import com.fanhua.camera.ui.common.SheetHeader
 import com.fanhua.camera.ui.common.ToggleRow
 import com.fanhua.camera.ui.common.ValueRow
-import com.fanhua.camera.ui.theme.FanhuaGold
-import com.fanhua.camera.ui.theme.FanhuaRose
-import com.fanhua.camera.ui.theme.FanhuaStroke
-import com.fanhua.camera.ui.theme.FanhuaText
-import com.fanhua.camera.ui.theme.FanhuaTextDim
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -78,7 +80,12 @@ import java.util.Locale
 
 /**
  * 设置页。分组顺序：
- * 界面语言 → 拍摄 → 影像 → 设备能力 → LUT 滤镜 → 调试模式 → 关于 → 恢复默认设置。
+ * 界面语言 → 拍摄 → 影像 → AI 自动构图 → 设备能力 → LUT 滤镜 → 调试模式 → 关于 → 恢复默认设置。
+ *
+ * 视觉为 Google Material 3 设置页风格：
+ * - 分组卡片（20dp 圆角、surfaceVariant 底、无描边）
+ * - 组内分隔线 outlineVariant，组间留白 24dp
+ * - Switch / Slider 用 Material 3 默认样式，强调色 primary
  */
 @Composable
 fun SettingsSheet(
@@ -134,7 +141,7 @@ fun SettingsSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 18.dp)
+                .padding(horizontal = 20.dp)
         ) {
             // ---------- 1. 界面语言 ----------
             SectionHeader(stringResource(R.string.settings_language))
@@ -161,23 +168,23 @@ fun SettingsSheet(
             }
 
             // ---------- 2. 拍摄 ----------
-            Spacer(modifier = Modifier.height(20.dp))
+            SectionSpacer()
             SectionHeader(stringResource(R.string.settings_capture))
             HyperGroup {
                 // 照片画幅：4 个胶囊横向分段控件，比 4 行列表更省空间
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                     Text(
                         text = stringResource(R.string.settings_photo_aspect),
-                        color = FanhuaText,
+                        color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.bodyLarge
                     )
-                    Spacer(modifier = Modifier.height(3.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = stringResource(R.string.settings_photo_aspect_desc),
-                        color = FanhuaTextDim,
-                        style = MaterialTheme.typography.labelSmall
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     AspectSegment(
                         selected = state.photoAspect,
                         onSelect = controller::setPhotoAspect
@@ -191,12 +198,20 @@ fun SettingsSheet(
                     onCheckedChange = controller::setMirrorSelfie
                 )
                 GroupDivider()
-                ToggleRow(
-                    title = stringResource(R.string.settings_watermark),
-                    description = stringResource(R.string.settings_watermark_desc),
-                    checked = state.watermarkEnabled,
-                    onCheckedChange = controller::setWatermarkEnabled
+                // 徕卡水印：三态可切换（关 / 白边画框 / 照片内叠加）
+                Text(
+                    text = stringResource(R.string.settings_watermark),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 4.dp)
                 )
+                WatermarkMode.entries.forEach { mode ->
+                    SelectableRow(
+                        label = stringResource(mode.labelRes),
+                        selected = state.watermarkMode == mode,
+                        onClick = { controller.setWatermarkMode(mode) }
+                    )
+                }
                 GroupDivider()
                 ToggleRow(
                     title = stringResource(R.string.settings_shutter_sound),
@@ -207,32 +222,34 @@ fun SettingsSheet(
             }
 
             // ---------- 3. 影像 ----------
-            Spacer(modifier = Modifier.height(20.dp))
+            SectionSpacer()
             SectionHeader(stringResource(R.string.settings_image))
             HyperGroup {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                    Text(
-                        text = stringResource(R.string.settings_filter_intensity),
-                        color = FanhuaText,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Slider(
-                            value = state.filterIntensity,
-                            onValueChange = controller::setFilterIntensity,
-                            valueRange = 0f..1f,
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = stringResource(R.string.settings_filter_intensity),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.weight(1f)
                         )
-                        Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = "${(state.filterIntensity * 100).toInt()}%",
-                            color = FanhuaGold,
-                            style = MaterialTheme.typography.labelMedium
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelLarge
                         )
                     }
+                    // Material 3 滑块：轨道 primary，滑块白色
+                    Slider(
+                        value = state.filterIntensity,
+                        onValueChange = controller::setFilterIntensity,
+                        valueRange = 0f..1f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = MaterialTheme.colorScheme.primary,
+                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                            inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant
+                        )
+                    )
                 }
                 GroupDivider()
                 ToggleRow(
@@ -264,34 +281,28 @@ fun SettingsSheet(
                 )
             }
 
-            // ---------- 3.5 AI 自动构图模型 ----------
-            Spacer(modifier = Modifier.height(20.dp))
+            // ---------- 3.5 AI 自动构图模型（波浪进度条在此，逻辑不动） ----------
+            SectionSpacer()
             DetectorSection(controller = controller)
 
             // ---------- 4. 设备能力 ----------
-            Spacer(modifier = Modifier.height(20.dp))
+            SectionSpacer()
             SectionHeader(stringResource(R.string.settings_capability))
             HyperGroup {
                 CapabilityRows(capability)
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.settings_capability_desc),
-                color = FanhuaTextDim,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(horizontal = 6.dp)
-            )
+            HintText(stringResource(R.string.settings_capability_desc))
 
             // ---------- 5. LUT 滤镜 ----------
-            Spacer(modifier = Modifier.height(20.dp))
+            SectionSpacer()
             SectionHeader(stringResource(R.string.settings_lut))
             HyperGroup {
                 if (lutNames.isEmpty()) {
                     Text(
                         text = stringResource(R.string.lut_none),
-                        color = FanhuaTextDim,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
                     )
                 } else {
                     lutNames.forEachIndexed { index, name ->
@@ -321,14 +332,8 @@ fun SettingsSheet(
                     }
                 }
             }
+            HintText(stringResource(R.string.settings_lut_desc))
             Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.settings_lut_desc),
-                color = FanhuaTextDim,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(horizontal = 6.dp)
-            )
-            Spacer(modifier = Modifier.height(10.dp))
             FanhuaButton(
                 text = stringResource(R.string.lut_import),
                 onClick = {
@@ -340,18 +345,10 @@ fun SettingsSheet(
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = FanhuaIcons.ArrowDown
             )
-            lutNote?.let { note ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = note,
-                    color = FanhuaGold,
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(horizontal = 6.dp)
-                )
-            }
+            lutNote?.let { note -> NoteText(note) }
 
             // ---------- 6. 调试模式 ----------
-            Spacer(modifier = Modifier.height(20.dp))
+            SectionSpacer()
             SectionHeader(stringResource(R.string.settings_debug))
             HyperGroup {
                 ToggleRow(
@@ -366,17 +363,9 @@ fun SettingsSheet(
                     }
                 )
             }
-            debugNote?.let { note ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = note,
-                    color = FanhuaGold,
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(horizontal = 6.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            debugNote?.let { note -> NoteText(note) }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 FanhuaButton(
                     text = stringResource(R.string.debug_copy_log),
                     onClick = {
@@ -403,7 +392,7 @@ fun SettingsSheet(
             }
 
             // ---------- 7. 关于 ----------
-            Spacer(modifier = Modifier.height(20.dp))
+            SectionSpacer()
             SectionHeader(stringResource(R.string.settings_about))
             HyperGroup {
                 // 版本号显示
@@ -424,21 +413,15 @@ fun SettingsSheet(
                     onClick = { openUrl(context, "https://github.com/SystemTemp/fanhua-camera") }
                 )
                 GroupDivider()
-                // 检查更新：点击行本身触发（selected=false 时不显示勾选与箭头）
+                // 检查更新：点击行本身触发（selected=false 时不显示勾选）
                 SelectableRow(
                     label = stringResource(R.string.check_update),
                     selected = false,
                     onClick = { updateController.check() }
                 )
             }
+            HintText(stringResource(R.string.settings_about_desc))
             Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.settings_about_desc),
-                color = FanhuaTextDim,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(horizontal = 6.dp)
-            )
-            Spacer(modifier = Modifier.height(10.dp))
             FanhuaButton(
                 text = stringResource(R.string.bug_feedback),
                 onClick = onBugReport,
@@ -448,27 +431,13 @@ fun SettingsSheet(
             )
 
             // ---------- 8. 恢复默认设置（危险操作，置底） ----------
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(28.dp))
             DangerButton(
                 text = stringResource(R.string.settings_reset),
                 onClick = { resetConfirming = true }
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.settings_reset_desc),
-                color = FanhuaTextDim,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(horizontal = 6.dp)
-            )
-            resetNote?.let { note ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = note,
-                    color = FanhuaGold,
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(horizontal = 6.dp)
-                )
-            }
+            HintText(stringResource(R.string.settings_reset_desc))
+            resetNote?.let { note -> NoteText(note) }
             Spacer(modifier = Modifier.height(40.dp))
         }
     }
@@ -479,6 +448,7 @@ fun SettingsSheet(
             message = stringResource(R.string.settings_reset_desc),
             confirmText = stringResource(R.string.action_reset),
             dismissText = stringResource(R.string.action_cancel),
+            destructive = true,
             onConfirm = {
                 resetConfirming = false
                 scope.launch {
@@ -492,7 +462,7 @@ fun SettingsSheet(
                     controller.setAutoCompositionEnabled(false)
                     controller.setPhotoAspect(PhotoAspect.FULL)
                     controller.setMirrorSelfie(false)
-                    controller.setWatermarkEnabled(true)
+                    controller.setWatermarkMode(WatermarkMode.FRAME)
                     controller.setShutterSoundEnabled(true)
                     // LUT 记录已被清除，同步清掉内存缓存
                     LutStore.clear()
@@ -517,8 +487,39 @@ fun SettingsSheet(
     )
 }
 
+/** 分组之间的留白：24dp，Material 3 推荐的组间距。 */
+@Composable
+private fun SectionSpacer() {
+    Spacer(modifier = Modifier.height(24.dp))
+}
+
+/** 分组说明文字：12sp、onSurfaceVariant、左内缩对齐卡片内容。 */
+@Composable
+private fun HintText(text: String) {
+    Spacer(modifier = Modifier.height(10.dp))
+    Text(
+        text = text,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.padding(horizontal = 8.dp)
+    )
+}
+
+/** 操作反馈文字：primary 色，替代原先的金色提示。 */
+@Composable
+private fun NoteText(text: String) {
+    Spacer(modifier = Modifier.height(10.dp))
+    Text(
+        text = text,
+        color = MaterialTheme.colorScheme.primary,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.padding(horizontal = 8.dp)
+    )
+}
+
 /**
- * 画幅横向分段控件：4 个胶囊，选中态金色。
+ * 画幅横向分段控件：4 个胶囊，选中态 primary。
+ * 用 Material 3 的「filled tonal」观感：选中 16% primary 底 + primary 文字。
  */
 @Composable
 private fun AspectSegment(
@@ -528,21 +529,31 @@ private fun AspectSegment(
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         PhotoAspect.entries.forEach { aspect ->
             val active = aspect == selected
-            val shape = RoundedCornerShape(50)
+            val shape = CircleShape
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .clip(shape)
-                    .background(if (active) Color(0x33FFC53D) else Color(0x14FFFFFF))
-                    .border(1.dp, if (active) FanhuaGold else FanhuaStroke, shape)
-                    .clickable { onSelect(aspect) }
-                    .padding(vertical = 9.dp),
+                    .background(
+                        if (active) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        }
+                    )
+                    .clickable(role = Role.RadioButton) { onSelect(aspect) }
+                    .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = stringResource(aspect.labelRes),
-                    color = if (active) FanhuaGold else FanhuaTextDim,
-                    style = MaterialTheme.typography.labelMedium
+                    color = if (active) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (active) FontWeight.Medium else FontWeight.Normal
                 )
             }
         }
@@ -550,30 +561,25 @@ private fun AspectSegment(
 }
 
 /**
- * 危险操作按钮：沿用 Outline 描边样式，文字与描边为警示红。
+ * 危险操作按钮：Material 3 OutlinedButton + error 色描边与文字。
  */
 @Composable
 private fun DangerButton(
     text: String,
     onClick: () -> Unit
 ) {
-    val shape = RoundedCornerShape(50)
-    Row(
+    OutlinedButton(
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(shape)
-            .background(Color(0x1FFF6F5E))
-            .border(1.dp, FanhuaRose.copy(alpha = 0.55f), shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 22.dp, vertical = 13.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = text,
-            color = FanhuaRose,
-            style = MaterialTheme.typography.labelLarge
+            .height(48.dp),
+        shape = CircleShape,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.6f)),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = MaterialTheme.colorScheme.error
         )
+    ) {
+        Text(text = text, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -621,6 +627,9 @@ private fun uniqueLutFile(dir: File, name: String): File {
     return candidate
 }
 
+/**
+ * LUT 行：选中态 primary，移除按钮用 error 色文字按钮（Material 3 TextButton）。
+ */
 @Composable
 private fun LutRow(
     name: String,
@@ -631,35 +640,43 @@ private fun LutRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 13.dp),
+            .background(
+                if (selected) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                } else {
+                    Color.Transparent
+                }
+            )
+            .clickable(role = Role.RadioButton, onClick = onClick)
+            .padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = name,
-            color = if (selected) FanhuaGold else FanhuaText,
-            style = MaterialTheme.typography.bodyMedium,
+            color = if (selected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+            style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.weight(1f)
         )
         if (selected) {
             Icon(
                 imageVector = FanhuaIcons.Check,
                 contentDescription = null,
-                tint = FanhuaGold,
-                modifier = Modifier.size(15.dp)
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
             )
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(8.dp))
         }
-        Text(
-            text = stringResource(R.string.lut_remove),
-            color = FanhuaRose,
-            style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier
-                .clip(RoundedCornerShape(50))
-                .background(Color(0x1FFF6F5E))
-                .clickable { onRemove() }
-                .padding(horizontal = 10.dp, vertical = 5.dp)
-        )
+        TextButton(onClick = onRemove) {
+            Text(
+                text = stringResource(R.string.lut_remove),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.labelMedium
+            )
+        }
     }
 }
 
@@ -733,15 +750,15 @@ private fun CapabilityRows(capability: CapabilityReport) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Text(
                 text = stringResource(R.string.capability_notes),
-                color = FanhuaTextDim,
-                style = MaterialTheme.typography.labelSmall
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelMedium
             )
             capability.notes.forEach { note ->
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = note,
-                    color = FanhuaRose,
-                    style = MaterialTheme.typography.labelSmall
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
         }

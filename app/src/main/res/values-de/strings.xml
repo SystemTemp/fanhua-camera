@@ -73,7 +73,9 @@
     <string name="settings_photo_aspect_desc">Was du siehst, wird gespeichert – das Foto wird auf das gewählte Verhältnis mittig zugeschnitten</string>
     <string name="settings_mirror">Selfie spiegeln</string>
     <string name="settings_mirror_desc">Mit der Frontkamera horizontal spiegeln, damit das Foto der Vorschau entspricht</string>
-    <string name="settings_watermark">Leica-Rahmen</string>
+    <string name="settings_watermark">
+    <string name="watermark_off">Aus</string>\n    <string name="watermark_frame">Weißer Rahmen</string>\n    <string name="watermark_embedded">Im Foto einbetten</string>
+Leica-Rahmen</string>
     <string name="settings_watermark_desc">Beim Filter „Leica-Moment“ Markenrahmen und Aufnahmeparameter einblenden</string>
     <string name="settings_shutter_sound">Auslöseton</string>
     <string name="settings_shutter_sound_desc">Beim Fotografieren den System-Auslöseton abspielen</string>

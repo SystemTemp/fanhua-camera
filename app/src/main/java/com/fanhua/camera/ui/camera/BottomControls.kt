@@ -1,16 +1,12 @@
 package com.fanhua.camera.ui.camera
 
-import android.content.Context
-import android.graphics.Bitmap
 import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
-import android.util.Size
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -31,6 +27,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -38,19 +35,24 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -81,6 +83,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.fanhua.camera.R
@@ -91,14 +94,9 @@ import com.fanhua.camera.camera.core.OutputSpec
 import com.fanhua.camera.camera.filters.FilterGrade
 import com.fanhua.camera.camera.filters.FilterGroup
 import com.fanhua.camera.camera.filters.FilterPreset
+import com.fanhua.camera.media.MediaRepository
 import com.fanhua.camera.ui.common.FanhuaIcons
-import com.fanhua.camera.ui.common.FrostedChip
-import com.fanhua.camera.ui.common.FrostedPanel
 import com.fanhua.camera.ui.theme.FanhuaGold
-import com.fanhua.camera.ui.theme.FanhuaGoldDeep
-import com.fanhua.camera.ui.theme.FanhuaStroke
-import com.fanhua.camera.ui.theme.FanhuaText
-import com.fanhua.camera.ui.theme.FanhuaTextDim
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -107,10 +105,16 @@ import java.util.Locale
 import kotlin.math.abs
 
 /**
- * 底部控制区。
+ * 底部控制区（Google Material 3 风格）。
  *
- * 竖屏结构（自上而下）：模式专属面板 → 滤镜条 → 快捷工具 → 模式选择 → 快门行 → 变焦条。
- * 横屏结构（自左向右贴右边缘）：快捷工具 → 模式 → 快门 → 相册。
+ * 视觉语言统一为「填充式胶囊」：表面色 + 无描边，选中态一律 primary，
+ * 金色只保留给徕卡滤镜的品牌标识。
+ *
+ * 竖屏（自上而下）：模式专属面板 → 滤镜条 → 快捷工具 → 模式选择 → 快门行 → 变焦条。
+ * 横屏（自上而下竖排在右侧）：滤镜条 → 快捷工具 → 模式选择 → 快门 → 相册。
+ *
+ * 横屏遮挡处理：整列套 [WindowInsets.safeDrawing]，一次性避让状态栏、导航栏、
+ * 挖孔与刘海；再叠加 [verticalScroll] 作为极端小屏下的兜底，保证任何按钮都不会被裁掉。
  */
 @Composable
 fun BottomControls(
@@ -120,101 +124,258 @@ fun BottomControls(
     modifier: Modifier = Modifier,
     landscape: Boolean = false
 ) {
+    if (landscape) {
+        LandscapeControls(
+            controller = controller,
+            state = state,
+            onOpenGallery = onOpenGallery,
+            modifier = modifier
+        )
+    } else {
+        PortraitControls(
+            controller = controller,
+            state = state,
+            onOpenGallery = onOpenGallery,
+            modifier = modifier
+        )
+    }
+}
+
+/* ------------------------------------------------------------------ 竖屏 */
+
+@Composable
+private fun PortraitControls(
+    controller: CameraController,
+    state: CameraUiState,
+    onOpenGallery: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (landscape) Modifier.fillMaxHeight() else Modifier)
             .navigationBarsPadding()
-            .padding(
-                bottom = if (landscape) 0.dp else 12.dp,
-                end = if (landscape) 12.dp else 0.dp
-            ),
-        horizontalAlignment = if (landscape) Alignment.End else Alignment.CenterHorizontally
+            .padding(bottom = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (!landscape) {
-            AnimatedVisibility(visible = state.mode == CaptureMode.PRO) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    ProPanel(controller = controller, state = state)
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
+        AnimatedVisibility(visible = state.mode == CaptureMode.PRO) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                ProPanel(controller = controller, state = state)
+                Spacer(modifier = Modifier.height(10.dp))
             }
-            AnimatedVisibility(
-                visible = state.mode == CaptureMode.VIDEO && state.availableSpecs.isNotEmpty()
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    VideoSpecBar(state = state, onSelect = controller::selectSpec)
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
+        }
+        AnimatedVisibility(
+            visible = state.mode == CaptureMode.VIDEO && state.availableSpecs.isNotEmpty()
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                VideoSpecBar(state = state, onSelect = controller::selectSpec)
+                Spacer(modifier = Modifier.height(10.dp))
             }
-            AnimatedVisibility(visible = state.mode == CaptureMode.SUPER_RES) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    SuperResInfo(state = state)
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
+        }
+        AnimatedVisibility(visible = state.mode == CaptureMode.SUPER_RES) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                SuperResInfo(state = state)
+                Spacer(modifier = Modifier.height(10.dp))
             }
-
-            FilterStrip(state = state, onSelect = controller::setPreset)
-            Spacer(modifier = Modifier.height(8.dp))
-            QuickTools(state = state, controller = controller)
-            Spacer(modifier = Modifier.height(10.dp))
         }
 
-        if (landscape) {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.Center
-            ) {
-                QuickTools(state = state, controller = controller, compact = true)
-                Spacer(modifier = Modifier.height(10.dp))
-                ModeSelector(state = state, onSelect = controller::setMode, compact = true)
-                Spacer(modifier = Modifier.height(14.dp))
-                ShutterButton(state = state, controller = controller)
-                Spacer(modifier = Modifier.height(12.dp))
+        FilterStrip(
+            state = state,
+            onSelect = controller::setPreset,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            QuickTools(state = state, controller = controller)
+        }
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // 模式条与镜头条都用 fillMaxWidth 的 Box 包裹后居中，
+        // 因为 Column 的 horizontalAlignment 对「自身撑满宽度」的子项不生效
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            ModeSelector(state = state, onSelect = controller::setMode)
+        }
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // 镜头档位单独占一行并居中：塞进快门行的侧栏会被压窄导致重叠
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            LensSwitcher(state = state, onSelect = controller::setLens)
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 快门行：左实况 / 中快门 / 右相册，左右等宽保证快门严格居中
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                // 包一层 Column 以消除 RowScope.AnimatedVisibility 的隐式接收者歧义
+                Column {
+                    AnimatedVisibility(visible = state.mode == CaptureMode.PHOTO) {
+                        LivePhotoToggle(
+                            enabled = state.livePhotoEnabled,
+                            onClick = {
+                                controller.setLivePhotoEnabled(!state.livePhotoEnabled)
+                            }
+                        )
+                    }
+                }
+            }
+            ShutterButton(state = state, controller = controller)
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
                 GalleryButton(
                     captureCount = state.captureCount,
                     lastCaptureUri = state.lastCaptureUri,
-                    size = 48,
+                    size = 52,
                     onClick = onOpenGallery
                 )
             }
-        } else {
-            ModeSelector(state = state, onSelect = controller::setMode)
-            Spacer(modifier = Modifier.height(14.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        LensSwitcher(state = state, onSelect = controller::setLens)
-                        AnimatedVisibility(visible = state.mode == CaptureMode.PHOTO) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Spacer(modifier = Modifier.height(7.dp))
-                                LivePhotoToggle(
-                                    enabled = state.livePhotoEnabled,
-                                    onClick = {
-                                        controller.setLivePhotoEnabled(!state.livePhotoEnabled)
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-                ShutterButton(state = state, controller = controller)
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                    GalleryButton(
-                        captureCount = state.captureCount,
-                        lastCaptureUri = state.lastCaptureUri,
-                        size = 50,
-                        onClick = onOpenGallery
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            ZoomBar(controller = controller, state = state)
         }
+        Spacer(modifier = Modifier.height(16.dp))
+        ZoomBar(controller = controller, state = state)
+    }
+}
+
+/* ------------------------------------------------------------------ 横屏 */
+
+/**
+ * 横屏：整列竖排贴右边缘。
+ *
+ * 关键点是**不被系统区域遮挡**：
+ * 1. [WindowInsets.safeDrawing] 同时覆盖状态栏（横屏时在侧边）、导航栏与挖孔；
+ * 2. 外层 [verticalScroll] 保证在超矮屏（如分屏）下内容仍可滚动查看，不会硬裁；
+ * 3. 滤镜条在横屏用固定宽度，避免在 wrap-content 的列里被拉满屏。
+ */
+@Composable
+private fun LandscapeControls(
+    controller: CameraController,
+    state: CameraUiState,
+    onOpenGallery: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .verticalScroll(rememberScrollState())
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.Center
+    ) {
+        FilterStrip(
+            state = state,
+            onSelect = controller::setPreset,
+            modifier = Modifier.widthIn(max = 300.dp)
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        QuickTools(state = state, controller = controller, compact = true)
+        Spacer(modifier = Modifier.height(10.dp))
+        ModeSelector(state = state, onSelect = controller::setMode, compact = true)
+        Spacer(modifier = Modifier.height(14.dp))
+        ShutterButton(state = state, controller = controller)
+        Spacer(modifier = Modifier.height(14.dp))
+        GalleryButton(
+            captureCount = state.captureCount,
+            lastCaptureUri = state.lastCaptureUri,
+            size = 48,
+            onClick = onOpenGallery
+        )
+    }
+}
+
+/* ------------------------------------------------------------------ 通用表面容器 */
+
+/**
+ * Material 3 填充式面板：表面色 + 无描边 + 大圆角。
+ *
+ * 相机界面底衬是实时画面，纯 surface 色会和亮部糊在一起，
+ * 因此用 92% 不透明的 surfaceContainer，既保留 Material 3 的「填充式」观感，
+ * 又保证任何背景下都能看清控件。
+ */
+@Composable
+private fun M3Panel(
+    modifier: Modifier = Modifier,
+    shape: RoundedCornerShape = RoundedCornerShape(24.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
+    content: @Composable () -> Unit
+) {
+    val surface = MaterialTheme.colorScheme.surfaceContainer
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(surface.copy(alpha = 0.92f))
+            .padding(contentPadding)
+    ) {
+        content()
+    }
+}
+
+/** 通用胶囊按钮：选中 primary 18% 底 + primary 前景，未选中透明。 */
+@Composable
+private fun PillButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    leadingIcon: ImageVector? = null,
+    compact: Boolean = false
+) {
+    val scheme = MaterialTheme.colorScheme
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.94f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 800f),
+        label = "pillScale"
+    )
+    val background by animateColorAsState(
+        targetValue = if (selected) scheme.primary.copy(alpha = 0.18f) else Color.Transparent,
+        animationSpec = tween(durationMillis = 180),
+        label = "pillBg"
+    )
+    val tint by animateColorAsState(
+        targetValue = if (selected) scheme.primary else scheme.onSurfaceVariant,
+        animationSpec = tween(durationMillis = 180),
+        label = "pillTint"
+    )
+    Row(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(CircleShape)
+            .background(background)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .padding(
+                horizontal = if (compact) 11.dp else 14.dp,
+                vertical = if (compact) 7.dp else 9.dp
+            ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (leadingIcon != null) {
+            Icon(
+                imageVector = leadingIcon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(if (compact) 15.dp else 17.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+        }
+        Text(
+            text = label,
+            color = tint,
+            style = if (compact) {
+                MaterialTheme.typography.labelMedium
+            } else {
+                MaterialTheme.typography.labelLarge
+            },
+            maxLines = 1
+        )
     }
 }
 
@@ -226,119 +387,36 @@ private fun QuickTools(
     controller: CameraController,
     compact: Boolean = false
 ) {
-    Row(
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(Brush.verticalGradient(listOf(Color(0x1FFFFFFF), Color(0x0DFFFFFF))))
-            .border(1.dp, FanhuaStroke, CircleShape)
-            .padding(3.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    M3Panel(
+        shape = RoundedCornerShape(50),
+        contentPadding = PaddingValues(4.dp)
     ) {
-        if (compact) {
-            ToolIcon(
-                icon = FanhuaIcons.Grid,
-                active = state.gridEnabled,
-                contentDescription = stringResource(R.string.grid),
-                onClick = { controller.setGridEnabled(!state.gridEnabled) }
-            )
-            ToolIcon(
-                icon = FanhuaIcons.Timer,
-                active = state.timerSeconds > 0,
-                contentDescription = timerLabel(state.timerSeconds),
-                onClick = { controller.setTimerSeconds(nextTimerSeconds(state.timerSeconds)) }
-            )
-            ToolIcon(
-                icon = FanhuaIcons.SwitchCamera,
-                active = state.frontCamera,
-                contentDescription = stringResource(R.string.flip_camera),
-                onClick = { controller.switchCamera() }
-            )
-        } else {
-            ToolChip(
-                icon = FanhuaIcons.Grid,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            PillButton(
                 label = stringResource(R.string.grid),
-                active = state.gridEnabled,
-                onClick = { controller.setGridEnabled(!state.gridEnabled) }
+                selected = state.gridEnabled,
+                onClick = { controller.setGridEnabled(!state.gridEnabled) },
+                leadingIcon = FanhuaIcons.Grid,
+                compact = true
             )
-            ToolChip(
-                icon = FanhuaIcons.Timer,
+            PillButton(
                 label = timerLabel(state.timerSeconds),
-                active = state.timerSeconds > 0,
-                onClick = { controller.setTimerSeconds(nextTimerSeconds(state.timerSeconds)) }
+                selected = state.timerSeconds > 0,
+                onClick = { controller.setTimerSeconds(nextTimerSeconds(state.timerSeconds)) },
+                leadingIcon = FanhuaIcons.Timer,
+                compact = true
             )
-            ToolChip(
-                icon = FanhuaIcons.SwitchCamera,
+            PillButton(
                 label = stringResource(R.string.flip_camera),
-                active = state.frontCamera,
-                onClick = { controller.switchCamera() }
+                selected = state.frontCamera,
+                onClick = { controller.switchCamera() },
+                leadingIcon = FanhuaIcons.SwitchCamera,
+                compact = true
             )
         }
-    }
-}
-
-@Composable
-private fun ToolChip(
-    icon: ImageVector,
-    label: String,
-    active: Boolean,
-    onClick: () -> Unit
-) {
-    val color by animateColorAsState(
-        targetValue = if (active) FanhuaGold else FanhuaTextDim,
-        animationSpec = tween(durationMillis = 200),
-        label = "toolColor"
-    )
-    val background by animateColorAsState(
-        targetValue = if (active) Color(0x24FFC53D) else Color.Transparent,
-        animationSpec = tween(durationMillis = 200),
-        label = "toolBackground"
-    )
-    Row(
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(background)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = color,
-            modifier = Modifier.size(13.dp)
-        )
-        Spacer(modifier = Modifier.width(5.dp))
-        Text(text = label, color = color, style = MaterialTheme.typography.labelSmall)
-    }
-}
-
-@Composable
-private fun ToolIcon(
-    icon: ImageVector,
-    active: Boolean,
-    contentDescription: String,
-    onClick: () -> Unit
-) {
-    val color by animateColorAsState(
-        targetValue = if (active) FanhuaGold else FanhuaTextDim,
-        animationSpec = tween(durationMillis = 200),
-        label = "toolIconColor"
-    )
-    Box(
-        modifier = Modifier
-            .size(34.dp)
-            .clip(CircleShape)
-            .background(if (active) Color(0x24FFC53D) else Color.Transparent)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = color,
-            modifier = Modifier.size(15.dp)
-        )
     }
 }
 
@@ -355,10 +433,18 @@ private fun nextTimerSeconds(seconds: Int): Int = when (seconds) {
 
 /* ------------------------------------------------------------------ 滤镜条 */
 
+/**
+ * 滤镜条。
+ *
+ * 收起态只占一行（色卡 + 当前滤镜名 + 展开提示），展开后出现分组切换与滤镜卡片列表。
+ * 色卡用 [FilterGrade] 参数化调色或真实 LUT 采样渲染（见 [FilterSwatch]），
+ * 保证卡片颜色与实际出片一致。
+ */
 @Composable
 private fun FilterStrip(
     state: CameraUiState,
-    onSelect: (FilterPreset) -> Unit
+    onSelect: (FilterPreset) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     var activeGroup by rememberSaveable { mutableStateOf(state.preset.group.name) }
@@ -366,94 +452,104 @@ private fun FilterStrip(
         FilterGroup.entries.firstOrNull { it.name == activeGroup } ?: FilterGroup.BASIC
     }
     val items = remember(group) { FilterPreset.ofGroup(group) }
+    val scheme = MaterialTheme.colorScheme
 
-    FrostedPanel(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        cornerRadius = 26.dp,
-        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 9.dp)
+    M3Panel(
+        modifier = modifier,
+        shape = RoundedCornerShape(24.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
     ) {
         Column {
-            // 收起态：显示当前滤镜名 + 展开按钮
+            // 收起态：色卡 + 当前滤镜名 + 展开提示
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .clickable { expanded = !expanded }
-                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 FilterSwatch(
                     preset = state.preset,
                     modifier = Modifier
-                        .size(26.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .size(28.dp)
+                        .clip(RoundedCornerShape(9.dp))
                 )
-                Spacer(modifier = Modifier.width(9.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = stringResource(state.preset.labelRes),
-                    color = FanhuaText,
-                    style = MaterialTheme.typography.labelMedium
+                    color = scheme.onSurface,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
                     text = stringResource(
                         if (expanded) R.string.filter_strip_collapse else R.string.filter_strip_expand
                     ),
-                    color = FanhuaTextDim,
+                    color = scheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall
                 )
-                Spacer(modifier = Modifier.width(5.dp))
+                Spacer(modifier = Modifier.width(4.dp))
                 Icon(
                     imageVector = if (expanded) FanhuaIcons.ArrowUp else FanhuaIcons.ArrowDown,
                     contentDescription = null,
-                    tint = FanhuaTextDim,
-                    modifier = Modifier.size(13.dp)
+                    tint = scheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
                 )
             }
 
             AnimatedVisibility(visible = expanded) {
                 Column {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    // 分组标签
-                    Row(
+                    Spacer(modifier = Modifier.height(10.dp))
+                    // 分组切换：Material 3 分段控件观感（胶囊容器 + primary 高亮段）
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(bottom = 2.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(scheme.surfaceContainerHigh.copy(alpha = 0.9f))
+                            .padding(3.dp)
                     ) {
-                        FilterGroup.entries.forEach { entry ->
-                            val selected = entry == group
-                            val bg by animateColorAsState(
-                                targetValue = if (selected) Color(0x2EFFC53D) else Color.Transparent,
-                                animationSpec = tween(durationMillis = 180),
-                                label = "groupBg"
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .background(bg)
-                                    .clickable { activeGroup = entry.name }
-                                    .padding(horizontal = 11.dp, vertical = 5.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(entry.labelRes),
-                                    color = if (selected) FanhuaGold else FanhuaTextDim,
-                                    style = MaterialTheme.typography.labelSmall
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            FilterGroup.entries.forEach { entry ->
+                                val selected = entry == group
+                                val bg by animateColorAsState(
+                                    targetValue = if (selected) {
+                                        scheme.primary.copy(alpha = 0.18f)
+                                    } else {
+                                        Color.Transparent
+                                    },
+                                    animationSpec = tween(durationMillis = 180),
+                                    label = "groupBg"
                                 )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(50))
+                                        .background(bg)
+                                        .clickable { activeGroup = entry.name }
+                                        .padding(vertical = 7.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = stringResource(entry.labelRes),
+                                        color = if (selected) scheme.primary else scheme.onSurfaceVariant,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        maxLines = 1
+                                    )
+                                }
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    Spacer(modifier = Modifier.height(10.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(horizontal = 2.dp)
                     ) {
-                        items.forEach { preset ->
+                        items(items, key = { it.name }) { preset ->
                             FilterCell(
                                 preset = preset,
                                 selected = state.preset == preset,
@@ -476,11 +572,17 @@ private fun FilterCell(
     selected: Boolean,
     onSelect: () -> Unit
 ) {
+    val scheme = MaterialTheme.colorScheme
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (selected) 1f else 0.94f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 520f),
+        targetValue = if (pressed) 0.92f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 620f),
         label = "filterScale"
     )
+    // 徕卡滤镜是唯一允许出现金色的地方：用金色小圆点做品牌标识
+    val isLeica = preset.group == FilterGroup.LEICA
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -488,68 +590,108 @@ private fun FilterCell(
                 scaleX = scale
                 scaleY = scale
             }
-            .clickable(onClick = onSelect)
+            .clickable(interactionSource = interaction, indication = null, onClick = onSelect)
     ) {
         Box(
             modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(17.dp))
-                .border(
-                    width = if (selected) 2.dp else 1.dp,
-                    brush = if (selected) {
-                        Brush.linearGradient(listOf(FanhuaGold, FanhuaGoldDeep))
+                .size(58.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .then(
+                    if (selected) {
+                        Modifier.border(2.dp, scheme.primary, RoundedCornerShape(18.dp))
                     } else {
-                        Brush.linearGradient(listOf(Color(0x33FFFFFF), Color(0x14FFFFFF)))
-                    },
-                    shape = RoundedCornerShape(17.dp)
+                        Modifier
+                    }
                 )
-                .padding(if (selected) 3.dp else 2.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .padding(if (selected) 3.dp else 0.dp)
+                .clip(RoundedCornerShape(if (selected) 15.dp else 18.dp))
         ) {
             FilterSwatch(
                 preset = preset,
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(13.dp))
+                    .clip(RoundedCornerShape(if (selected) 15.dp else 18.dp))
             )
+            // 选中角标：primary 底 + onPrimary 勾
             if (selected) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(3.dp)
-                        .size(13.dp)
+                        .size(16.dp)
                         .clip(CircleShape)
-                        .background(FanhuaGold),
+                        .background(scheme.primary),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = FanhuaIcons.Check,
                         contentDescription = null,
-                        tint = Color(0xFF241A00),
-                        modifier = Modifier.size(8.dp)
+                        tint = scheme.onPrimary,
+                        modifier = Modifier.size(10.dp)
                     )
                 }
             }
+            // 徕卡标识：左下角金色小圆点
+            if (isLeica) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(4.dp)
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(FanhuaGold)
+                )
+            }
         }
-        Spacer(modifier = Modifier.height(5.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = stringResource(preset.labelRes),
-            color = if (selected) FanhuaText else FanhuaTextDim,
+            // 徕卡滤镜名用金色文字，其它一律用 primary / 次要文字色
+            color = when {
+                selected -> scheme.primary
+                isLeica -> FanhuaGold
+                else -> scheme.onSurfaceVariant
+            },
             style = MaterialTheme.typography.labelSmall,
             maxLines = 1
         )
     }
 }
 
-/** 用滤镜的调色参数渲染 3x6 的色块预览，避免为每个滤镜准备图片资源。 */
+/**
+ * 滤镜色卡。
+ *
+ * 优先使用从「相机整合」徕卡包搬来的真实 LUT 预览图（`res/drawable/lut_preview_<asset>.png`），
+ * 让色卡与实际出片观感一致，也更贴近原相机；没有对应预览图时（参数化滤镜 / 自定义 LUT
+ * 尚未导入）才回退到原来的参数化色块渲染。
+ */
 @Composable
 private fun FilterSwatch(
     preset: FilterPreset,
     modifier: Modifier = Modifier
 ) {
-    val grade = remember(preset) { FilterGrade.of(preset) }
-    // 真实 LUT 滤镜：直接用 LUT 采样色块，保证色卡与实际出片完全一致
     val ctx = LocalContext.current
+    // 运行时解析预览图资源 id（命名规则：lut_preview_<lutAsset>）
+    val previewRes = remember(preset, ctx) {
+        preset.lutAsset?.let { asset ->
+            val id = ctx.resources.getIdentifier("lut_preview_$asset", "drawable", ctx.packageName)
+            if (id != 0) id else null
+        }
+    }
+
+    if (previewRes != null) {
+        // 真实 LUT 预览图：直接铺满色卡（预览图本身已是该滤镜的典型色彩）
+        Image(
+            painter = painterResource(previewRes),
+            contentDescription = null,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = modifier
+        )
+        return
+    }
+
+    // 回退：用滤镜调色参数渲染 3x6 色块
+    val grade = remember(preset) { FilterGrade.of(preset) }
     val lut = remember(preset, ctx) {
         preset.lutAsset?.let { com.fanhua.camera.lut.LutStore.parseFromRaw(ctx, it) }
     }
@@ -612,47 +754,49 @@ private fun ModeSelector(
     onSelect: (CaptureMode) -> Unit,
     compact: Boolean = false
 ) {
-    Row(
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(Brush.verticalGradient(listOf(Color(0x1FFFFFFF), Color(0x0DFFFFFF))))
-            .border(1.dp, FanhuaStroke, CircleShape)
-            .padding(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    val scheme = MaterialTheme.colorScheme
+    M3Panel(
+        shape = RoundedCornerShape(50),
+        contentPadding = PaddingValues(4.dp)
     ) {
-        CaptureMode.entries.forEach { mode ->
-            val selected = state.mode == mode
-            val background by animateColorAsState(
-                targetValue = if (selected) Color(0x2EFFFFFF) else Color.Transparent,
-                animationSpec = tween(durationMillis = 200),
-                label = "modeBackground"
-            )
-            val color by animateColorAsState(
-                targetValue = if (selected) FanhuaText else FanhuaTextDim,
-                animationSpec = tween(durationMillis = 200),
-                label = "modeColor"
-            )
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(background)
-                    .clickable { onSelect(mode) }
-                    .padding(
-                        horizontal = if (compact) 11.dp else 16.dp,
-                        vertical = if (compact) 7.dp else 9.dp
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = stringResource(mode.labelRes),
-                    color = color,
-                    style = if (compact) {
-                        MaterialTheme.typography.labelMedium
-                    } else {
-                        MaterialTheme.typography.labelLarge
-                    }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            CaptureMode.entries.forEach { mode ->
+                val selected = state.mode == mode
+                val background by animateColorAsState(
+                    targetValue = if (selected) scheme.primary.copy(alpha = 0.18f) else Color.Transparent,
+                    animationSpec = tween(durationMillis = 200),
+                    label = "modeBackground"
                 )
+                val color by animateColorAsState(
+                    targetValue = if (selected) scheme.primary else scheme.onSurfaceVariant,
+                    animationSpec = tween(durationMillis = 200),
+                    label = "modeColor"
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(background)
+                        .clickable { onSelect(mode) }
+                        .padding(
+                            horizontal = if (compact) 12.dp else 16.dp,
+                            vertical = if (compact) 8.dp else 10.dp
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(mode.labelRes),
+                        color = color,
+                        style = if (compact) {
+                            MaterialTheme.typography.labelMedium
+                        } else {
+                            MaterialTheme.typography.labelLarge
+                        },
+                        maxLines = 1
+                    )
+                }
             }
         }
     }
@@ -668,7 +812,7 @@ private fun ShutterButton(
     val haptic = LocalHapticFeedback.current
     var holding by remember { mutableStateOf(false) }
     val videoMode = state.mode == CaptureMode.VIDEO
-    // 视频/专业模式直接显示录像键；照片模式在长按后切换为录像键。
+    // 视频模式直接显示录像键；照片模式在长按后切换为录像键
     val showRecord = videoMode || state.recording || holding
     Crossfade(
         targetState = showRecord,
@@ -709,12 +853,18 @@ private fun ShutterButton(
     }
 }
 
+/**
+ * 拍照快门：Google Camera 风格。
+ *
+ * 白色实心圆 + 外圈 primary 描边，按下时外圈放大并淡出（Material 3 的「涟漪」语义）。
+ */
 @Composable
 private fun PhotoShutter(
     onTap: () -> Unit,
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit
 ) {
+    val scheme = MaterialTheme.colorScheme
     var pressed by remember { mutableStateOf(false) }
     var holding by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
@@ -727,7 +877,7 @@ private fun PhotoShutter(
 
     Box(
         modifier = Modifier
-            .size(84.dp)
+            .size(88.dp)
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
@@ -759,34 +909,33 @@ private fun PhotoShutter(
             },
         contentAlignment = Alignment.Center
     ) {
+        // 按下涟漪：primary 圆环向外扩散
         Box(
             modifier = Modifier
                 .size(84.dp)
                 .graphicsLayer {
                     val p = ripple.value
-                    scaleX = 1f + 0.28f * p
-                    scaleY = 1f + 0.28f * p
-                    alpha = (1f - p) * 0.5f
+                    scaleX = 1f + 0.24f * p
+                    scaleY = 1f + 0.24f * p
+                    alpha = (1f - p) * 0.55f
                 }
                 .clip(CircleShape)
-                .background(FanhuaGold.copy(alpha = 0.32f))
+                .border(2.dp, scheme.primary, CircleShape)
         )
+        // 外圈 primary 描边
         Box(
             modifier = Modifier
-                .size(78.dp)
-                .clip(CircleShape)
-                .border(
-                    width = 3.dp,
-                    brush = Brush.linearGradient(listOf(FanhuaGold, FanhuaGoldDeep)),
-                    shape = CircleShape
-                )
-                .padding(7.dp)
+                .size(80.dp)
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
                 }
                 .clip(CircleShape)
-                .background(Color(0xFFF7F6F3))
+                .border(3.dp, scheme.primary, CircleShape)
+                .padding(8.dp)
+                .clip(CircleShape)
+                // 白色实心圆
+                .background(Color.White)
         )
     }
 }
@@ -799,6 +948,7 @@ private fun RecordButton(
     onTap: () -> Unit,
     onPauseToggle: () -> Unit
 ) {
+    val scheme = MaterialTheme.colorScheme
     val interaction = remember { MutableInteractionSource() }
     val corner by animateDpAsState(
         targetValue = if (recording) 22.dp else 9.dp,
@@ -806,7 +956,7 @@ private fun RecordButton(
         label = "recordCorner"
     )
     val innerSize by animateDpAsState(
-        targetValue = if (recording) 32.dp else 44.dp,
+        targetValue = if (recording) 32.dp else 46.dp,
         animationSpec = spring(dampingRatio = 0.62f, stiffness = 520f),
         label = "recordSize"
     )
@@ -824,14 +974,14 @@ private fun RecordButton(
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(680, easing = LinearEasing),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+            repeatMode = RepeatMode.Reverse
         ),
         label = "recPulseAlpha"
     )
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            // 录制中显示暂停/继续
+            // 录制中显示暂停 / 继续
             AnimatedVisibility(
                 visible = recording,
                 enter = fadeIn(tween(180)) + scaleIn(tween(200), initialScale = 0.7f),
@@ -839,10 +989,9 @@ private fun RecordButton(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(44.dp)
                         .clip(CircleShape)
-                        .background(Color(0x22FFFFFF))
-                        .border(1.dp, FanhuaStroke, CircleShape)
+                        .background(scheme.surfaceContainerHigh.copy(alpha = 0.92f))
                         .clickable(onClick = onPauseToggle),
                     contentAlignment = Alignment.Center
                 ) {
@@ -851,36 +1000,34 @@ private fun RecordButton(
                         contentDescription = stringResource(
                             if (paused) R.string.video_resume else R.string.video_pause
                         ),
-                        tint = FanhuaText,
-                        modifier = Modifier.size(16.dp)
+                        tint = scheme.primary,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(16.dp))
             }
 
-            Box(modifier = Modifier.size(84.dp), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.size(88.dp), contentAlignment = Alignment.Center) {
+                // 停止时的一次性外扩闪光
                 Box(
                     modifier = Modifier
-                        .size(78.dp)
+                        .size(80.dp)
                         .graphicsLayer {
                             val flash = stopFlash.value
                             val s = 1f + flash * 0.08f
                             scaleX = s
                             scaleY = s
-                            alpha = 0.4f + 0.6f * flash
+                            alpha = 0.35f + 0.65f * flash
                         }
                         .clip(CircleShape)
-                        .border(3.dp, FanhuaGold.copy(alpha = 0.5f), CircleShape)
+                        .border(3.dp, scheme.primary.copy(alpha = 0.5f), CircleShape)
                 )
+                // 外圈 primary 描边
                 Box(
                     modifier = Modifier
-                        .size(78.dp)
+                        .size(80.dp)
                         .clip(CircleShape)
-                        .border(
-                            width = 3.dp,
-                            brush = Brush.linearGradient(listOf(FanhuaGold, FanhuaGoldDeep)),
-                            shape = CircleShape
-                        )
+                        .border(3.dp, scheme.primary, CircleShape)
                         .clickable(
                             interactionSource = interaction,
                             indication = null,
@@ -888,6 +1035,7 @@ private fun RecordButton(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
+                    // 录像态：红色圆角方块；待录态：白色实心圆
                     Box(
                         modifier = Modifier
                             .size(innerSize)
@@ -895,7 +1043,7 @@ private fun RecordButton(
                                 if (recording && !paused) alpha = 0.6f + 0.4f * pulse
                             }
                             .clip(RoundedCornerShape(corner))
-                            .background(Color(0xFFFF453A))
+                            .background(if (recording) scheme.error else Color.White)
                     )
                 }
             }
@@ -907,30 +1055,30 @@ private fun RecordButton(
             ) {
                 Spacer(modifier = Modifier.width(16.dp))
                 // 占位，保持快门居中
-                Box(modifier = Modifier.size(40.dp))
+                Box(modifier = Modifier.size(44.dp))
             }
         }
-        Box(modifier = Modifier.height(18.dp), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.height(20.dp), contentAlignment = Alignment.Center) {
             if (recording) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(7.dp)
+                            .size(8.dp)
                             .graphicsLayer { alpha = if (paused) 0.4f else pulse }
                             .clip(CircleShape)
-                            .background(Color(0xFFFF453A))
+                            .background(scheme.error)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(7.dp))
                     Text(
                         text = formatDuration(durationMs),
-                        color = FanhuaGold,
+                        color = scheme.onSurface,
                         style = MaterialTheme.typography.labelMedium
                     )
                     if (paused) {
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(7.dp))
                         Text(
                             text = stringResource(R.string.video_pause),
-                            color = FanhuaTextDim,
+                            color = scheme.onSurfaceVariant,
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
@@ -948,40 +1096,45 @@ private fun LensSwitcher(
     onSelect: (String) -> Unit
 ) {
     if (state.lensOptions.isEmpty()) return
-    Row(
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(Brush.verticalGradient(listOf(Color(0x1FFFFFFF), Color(0x0FFFFFFF))))
-            .border(1.dp, FanhuaStroke, CircleShape)
-            .padding(4.dp)
-            .horizontalScroll(rememberScrollState()),
-        verticalAlignment = Alignment.CenterVertically
+    val scheme = MaterialTheme.colorScheme
+    M3Panel(
+        shape = RoundedCornerShape(50),
+        contentPadding = PaddingValues(4.dp)
     ) {
-        state.lensOptions.forEach { lens ->
-            val selected = lens.id == state.activeLensId
-            val background by animateColorAsState(
-                targetValue = if (selected) Color(0x2EFFFFFF) else Color.Transparent,
-                animationSpec = tween(durationMillis = 200),
-                label = "lensBackground"
-            )
-            val color by animateColorAsState(
-                targetValue = if (selected) FanhuaText else FanhuaTextDim,
-                animationSpec = tween(durationMillis = 200),
-                label = "lensColor"
-            )
-            Box(
-                modifier = Modifier
-                    .size(37.dp)
-                    .clip(CircleShape)
-                    .background(background)
-                    .clickable { onSelect(lens.id) },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = lens.label,
-                    color = color,
-                    style = MaterialTheme.typography.labelMedium
+        Row(
+            modifier = Modifier
+                .widthIn(max = 168.dp)
+                .horizontalScroll(rememberScrollState()),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            state.lensOptions.forEach { lens ->
+                val selected = lens.id == state.activeLensId
+                val background by animateColorAsState(
+                    targetValue = if (selected) scheme.primary.copy(alpha = 0.18f) else Color.Transparent,
+                    animationSpec = tween(durationMillis = 200),
+                    label = "lensBackground"
                 )
+                val color by animateColorAsState(
+                    targetValue = if (selected) scheme.primary else scheme.onSurfaceVariant,
+                    animationSpec = tween(durationMillis = 200),
+                    label = "lensColor"
+                )
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(background)
+                        .clickable { onSelect(lens.id) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = lens.label,
+                        color = color,
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }
@@ -992,35 +1145,44 @@ private fun LivePhotoToggle(
     enabled: Boolean,
     onClick: () -> Unit
 ) {
+    val scheme = MaterialTheme.colorScheme
     val color by animateColorAsState(
-        targetValue = if (enabled) FanhuaGold else FanhuaTextDim,
+        targetValue = if (enabled) scheme.primary else scheme.onSurfaceVariant,
         animationSpec = tween(durationMillis = 220),
         label = "livePhotoColor"
+    )
+    val background by animateColorAsState(
+        targetValue = if (enabled) scheme.primary.copy(alpha = 0.18f) else scheme.surfaceContainer.copy(alpha = 0.92f),
+        animationSpec = tween(durationMillis = 220),
+        label = "livePhotoBg"
     )
     Row(
         modifier = Modifier
             .clip(CircleShape)
-            .background(if (enabled) Color(0x24FFC53D) else Color(0x14FFFFFF))
-            .border(1.dp, if (enabled) FanhuaGold.copy(alpha = 0.5f) else FanhuaStroke, CircleShape)
+            .background(background)
             .clickable(onClick = onClick)
-            .padding(horizontal = 11.dp, vertical = 6.dp),
+            .padding(horizontal = 12.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = FanhuaIcons.LivePhoto,
             contentDescription = stringResource(R.string.live_photo),
             tint = color,
-            modifier = Modifier.size(13.dp)
+            modifier = Modifier.size(15.dp)
         )
-        Spacer(modifier = Modifier.width(5.dp))
+        Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = stringResource(R.string.live_photo),
             color = color,
-            style = MaterialTheme.typography.labelSmall
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1
         )
     }
 }
 
+/**
+ * 变焦条：细线 + primary 圆点，拖拽结束后吸附到最近的镜头档位。
+ */
 @Composable
 private fun ZoomBar(
     controller: CameraController,
@@ -1028,6 +1190,7 @@ private fun ZoomBar(
 ) {
     val range = state.maxZoomRatio - state.minZoomRatio
     if (range <= 0.01f) return
+    val scheme = MaterialTheme.colorScheme
     val ticks = remember(state.lensOptions, state.minZoomRatio, state.maxZoomRatio) {
         val fromLenses = state.lensOptions
             .map { it.zoomRatio }
@@ -1053,20 +1216,20 @@ private fun ZoomBar(
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = stringResource(R.string.zoom_label),
-                color = FanhuaTextDim,
+                color = scheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelSmall
             )
             Spacer(modifier = Modifier.weight(1f))
             Text(
                 text = formatZoom(state.zoomRatio),
-                color = FanhuaGold,
-                style = MaterialTheme.typography.labelSmall
+                color = scheme.primary,
+                style = MaterialTheme.typography.labelMedium
             )
         }
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(26.dp)
+                .height(28.dp)
                 .pointerInput(state.minZoomRatio, state.maxZoomRatio) {
                     detectHorizontalDragGestures(
                         onDragEnd = {
@@ -1082,30 +1245,34 @@ private fun ZoomBar(
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val y = size.height / 2f
+                // 轨道
                 drawLine(
-                    color = Color(0x33FFFFFF),
+                    color = scheme.outlineVariant,
                     start = Offset(0f, y),
                     end = Offset(size.width, y),
-                    strokeWidth = 6f,
+                    strokeWidth = 3f,
                     cap = StrokeCap.Round
                 )
+                // 已选区段
                 val cx = fraction(state.zoomRatio) * size.width
                 drawLine(
-                    color = FanhuaGold,
+                    color = scheme.primary,
                     start = Offset(0f, y),
                     end = Offset(cx, y),
-                    strokeWidth = 6f,
+                    strokeWidth = 3f,
                     cap = StrokeCap.Round
                 )
+                // 档位刻度
                 ticks.forEach { tick ->
                     drawCircle(
-                        color = Color(0x66FFFFFF),
+                        color = scheme.onSurfaceVariant.copy(alpha = 0.45f),
                         radius = 2.5f,
                         center = Offset(fraction(tick) * size.width, y)
                     )
                 }
-                drawCircle(color = Color(0xFF16171A), radius = 11f, center = Offset(cx, y))
-                drawCircle(color = Color(0xFFF7F6F3), radius = 8f, center = Offset(cx, y))
+                // primary 滑块
+                drawCircle(color = scheme.primary, radius = 8f, center = Offset(cx, y))
+                drawCircle(color = scheme.background, radius = 3.5f, center = Offset(cx, y))
             }
         }
     }
@@ -1118,6 +1285,7 @@ private fun VideoSpecBar(
     state: CameraUiState,
     onSelect: (OutputSpec) -> Unit
 ) {
+    val scheme = MaterialTheme.colorScheme
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1125,14 +1293,39 @@ private fun VideoSpecBar(
     ) {
         items(state.availableSpecs, key = { "${it.width}x${it.height}@${it.fps}" }) { spec ->
             val selected = state.selectedSpec == spec
-            FrostedChip(selected = selected, modifier = Modifier.clickable { onSelect(spec) }) {
-                Text(
-                    text = shortLabel(spec),
-                    color = if (selected) FanhuaGold else FanhuaTextDim,
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
+            SpecChip(
+                label = shortLabel(spec),
+                selected = selected,
+                onClick = { onSelect(spec) }
+            )
         }
+    }
+}
+
+/** 规格胶囊：选中 primary 18% 底 + primary 文字。 */
+@Composable
+private fun SpecChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val scheme = MaterialTheme.colorScheme
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(
+                if (selected) scheme.primary.copy(alpha = 0.18f)
+                else scheme.surfaceContainer.copy(alpha = 0.92f)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = label,
+            color = if (selected) scheme.primary else scheme.onSurfaceVariant,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1
+        )
     }
 }
 
@@ -1150,19 +1343,20 @@ private fun ProPanel(
     controller: CameraController,
     state: CameraUiState
 ) {
-    FrostedPanel(
+    val scheme = MaterialTheme.colorScheme
+    M3Panel(
         modifier = Modifier.padding(horizontal = 16.dp),
-        cornerRadius = 22.dp,
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
+        shape = RoundedCornerShape(24.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)
     ) {
         Column {
             // 曝光补偿
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = stringResource(R.string.pro_exposure),
-                    color = FanhuaTextDim,
+                    color = scheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.width(58.dp)
+                    modifier = Modifier.width(64.dp)
                 )
                 if (state.exposure.available) {
                     Slider(
@@ -1171,44 +1365,44 @@ private fun ProPanel(
                         valueRange = state.exposure.minIndex.toFloat()..state.exposure.maxIndex.toFloat(),
                         steps = (state.exposure.maxIndex - state.exposure.minIndex - 1).coerceAtLeast(0),
                         colors = SliderDefaults.colors(
-                            thumbColor = FanhuaGold,
-                            activeTrackColor = FanhuaGold,
-                            inactiveTrackColor = Color(0x33FFFFFF)
+                            thumbColor = scheme.primary,
+                            activeTrackColor = scheme.primary,
+                            inactiveTrackColor = scheme.outlineVariant
                         ),
                         modifier = Modifier.weight(1f)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = formatEv(state.exposure.ev),
-                        color = FanhuaGold,
+                        color = scheme.primary,
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.width(46.dp)
                     )
                 } else {
                     Text(
                         text = stringResource(R.string.value_unsupported),
-                        color = FanhuaTextDim,
+                        color = scheme.onSurfaceVariant,
                         style = MaterialTheme.typography.labelSmall
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             // 手动对焦
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = stringResource(R.string.pro_manual_focus),
-                    color = FanhuaTextDim,
+                    color = scheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.width(58.dp)
+                    modifier = Modifier.width(64.dp)
                 )
                 Slider(
                     value = state.manualFocusPosition,
                     onValueChange = controller::setManualFocus,
                     valueRange = 0f..1f,
                     colors = SliderDefaults.colors(
-                        thumbColor = if (state.manualFocusActive) FanhuaGold else Color(0xFFE8E9EB),
-                        activeTrackColor = FanhuaGold,
-                        inactiveTrackColor = Color(0x33FFFFFF)
+                        thumbColor = if (state.manualFocusActive) scheme.primary else scheme.onSurfaceVariant,
+                        activeTrackColor = scheme.primary,
+                        inactiveTrackColor = scheme.outlineVariant
                     ),
                     modifier = Modifier.weight(1f)
                 )
@@ -1217,33 +1411,29 @@ private fun ProPanel(
                     modifier = Modifier
                         .clip(CircleShape)
                         .background(
-                            if (state.manualFocusActive) Color(0x24FFC53D) else Color(0x14FFFFFF)
+                            if (state.manualFocusActive) scheme.primary.copy(alpha = 0.18f)
+                            else scheme.surfaceContainerHigh
                         )
                         .clickable { controller.resetManualFocus() }
-                        .padding(horizontal = 9.dp, vertical = 5.dp)
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Text(
                         text = stringResource(R.string.pro_focus_auto),
-                        color = if (state.manualFocusActive) FanhuaGold else FanhuaTextDim,
+                        color = if (state.manualFocusActive) scheme.primary else scheme.onSurfaceVariant,
                         style = MaterialTheme.typography.labelSmall
                     )
                 }
             }
             if (state.availableSpecs.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                     items(state.availableSpecs) { spec ->
                         val selected = state.selectedSpec == spec
-                        FrostedChip(
+                        SpecChip(
+                            label = spec.label,
                             selected = selected,
-                            modifier = Modifier.clickable { controller.selectSpec(spec) }
-                        ) {
-                            Text(
-                                text = spec.label,
-                                color = if (selected) FanhuaGold else FanhuaTextDim,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
+                            onClick = { controller.selectSpec(spec) }
+                        )
                     }
                 }
             }
@@ -1253,30 +1443,31 @@ private fun ProPanel(
 
 @Composable
 private fun SuperResInfo(state: CameraUiState) {
+    val scheme = MaterialTheme.colorScheme
     val value = state.selectedSpec?.label
         ?: "${state.photoAspect.labelRes.let { "" }}"
-    FrostedPanel(
+    M3Panel(
         modifier = Modifier.padding(horizontal = 20.dp),
-        cornerRadius = 22.dp,
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+        shape = RoundedCornerShape(24.dp),
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.capability_superres),
-                    color = FanhuaTextDim,
+                    color = scheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(5.dp))
                 Text(
                     text = if (value.isBlank()) "4K" else value,
-                    color = FanhuaGold,
+                    color = scheme.primary,
                     style = MaterialTheme.typography.labelLarge
                 )
             }
             Text(
                 text = stringResource(R.string.settings_superres_desc),
-                color = FanhuaTextDim,
+                color = scheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.width(148.dp)
             )
@@ -1294,37 +1485,42 @@ private fun GalleryButton(
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val scheme = MaterialTheme.colorScheme
+    // 复用媒体仓库查询最新一张本 App 照片，避免重复实现 MediaStore 查询
+    val repository = remember(context) { MediaRepository(context) }
     val thumbnail by produceState<ImageBitmap?>(
         initialValue = null,
         key1 = captureCount,
         key2 = lastCaptureUri
     ) {
         value = withContext(Dispatchers.IO) {
-            val uri = lastCaptureUri?.let { Uri.parse(it) } ?: LatestMedia.latestPhotoUri(context)
+            val uri = lastCaptureUri?.let { Uri.parse(it) } ?: repository.latestPhoto()
             if (uri != null) {
                 runCatching {
-                    val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        context.contentResolver.loadThumbnail(uri, Size(160, 160), null)
-                    } else {
-                        MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
-                            ?.let { scaleDown(it, 160) }
-                    }
-                    bitmap?.asImageBitmap()
+                    repository.loadThumbnail(uri, isVideo = false, sizePx = 180)?.asImageBitmap()
                 }.getOrNull()
             } else {
                 null
             }
         }
     }
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.94f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 700f),
+        label = "galleryScale"
+    )
     Box(
         modifier = Modifier
             .size(size.dp)
-            .clip(RoundedCornerShape(17.dp))
-            .background(Color(0x14FFFFFF))
-            .border(1.dp, FanhuaStroke, RoundedCornerShape(17.dp))
-            .padding(3.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick),
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(RoundedCornerShape(18.dp))
+            .background(scheme.surfaceContainer.copy(alpha = 0.92f))
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         val image = thumbnail
@@ -1333,60 +1529,22 @@ private fun GalleryButton(
                 bitmap = image,
                 contentDescription = stringResource(R.string.gallery_title),
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(18.dp))
             )
         } else {
             Icon(
                 imageVector = FanhuaIcons.Gallery,
                 contentDescription = stringResource(R.string.gallery_title),
-                tint = FanhuaText,
-                modifier = Modifier.size(21.dp)
+                tint = scheme.onSurfaceVariant,
+                modifier = Modifier.size(22.dp)
             )
         }
     }
 }
 
-private fun scaleDown(bitmap: Bitmap, target: Int): Bitmap {
-    val maxEdge = maxOf(bitmap.width, bitmap.height)
-    if (maxEdge <= target) return bitmap
-    val ratio = target.toFloat() / maxEdge
-    return Bitmap.createScaledBitmap(
-        bitmap,
-        (bitmap.width * ratio).toInt().coerceAtLeast(1),
-        (bitmap.height * ratio).toInt().coerceAtLeast(1),
-        true
-    )
-}
-
-private object LatestMedia {
-    fun latestPhotoUri(context: Context): Uri? {
-        val projection = arrayOf(MediaStore.Images.Media._ID)
-        val selection = MediaStore.Images.Media.DISPLAY_NAME + " LIKE ?"
-        val args = arrayOf("FH_%")
-        val sortOrder = MediaStore.Images.Media.DATE_ADDED + " DESC LIMIT 1"
-        return try {
-            context.contentResolver.query(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                projection,
-                selection,
-                args,
-                sortOrder
-            )?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val id = cursor.getLong(0)
-                    Uri.withAppendedPath(
-                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                        id.toString()
-                    )
-                } else {
-                    null
-                }
-            }
-        } catch (e: Exception) {
-            null
-        }
-    }
-}
+/* ------------------------------------------------------------------ 工具函数 */
 
 private fun formatZoom(ratio: Float): String = String.format(Locale.US, "%.1fx", ratio)
 
@@ -1399,7 +1557,6 @@ private fun formatDuration(durationMs: Long): String {
     val seconds = totalSeconds % 60
     return String.format(Locale.US, "%02d:%02d", minutes, seconds)
 }
-
 
 /**
  * 对内置 3D LUT 做三线性采样，返回 0..1 的 RGB。

@@ -73,7 +73,9 @@
     <string name="settings_photo_aspect_desc">Lo que ves es lo que obtienes: la foto se recorta al centro según la proporción elegida</string>
     <string name="settings_mirror">Espejo en selfi</string>
     <string name="settings_mirror_desc">Voltea horizontalmente con la cámara frontal para igualar la vista previa</string>
-    <string name="settings_watermark">Marco Leica</string>
+    <string name="settings_watermark">
+    <string name="watermark_off">Apagado</string>\n    <string name="watermark_frame">Marco blanco</string>\n    <string name="watermark_embedded">Superposición en foto</string>
+Marco Leica</string>
     <string name="settings_watermark_desc">Superpone el marco de marca y los parámetros de disparo al usar el filtro Instante Leica</string>
     <string name="settings_shutter_sound">Sonido de obturador</string>
     <string name="settings_shutter_sound_desc">Reproduce el sonido de obturador del sistema al hacer una foto</string>

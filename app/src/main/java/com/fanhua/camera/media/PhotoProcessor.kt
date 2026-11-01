@@ -18,6 +18,8 @@ import android.provider.MediaStore
 import androidx.exifinterface.media.ExifInterface
 import com.fanhua.camera.R
 import com.fanhua.camera.camera.core.PhotoAspect
+import com.fanhua.camera.camera.core.WatermarkMode
+import com.fanhua.camera.camera.filters.FilterGroup
 import com.fanhua.camera.camera.filters.FilterPreset
 import com.fanhua.camera.camera.gl.EglCore
 import com.fanhua.camera.camera.gl.createGlFramePipeline
@@ -104,7 +106,7 @@ class PhotoProcessor(private val context: Context) {
      * @param upscale 是否超分放大（长边上限 [MAX_SUPER_RES_EDGE]）
      * @param aspect 照片画幅，[PhotoAspect.FULL] 表示不裁切
      * @param mirror 前置镜像，true 时水平翻转（在旋转之后、裁切之前）
-     * @param watermark 徕卡相框开关；false 时即使是徕卡组滤镜也不加相框
+     * @param watermarkMode 徕卡水印模式（OFF/FRAME/EMBEDDED）；非 LEICA 组滤镜时不生效
      */
     fun process(
         source: File,
@@ -113,14 +115,14 @@ class PhotoProcessor(private val context: Context) {
         upscale: Boolean,
         aspect: PhotoAspect = PhotoAspect.FULL,
         mirror: Boolean = false,
-        watermark: Boolean = true,
+        watermarkMode: WatermarkMode = WatermarkMode.FRAME,
         /** 自动构图裁切框（归一化坐标）；null 表示不裁切。 */
         autoCrop: com.fanhua.camera.camera.detect.NormRect? = null
     ): Uri? {
         DebugLog.log(
             "Photo",
             "开始处理 preset=${preset.name} intensity=$intensity upscale=$upscale " +
-                "aspect=${aspect.name} mirror=$mirror watermark=$watermark"
+                "aspect=${aspect.name} mirror=$mirror watermarkMode=$watermarkMode"
         )
         val needsGeometry = aspect != PhotoAspect.FULL || mirror
 
@@ -229,19 +231,23 @@ class PhotoProcessor(private val context: Context) {
             val elapsed = SystemClock.elapsedRealtime() - startMs
             DebugLog.log("Photo", "GL 管线耗时 ${elapsed}ms -> 开始保存")
 
-            // 7) 徕卡相框（受水印开关控制）
+            // 7) 徕卡水印（受三态模式控制，仅 LEICA 组滤镜生效）
             var result = readback
-            if (watermark && preset.group == com.fanhua.camera.camera.filters.FilterGroup.LEICA) {
-                val framed = try {
-                    drawLeicaFrame(result, readExifInfo(source))
+            if (watermarkMode != WatermarkMode.OFF && preset.group == FilterGroup.LEICA) {
+                val decorated = try {
+                    when (watermarkMode) {
+                        WatermarkMode.FRAME -> drawLeicaFrame(result, readExifInfo(source))
+                        WatermarkMode.EMBEDDED -> drawEmbeddedWatermark(result, readExifInfo(source))
+                        else -> result
+                    }
                 } catch (e: Exception) {
-                    DebugLog.log("Photo", "徕卡相框绘制失败: ${e.message}")
+                    DebugLog.log("Photo", "徕卡水印绘制失败: ${e.message}")
                     result
                 }
-                if (framed !== result) {
+                if (decorated !== result) {
                     result.recycle()
-                    result = framed
-                    output = framed
+                    result = decorated
+                    output = decorated
                 }
             }
 
@@ -268,7 +274,7 @@ class PhotoProcessor(private val context: Context) {
             upscale = upscale,
             aspect = PhotoAspect.FULL,
             mirror = false,
-            watermark = true
+            watermarkMode = WatermarkMode.FRAME
         )
 
     fun drawLeicaFrame(source: Bitmap, exif: ExifInfo): Bitmap {
@@ -395,6 +401,75 @@ class PhotoProcessor(private val context: Context) {
         if (exif.iso.isNotBlank()) {
             label("ISO")
             value(exif.iso)
+        }
+
+        return out
+    }
+
+    /**
+     * 内嵌式徕卡水印（参照相机整合「标准 7 号」：水印叠在照片内部底部，不在照片外扩边）。
+     *
+     * 在照片底部绘制一条半透明暗带：左侧徕卡标志（自带 sRGB 原色），右侧时间，
+     * 中间机型名；文字与 logo 均为浅色，保证在亮/暗照片上都清晰。
+     * 仅 [FilterPreset] 属于 LEICA 组时由调用方传入。
+     */
+    fun drawEmbeddedWatermark(source: Bitmap, exif: ExifInfo): Bitmap {
+        val out = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(out)
+        canvas.drawBitmap(source, 0f, 0f, Paint(Paint.FILTER_BITMAP_FLAG))
+
+        val base = minOf(source.width, source.height).toFloat()
+        val dp = base / 640f
+        val bandH = (base * 0.13f).coerceAtLeast(36f * dp)
+        val pad = 40f * dp
+        val logoH = (base * 0.07f).coerceAtLeast(20f * dp)
+        val ink = Color.WHITE
+        val inkSoft = Color.argb(0xB3, 0xFF, 0xFF, 0xFF)
+        val leicaFont = leicaNumberTypeface
+        val sysFont = Typeface.create("sans-serif", Typeface.NORMAL)
+
+        // 底部半透明暗带（上边缘渐隐，避免硬切割）
+        val bandTop = (source.height - bandH)
+        val grad = android.graphics.LinearGradient(
+            0f, bandTop, 0f, source.height.toFloat(),
+            Color.argb(0, 0, 0, 0), Color.argb(0x80, 0, 0, 0),
+            android.graphics.Shader.TileMode.CLAMP
+        )
+        canvas.drawRect(
+            android.graphics.RectF(0f, bandTop, source.width.toFloat(), source.height.toFloat()),
+            Paint().apply { shader = grad }
+        )
+
+        val centerY = bandTop + bandH / 2f
+
+        // 左侧：徕卡标志
+        leicaLogo?.let { logo ->
+            val logoW = logoH * logo.width / logo.height.toFloat()
+            val dst = android.graphics.RectF(pad, centerY - logoH / 2f, pad + logoW, centerY + logoH / 2f)
+            canvas.drawBitmap(logo, null, dst, Paint(Paint.FILTER_BITMAP_FLAG))
+        }
+
+        // 中间：机型名
+        val modelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = ink
+            typeface = sysFont
+            textSize = 20f * dp
+            isFakeBoldText = true
+        }
+        val modelText = "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}"
+        modelPaint.textAlign = Paint.Align.CENTER
+        canvas.drawText(modelText, source.width / 2f, centerY + modelPaint.textSize * 0.35f, modelPaint)
+
+        // 右侧：时间
+        exif.timeText?.let { t ->
+            val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = inkSoft
+                typeface = leicaFont
+                textSize = 18f * dp
+                letterSpacing = 0.15f
+                textAlign = Paint.Align.RIGHT
+            }
+            canvas.drawText(t, source.width - pad, centerY + tp.textSize * 0.35f, tp)
         }
 
         return out

@@ -73,7 +73,9 @@
     <string name="settings_photo_aspect_desc">所見即所得，儲存時依所選比例置中裁切</string>
     <string name="settings_mirror">前置鏡像</string>
     <string name="settings_mirror_desc">自拍時水平翻轉，與取景畫面一致</string>
-    <string name="settings_watermark">徠卡相框</string>
+    <string name="settings_watermark">
+    <string name="watermark_off">關閉</string>\n    <string name="watermark_frame">白邊畫框</string>\n    <string name="watermark_embedded">照片內疊加</string>
+徠卡相框</string>
     <string name="settings_watermark_desc">使用「徠卡一瞬」濾鏡時疊加品牌相框與拍攝參數</string>
     <string name="settings_shutter_sound">快門音效</string>
     <string name="settings_shutter_sound_desc">拍照時播放系統快門聲</string>

@@ -2,42 +2,40 @@ package com.fanhua.camera.ui.settings
 
 import android.content.Context
 import android.widget.Toast
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.fanhua.camera.R
 import com.fanhua.camera.data.UpdateManager
-import com.fanhua.camera.ui.common.FanhuaButton
-import com.fanhua.camera.ui.common.FanhuaButtonStyle
 import com.fanhua.camera.ui.common.FanhuaIcons
-import com.fanhua.camera.ui.theme.FanhuaGold
-import com.fanhua.camera.ui.theme.FanhuaOutline
-import com.fanhua.camera.ui.theme.FanhuaStroke
-import com.fanhua.camera.ui.theme.FanhuaText
-import com.fanhua.camera.ui.theme.FanhuaTextDim
+import com.fanhua.camera.ui.common.WaveProgressBar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.io.File
@@ -146,7 +144,7 @@ fun UpdateDialog(
     onDismiss: () -> Unit
 ) {
     when (state) {
-        is UpdateUiState.Available -> HyperDialog(
+        is UpdateUiState.Available -> UpdateCard(
             title = stringResource(R.string.update_available),
             message = state.info.versionName,
             details = state.info.notes.ifBlank { stringResource(R.string.update_available) },
@@ -163,41 +161,44 @@ fun UpdateDialog(
             DialogCard {
                 Text(
                     text = stringResource(R.string.downloading),
-                    color = FanhuaText,
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.titleMedium
                 )
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "${state.progress}%",
-                        color = FanhuaGold,
+                        color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.titleLarge
                     )
                     Spacer(modifier = Modifier.weight(1f))
+                    // 下载速度：实时显示，速度为 0 时显示占位符
                     Text(
                         text = formatSpeed(state.speedBytesPerSec),
-                        color = FanhuaTextDim,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.labelMedium
                     )
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                LinearProgressIndicator(
-                    progress = { state.progress / 100f },
-                    color = FanhuaGold,
-                    trackColor = FanhuaOutline,
-                    drawStopIndicator = {},
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
+                Spacer(modifier = Modifier.height(14.dp))
+                // 波浪进度条：与 AI 模型下载保持同一套进度语言
+                val animated by animateFloatAsState(
+                    targetValue = state.progress / 100f,
+                    animationSpec = tween(durationMillis = 300),
+                    label = "updateProgress"
+                )
+                WaveProgressBar(
+                    progress = animated,
+                    modifier = Modifier.fillMaxWidth(),
+                    height = 6.dp,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }
 
-        is UpdateUiState.Ready -> HyperDialog(
+        is UpdateUiState.Ready -> UpdateCard(
             title = stringResource(R.string.download_done),
             message = stringResource(R.string.install_update),
             details = null,
@@ -212,8 +213,11 @@ fun UpdateDialog(
     }
 }
 
+/**
+ * Material 3 圆角对话框：标题 + 版本号 + 更新说明 + 文字按钮 / 填充按钮。
+ */
 @Composable
-private fun HyperDialog(
+private fun UpdateCard(
     title: String,
     message: String,
     details: String?,
@@ -225,69 +229,78 @@ private fun HyperDialog(
     Dialog(onDismissRequest = onDismiss) {
         DialogCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                androidx.compose.foundation.layout.Box(
-                    modifier = Modifier
-                        .width(6.dp)
-                        .height(22.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(
-                            Brush.verticalGradient(listOf(FanhuaGold, Color(0xFFFF9A1A)))
-                        )
+                Icon(
+                    imageVector = FanhuaIcons.Refresh,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = title,
-                    color = FanhuaText,
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.titleLarge
                 )
             }
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
             Text(
                 text = message,
-                color = FanhuaGold,
-                style = MaterialTheme.typography.labelLarge
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleMedium
             )
             if (!details.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = details,
-                    color = FanhuaTextDim,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
-            Spacer(modifier = Modifier.height(22.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                FanhuaButton(
-                    text = dismissText,
-                    onClick = onDismiss,
-                    style = FanhuaButtonStyle.Outline,
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                FanhuaButton(
-                    text = confirmText,
+            Spacer(modifier = Modifier.height(20.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text(
+                        text = dismissText,
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
                     onClick = onConfirm,
-                    style = FanhuaButtonStyle.Solid,
-                    modifier = Modifier.weight(1f)
-                )
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text(text = confirmText, style = MaterialTheme.typography.labelLarge)
+                }
             }
         }
     }
 }
 
+/** 对话框卡片容器：Material 3 surfaceContainerHigh 底 + 28dp 圆角，无描边。 */
 @Composable
-private fun DialogCard(content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
-    Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(30.dp))
-            .background(Brush.verticalGradient(listOf(Color(0xFF1C1D22), Color(0xFF101115))))
-            .border(1.dp, FanhuaStroke, RoundedCornerShape(30.dp))
-            .padding(horizontal = 22.dp, vertical = 22.dp),
-        content = content
-    )
+private fun DialogCard(content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp),
+            content = content
+        )
+    }
 }
 
+/** 字节/秒 → 人类可读；速度为 0 时返回占位符「—」。 */
 private fun formatSpeed(bytesPerSec: Long): String {
+    if (bytesPerSec <= 0L) return "—"
     val mb = bytesPerSec / 1_000_000.0
     return if (mb >= 1.0) {
         String.format(Locale.US, "%.1f MB/s", mb)

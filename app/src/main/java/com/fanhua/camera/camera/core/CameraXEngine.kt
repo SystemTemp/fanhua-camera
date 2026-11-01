@@ -164,7 +164,8 @@ class CameraXEngine(
                     timerSeconds = stored.timerSeconds,
                     photoAspect = PhotoAspect.fromKey(stored.photoAspectKey),
                     mirrorSelfie = stored.mirrorSelfie,
-                    watermarkEnabled = stored.watermarkEnabled,
+                    watermarkMode = com.fanhua.camera.camera.core.WatermarkMode.entries
+                        .firstOrNull { it.name == stored.watermarkMode } ?: com.fanhua.camera.camera.core.WatermarkMode.FRAME,
                     shutterSoundEnabled = stored.shutterSoundEnabled
                 )
             }
@@ -1074,9 +1075,13 @@ class CameraXEngine(
     }
 
     override fun setWatermarkEnabled(enabled: Boolean) {
-        if (_state.value.watermarkEnabled == enabled) return
-        _state.update { it.copy(watermarkEnabled = enabled) }
-        scope.launch { settings.setWatermarkEnabled(enabled) }
+        setWatermarkMode(if (enabled) WatermarkMode.FRAME else WatermarkMode.OFF)
+    }
+
+    override fun setWatermarkMode(mode: WatermarkMode) {
+        if (_state.value.watermarkMode == mode) return
+        _state.update { it.copy(watermarkMode = mode) }
+        scope.launch { settings.setWatermarkMode(mode) }
     }
 
     override fun setShutterSoundEnabled(enabled: Boolean) {
@@ -1218,7 +1223,7 @@ class CameraXEngine(
         val upscale = _state.value.superResEnabled || _state.value.mode == CaptureMode.SUPER_RES
         val aspect = _state.value.photoAspect
         val mirror = _state.value.frontCamera && _state.value.mirrorSelfie
-        val watermark = _state.value.watermarkEnabled
+        val watermarkMode = _state.value.watermarkMode
         val srcSize = try {
             val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
             android.graphics.BitmapFactory.decodeFile(file.absolutePath, bounds)
@@ -1230,12 +1235,12 @@ class CameraXEngine(
             "Engine",
             "拍照已保存 file=${file.absolutePath} size=$srcSize preset=${preset.name} " +
                 "intensity=$intensity upscale=$upscale aspect=$aspect mirror=$mirror " +
-                "watermark=$watermark mode=${_state.value.mode}"
+                "watermarkMode=$watermarkMode mode=${_state.value.mode}"
         )
         scope.launch {
             val uri = withContext(Dispatchers.IO) {
                 photoProcessor.process(
-                    file, preset, intensity, upscale, aspect, mirror, watermark,
+                    file, preset, intensity, upscale, aspect, mirror, watermarkMode,
                     autoCrop = _state.value.autoCropRect
                 )
             }
@@ -1274,11 +1279,11 @@ class CameraXEngine(
                         val upscale = _state.value.superResEnabled
                         val aspect = _state.value.photoAspect
                         val mirror = _state.value.frontCamera && _state.value.mirrorSelfie
-                        val watermark = _state.value.watermarkEnabled
+                        val watermarkMode = _state.value.watermarkMode
                         scope.launch {
                             val uri = withContext(Dispatchers.IO) {
                                 photoProcessor.process(
-                                    file, preset, intensity, upscale, aspect, mirror, watermark
+                                    file, preset, intensity, upscale, aspect, mirror, watermarkMode
                                 )
                             }
                             file.delete()

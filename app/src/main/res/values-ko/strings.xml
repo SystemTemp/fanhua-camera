@@ -73,7 +73,9 @@
     <string name="settings_photo_aspect_desc">보이는 그대로 저장하며, 선택한 비율로 가운데를 잘라냅니다</string>
     <string name="settings_mirror">셀피 좌우 반전</string>
     <string name="settings_mirror_desc">전면 카메라 촬영 시 좌우를 반전해 미리보기와 같게 저장합니다</string>
-    <string name="settings_watermark">라이카 프레임</string>
+    <string name="settings_watermark">
+    <string name="watermark_off">끄기</string>\n    <string name="watermark_frame">흰 테두리 프레임</string>\n    <string name="watermark_embedded">사진 내 삽입</string>
+라이카 프레임</string>
     <string name="settings_watermark_desc">‘라이카의 순간’ 필터 사용 시 브랜드 프레임과 촬영 정보를 함께 넣습니다</string>
     <string name="settings_shutter_sound">셔터 소리</string>
     <string name="settings_shutter_sound_desc">사진 촬영 시 시스템 셔터 소리를 재생합니다</string>

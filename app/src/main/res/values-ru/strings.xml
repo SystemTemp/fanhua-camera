@@ -73,7 +73,9 @@
     <string name="settings_photo_aspect_desc">Что видите, то и получите: фото обрезается по центру под выбранное соотношение</string>
     <string name="settings_mirror">Зеркалить селфи</string>
     <string name="settings_mirror_desc">Отражать по горизонтали на фронтальной камере, чтобы снимок совпадал с предпросмотром</string>
-    <string name="settings_watermark">Рамка Leica</string>
+    <string name="settings_watermark">
+    <string name="watermark_off">Выкл.</string>\n    <string name="watermark_frame">Белая рамка</string>\n    <string name="watermark_embedded">Наложение на фото</string>
+Рамка Leica</string>
     <string name="settings_watermark_desc">Накладывать фирменную рамку и параметры съёмки при фильтре «Мгновение Leica»</string>
     <string name="settings_shutter_sound">Звук затвора</string>
     <string name="settings_shutter_sound_desc">Воспроизводить системный звук затвора при съёмке</string>

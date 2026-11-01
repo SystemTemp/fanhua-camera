@@ -42,7 +42,7 @@ fun WaveProgressBar(
     modifier: Modifier = Modifier,
     height: Dp = 6.dp,
     color: Color = MaterialTheme.colorScheme.primary,
-    trackColor: Color = Color(0x1FFFFFFF),
+    trackColor: Color = MaterialTheme.colorScheme.outlineVariant,
     amplitude: Float = 0.45f,
     wavelength: Float = 0.28f,
     animated: Boolean = true
@@ -168,6 +168,8 @@ fun GradientWaveProgressBar(
     )
 ) {
     val brush = Brush.horizontalGradient(colors)
+    // 轨道色必须在 Composable 作用域读取，DrawScope 内不能访问 MaterialTheme
+    val trackColor = MaterialTheme.colorScheme.outlineVariant
     Box(modifier = modifier) {
         Canvas(
             modifier = Modifier
@@ -177,7 +179,7 @@ fun GradientWaveProgressBar(
             val w = size.width
             val h = size.height
             drawLine(
-                color = Color(0x1FFFFFFF),
+                color = trackColor,
                 start = Offset(0f, h / 2f),
                 end = Offset(w, h / 2f),
                 strokeWidth = h * 0.6f,

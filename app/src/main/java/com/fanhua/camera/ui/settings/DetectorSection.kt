@@ -36,8 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -54,12 +52,6 @@ import com.fanhua.camera.ui.common.FanhuaIcons
 import com.fanhua.camera.ui.common.GroupDivider
 import com.fanhua.camera.ui.common.HyperGroup
 import com.fanhua.camera.ui.common.SectionHeader
-import com.fanhua.camera.ui.theme.FanhuaGold
-import com.fanhua.camera.ui.theme.FanhuaGoldDeep
-import com.fanhua.camera.ui.theme.FanhuaRose
-import com.fanhua.camera.ui.theme.FanhuaStroke
-import com.fanhua.camera.ui.theme.FanhuaText
-import com.fanhua.camera.ui.theme.FanhuaTextDim
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -120,7 +112,11 @@ fun DetectorSection(
                             .size(8.dp)
                             .clip(CircleShape)
                             .background(
-                                if (state.detectorReady) FanhuaGold else FanhuaTextDim
+                                if (state.detectorReady) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
                             )
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -130,14 +126,18 @@ fun DetectorSection(
                         } else {
                             stringResource(R.string.detector_need_model)
                         },
-                        color = if (state.detectorReady) FanhuaGold else FanhuaTextDim,
+                        color = if (state.detectorReady) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = stringResource(R.string.detector_desc),
-                    color = FanhuaTextDim,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall
                 )
             }
@@ -156,7 +156,7 @@ fun DetectorSection(
                         // 速度：始终显示，未知时显示占位
                         Text(
                             text = formatSpeed(state.detectorDownloadSpeed),
-                            color = FanhuaTextDim,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.labelMedium
                         )
                         Spacer(modifier = Modifier.width(12.dp))
@@ -183,12 +183,12 @@ fun DetectorSection(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = formatBytes(state.detectorDownloadedBytes),
-                            color = FanhuaTextDim,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.labelSmall
                         )
                         Text(
                             text = " / " + formatBytes(state.detectorTotalBytes),
-                            color = FanhuaTextDim,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.labelSmall
                         )
                         Spacer(modifier = Modifier.weight(1f))
@@ -196,7 +196,7 @@ fun DetectorSection(
                         if (remain > 0) {
                             Text(
                                 text = "剩余 " + formatDuration(remain),
-                                color = FanhuaTextDim,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.labelSmall
                             )
                         }
@@ -248,9 +248,9 @@ fun DetectorSection(
                     Text(
                         text = "自定义模型（.tflite）",
                         color = if (state.detectorModelId == DetectorModels.CUSTOM_ID) {
-                            FanhuaGold
+                            MaterialTheme.colorScheme.primary
                         } else {
-                            FanhuaText
+                            MaterialTheme.colorScheme.onSurface
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f)
@@ -259,8 +259,8 @@ fun DetectorSection(
                         Icon(
                             imageVector = FanhuaIcons.Check,
                             contentDescription = null,
-                            tint = FanhuaGold,
-                            modifier = Modifier.size(15.dp)
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -300,15 +300,15 @@ fun DetectorSection(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = text,
-                color = FanhuaGold,
-                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(horizontal = 6.dp)
             )
         }
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = stringResource(R.string.detector_download_failed_hint),
-            color = FanhuaTextDim,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.labelSmall,
             modifier = Modifier.padding(horizontal = 6.dp)
         )
@@ -336,19 +336,23 @@ private fun ModelRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = stringResource(definition.displayNameRes),
-                    color = if (isActive) FanhuaGold else FanhuaText,
+                    color = if (isActive) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
                     style = MaterialTheme.typography.bodyMedium
                 )
                 if (isActive) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = stringResource(R.string.detector_model_selected),
-                        color = FanhuaGold,
+                        color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(Color(0x24FFC53D))
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f))
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
             }
@@ -363,8 +367,8 @@ private fun ModelRow(
                     append(" ")
                     append(String.format(java.util.Locale.US, "%.1f", definition.accuracy))
                 },
-                color = FanhuaTextDim,
-                style = MaterialTheme.typography.labelSmall
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium
             )
         }
         Spacer(modifier = Modifier.width(10.dp))
@@ -372,7 +376,7 @@ private fun ModelRow(
             isBusy -> {
                 Text(
                     text = stringResource(R.string.detector_downloading),
-                    color = FanhuaGold,
+                    color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.labelSmall
                 )
             }
@@ -380,28 +384,26 @@ private fun ModelRow(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = stringResource(R.string.detector_model_delete),
-                        color = FanhuaRose,
+                        color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(Color(0x1FFF6F5E))
+                            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.14f))
                             .clickable { onDelete() }
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
             }
             else -> {
                 Text(
                     text = stringResource(R.string.detector_download),
-                    color = Color(0xFF241A00),
+                    color = MaterialTheme.colorScheme.onPrimary,
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier
                         .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(listOf(FanhuaGold, FanhuaGoldDeep))
-                        )
+                        .background(MaterialTheme.colorScheme.primary)
                         .clickable { onDownload() }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .padding(horizontal = 14.dp, vertical = 7.dp)
                 )
             }
         }
