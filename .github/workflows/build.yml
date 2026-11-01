@@ -45,9 +45,11 @@ jobs:
           fi
 
       - name: Build debug & release APK
-        # 使用仓库自带 build.sh（自动准备 JDK/Gradle/Android SDK，规避 CI 缺 SDK 的问题）
+        # 使用仓库自带 build.sh：先 --setup 自举 JDK/Gradle/Android SDK（CI 干净环境无 .buildenv），
+        # 再执行 assemble。build.sh 会把 GRADLE_USER_HOME 等重定向到项目内 .buildenv，规避 HOME 只读。
         run: |
           chmod +x ./build.sh
+          bash build.sh --setup
           bash build.sh :app:assembleDebug :app:assembleRelease
 
       - name: Upload APKs
