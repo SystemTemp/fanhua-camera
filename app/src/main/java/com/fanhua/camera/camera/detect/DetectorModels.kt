@@ -82,28 +82,13 @@ data class ModelSource(
  */
 object DetectorModels {
 
-    /** EfficientDet-Lite0（int8，4.4MB，COCO 80 类，速度优先）。 */
-    val EFFICIENTDET_LITE0 = ModelDefinition(
-        id = "efficientdet_lite0",
-        displayNameRes = R.string.model_efficientdet_lite0,
-        sizeBytes = 4_602_795L,
-        inputSize = 320,
-        sources = listOf(
-            ModelSource(
-                name = "Google CDN",
-                url = "https://storage.googleapis.com/mediapipe-models/object_detector/" +
-                    "efficientdet_lite0/int8/1/efficientdet_lite0.tflite",
-                expectedBytes = 4_602_795L
-            )
-        )
-    )
-
-    /** EfficientDet-Lite2（int8，7.5MB，精度优先）。 */
+    /** EfficientDet-Lite2（int8，7.5MB，COCO 80 类，默认推荐）。 */
     val EFFICIENTDET_LITE2 = ModelDefinition(
         id = "efficientdet_lite2",
         displayNameRes = R.string.model_efficientdet_lite2,
         sizeBytes = 7_515_971L,
         inputSize = 448,
+        accuracy = 30.0f,
         sources = listOf(
             ModelSource(
                 name = "Google CDN",
@@ -114,12 +99,56 @@ object DetectorModels {
         )
     )
 
+    /** EfficientDet-Lite0（int8，4.6MB，速度优先，精度较低）。 */
+    val EFFICIENTDET_LITE0 = ModelDefinition(
+        id = "efficientdet_lite0",
+        displayNameRes = R.string.model_efficientdet_lite0,
+        sizeBytes = 4_602_795L,
+        inputSize = 320,
+        accuracy = 25.7f,
+        sources = listOf(
+            ModelSource(
+                name = "Google CDN",
+                url = "https://storage.googleapis.com/mediapipe-models/object_detector/" +
+                    "efficientdet_lite0/int8/1/efficientdet_lite0.tflite",
+                expectedBytes = 4_602_795L
+            )
+        )
+    )
+
+    /**
+     * YOLOv8n（12.8MB，精度 37.3，明显优于 EfficientDet）。
+     *
+     * 官方只发布 ONNX，TFLite 版没有稳定的国内源，因此这里挂多个镜像：
+     * 能下就用，全失败时 UI 会提示改用默认模型或手动导入。
+     */
+    val YOLOV8N = ModelDefinition(
+        id = "yolov8n",
+        displayNameRes = R.string.model_yolov8n,
+        sizeBytes = 12_851_049L,
+        inputSize = 640,
+        accuracy = 37.3f,
+        sources = listOf(
+            ModelSource(
+                name = "GitHub Releases",
+                url = "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8n.tflite",
+                expectedBytes = 12_851_049L
+            ),
+            ModelSource(
+                name = "HuggingFace",
+                url = "https://huggingface.co/qualcomm/YOLOv8-Detection/resolve/main/yolov8n.tflite",
+                expectedBytes = 12_851_049L
+            )
+        )
+    )
+
     /** SSDMobileNetV2（float32，11.3MB，兼容性最好）。 */
     val SSD_MOBILENET_V2 = ModelDefinition(
         id = "ssd_mobilenet_v2",
         displayNameRes = R.string.model_ssd_mobilenet,
         sizeBytes = 11_316_189L,
         inputSize = 320,
+        accuracy = 22.0f,
         sources = listOf(
             ModelSource(
                 name = "Google CDN",
@@ -133,10 +162,11 @@ object DetectorModels {
     /** 用户自行导入的模型（例如自己转换的 YOLOv8n TFLite）。 */
     const val CUSTOM_ID = "custom"
 
-    val all: List<ModelDefinition> =
-        listOf(EFFICIENTDET_LITE0, EFFICIENTDET_LITE2, SSD_MOBILENET_V2)
+    val all: List<ModelDefinition> = listOf(
+        EFFICIENTDET_LITE2, YOLOV8N, EFFICIENTDET_LITE0, SSD_MOBILENET_V2
+    )
 
-    val default: ModelDefinition = EFFICIENTDET_LITE0
+    val default: ModelDefinition = EFFICIENTDET_LITE2
 
     fun byId(id: String?): ModelDefinition? =
         all.firstOrNull { it.id == id }
@@ -148,6 +178,8 @@ data class ModelDefinition(
     @StringRes val displayNameRes: Int,
     val sizeBytes: Long,
     val inputSize: Int,
+    /** COCO mAP@0.5:0.95，用于在 UI 上展示精度，便于用户权衡。 */
+    val accuracy: Float,
     val sources: List<ModelSource>
 ) {
     val sizeMb: String

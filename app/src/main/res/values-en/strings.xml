@@ -263,4 +263,6 @@
     <string name="subject_food">Food</string>
     <string name="subject_plant">Plant</string>
     <string name="subject_object">Object</string>
+    <string name="model_yolov8n">YOLOv8n (High accuracy)</string>
+    <string name="detector_accuracy">Accuracy</string>
 </resources>

@@ -263,4 +263,6 @@
     <string name="subject_food">食べ物</string>
     <string name="subject_plant">植物</string>
     <string name="subject_object">物體</string>
+    <string name="model_yolov8n">YOLOv8n（高精度）</string>
+    <string name="detector_accuracy">精度</string>
 </resources>

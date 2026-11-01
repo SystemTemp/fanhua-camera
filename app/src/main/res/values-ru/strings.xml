@@ -263,4 +263,6 @@
     <string name="subject_food">Еда</string>
     <string name="subject_plant">Растение</string>
     <string name="subject_object">Объект</string>
+    <string name="model_yolov8n">YOLOv8n (Высокая точность)</string>
+    <string name="detector_accuracy">Точность</string>
 </resources>

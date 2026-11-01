@@ -359,8 +359,9 @@ private fun ModelRow(
                     append(" · ")
                     append(definition.inputSize)
                     append("px · ")
-                    append(definition.sources.size)
-                    append(" 个下载源")
+                    append(stringResource(R.string.detector_accuracy))
+                    append(" ")
+                    append(String.format(java.util.Locale.US, "%.1f", definition.accuracy))
                 },
                 color = FanhuaTextDim,
                 style = MaterialTheme.typography.labelSmall

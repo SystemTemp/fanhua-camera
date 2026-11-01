@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 简体中文显式配置：
-         设备 locale 为 zh-CN 时，若缺少 values-zh-rCN，Android 会回退到
-         唯一存在的 zh-rTW（繁体），导致简体设备显示繁体。 -->
 
     <string name="app_name">繁花如梦相机</string>
 
@@ -270,4 +267,6 @@
     <string name="subject_plant">植物</string>
     <string name="subject_object">物体</string>
     <!-- 显式简体配置：确保 zh-CN 精确匹配，避免回退到 zh-rTW -->
+    <string name="model_yolov8n">YOLOv8n（高精度）</string>
+    <string name="detector_accuracy">精度</string>
 </resources>

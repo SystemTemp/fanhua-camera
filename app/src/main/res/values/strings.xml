@@ -1,266 +1,272 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <string name="app_name">繁花如梦相机</string>
 
-    <!-- Capture modes -->
-    <string name="mode_photo">Photo</string>
-    <string name="mode_video">Video</string>
-    <string name="mode_pro">Pro</string>
-    <string name="mode_superres">SuperRes</string>
+    <!-- 拍摄模式 -->
+    <string name="mode_photo">照片</string>
+    <string name="mode_video">视频</string>
+    <string name="mode_pro">专业</string>
+    <string name="mode_superres">超分</string>
 
-    <!-- Filters -->
-    <string name="filter_original">Original</string>
-    <string name="filter_dream">Flourishing Dream</string>
-    <string name="filter_leica_group">Leica</string>
-    <string name="filter_fuji_classic">Fuji Classic Chrome</string>
-    <string name="filter_kodak_portra">Kodak Portra</string>
-    <string name="filter_teal_orange">Teal &amp; Orange</string>
-    <string name="filter_cinematic">Cinematic</string>
-    <string name="filter_film_grain">Film Grain</string>
-    <string name="filter_group_film">Film</string>
+    <!-- 滤镜 -->
+    <string name="filter_original">原图</string>
+    <string name="filter_dream">繁花如梦</string>
+    <string name="filter_leica_group">徕卡</string>
+    <string name="filter_leica_ia">徕卡原色</string>
+    <string name="filter_leica_classic">徕卡古典</string>
+    <string name="filter_leica_chrome">徕卡铬黄</string>
+    <string name="filter_leica_contemporary">徕卡当代</string>
+    <string name="filter_leica_eternal">徕卡永恒</string>
+    <string name="filter_leica_brass">徕卡黄铜</string>
+    <string name="filter_leica_teal">徕卡蓝青</string>
+    <string name="filter_film_vivid">鲜明</string>
+    <string name="filter_film_classic">经典</string>
+    <string name="filter_film_nature">自然</string>
+    <string name="filter_film_neutral">中性</string>
+    <string name="filter_film_fresh">清新</string>
+    <string name="filter_film_clear">清晰</string>
+    <string name="filter_film_whitening">净白</string>
+    <string name="filter_film_cold_white">冷白</string>
+    <string name="filter_film_blackgold">黑金</string>
+    <string name="filter_film_red">赤霞红</string>
+    <string name="filter_film_teal_blue">远山青</string>
+    <string name="filter_film_high_contrast">反差</string>
+    <string name="filter_film_texture">质感</string>
+    <string name="filter_film_bw">黑白</string>
+    <string name="filter_group_basic">基础</string>
+    <string name="filter_group_style">风格</string>
+    <string name="filter_fuji_classic">富士正片</string>
+    <string name="filter_kodak_portra">柯达波特拉</string>
+    <string name="filter_teal_orange">青橙电影</string>
+    <string name="filter_cinematic">电影质感</string>
+    <string name="filter_film_grain">胶片颗粒</string>
+    <string name="filter_group_film">胶片</string>
     <string name="filter_apple_log">Apple Log</string>
-    <string name="filter_custom_lut">Custom LUT</string>
-    <string name="filter_sdr">SDR Standard</string>
+    <string name="filter_custom_lut">自定义 LUT</string>
+    <string name="filter_sdr">SDR 标准</string>
 
-    <!-- Flash and fill light -->
-    <string name="flash_auto">Auto</string>
-    <string name="flash_on">On</string>
-    <string name="flash_off">Off</string>
-    <string name="torch_on">Steady light on</string>
-    <string name="torch_off">Steady light off</string>
+    <!-- 闪光与补光 -->
+    <string name="flash_auto">自动</string>
+    <string name="flash_on">开启</string>
+    <string name="flash_off">关闭</string>
+    <string name="torch_on">常亮补光</string>
+    <string name="torch_off">关闭补光</string>
 
-    <!-- Common actions -->
-    <string name="action_settings">Settings</string>
-    <string name="action_close">Close</string>
-    <string name="action_switch_camera">Switch camera</string>
-    <string name="action_confirm">Confirm</string>
-    <string name="action_cancel">Cancel</string>
-    <string name="action_reset">Reset</string>
+    <!-- 通用动作 -->
+    <string name="action_settings">设置</string>
+    <string name="action_close">关闭</string>
+    <string name="action_switch_camera">切换镜头</string>
+    <string name="action_confirm">确定</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_reset">重置</string>
 
-    <!-- Permissions -->
-    <string name="permission_title">Camera permission required</string>
-    <string name="permission_message">Allow access to the camera and microphone to take photos and record videos</string>
-    <string name="permission_grant">Grant permission</string>
+    <!-- 权限 -->
+    <string name="permission_title">需要相机权限</string>
+    <string name="permission_message">请允许访问相机与麦克风，以使用拍摄与录像功能</string>
+    <string name="permission_grant">授予权限</string>
 
-    <!-- Toasts and messages -->
-    <string name="message_photo_saved">Photo saved</string>
-    <string name="message_video_saved">Video saved</string>
-    <string name="message_recording_started">Recording</string>
-    <string name="message_recording_stopped">Recording stopped</string>
-    <string name="message_recording_paused">Recording paused</string>
-    <string name="message_recording_resumed">Recording resumed</string>
-    <string name="message_saving">Saving</string>
-    <string name="message_processing">Processing</string>
-    <string name="message_error_camera">Camera unavailable</string>
-    <string name="message_filter_degraded">Live filter unavailable, switched to direct preview</string>
-    <string name="message_error_record">Recording failed</string>
-    <string name="message_error_save">Save failed</string>
-    <string name="message_high_speed_unavailable">High frame rate recording is not supported on this device</string>
-    <string name="message_superres_unavailable">Super resolution output is not supported on this device</string>
-    <string name="message_stabilization_unavailable">This stabilization mode is not supported on this device</string>
-    <string name="message_quality_reduced">Quality reduced, the camera still works</string>
-    <string name="message_torch_unavailable">Steady light is not supported on this device</string>
-    <string name="message_exposure_unavailable">Exposure compensation is not supported on this device</string>
-    <string name="message_focus_locked">Focus locked</string>
-    <string name="message_focus_reset">Auto focus restored</string>
+    <!-- 提示消息 -->
+    <string name="message_photo_saved">照片已保存</string>
+    <string name="message_video_saved">视频已保存</string>
+    <string name="message_recording_started">正在录制</string>
+    <string name="message_recording_stopped">录制已结束</string>
+    <string name="message_recording_paused">录制已暂停</string>
+    <string name="message_recording_resumed">继续录制</string>
+    <string name="message_saving">正在保存</string>
+    <string name="message_processing">正在处理</string>
+    <string name="message_error_camera">相机不可用</string>
+    <string name="message_filter_degraded">实时滤镜不可用，已切换为直通预览</string>
+    <string name="message_error_record">录制失败</string>
+    <string name="message_error_save">保存失败</string>
+    <string name="message_high_speed_unavailable">当前设备不支持高帧率录制</string>
+    <string name="message_superres_unavailable">当前设备不支持超分输出</string>
+    <string name="message_stabilization_unavailable">当前设备不支持该防抖设置</string>
+    <string name="message_quality_reduced">画质已降级，相机仍可用</string>
+    <string name="message_torch_unavailable">当前设备不支持常亮补光</string>
+    <string name="message_exposure_unavailable">当前设备不支持曝光补偿</string>
+    <string name="message_focus_locked">焦点已锁定</string>
+    <string name="message_focus_reset">已恢复自动对焦</string>
 
-    <!-- Settings -->
-    <string name="settings_title">Settings</string>
-    <string name="settings_language">Language</string>
-    <string name="settings_language_system">System default</string>
-    <string name="settings_capture">Capture</string>
-    <string name="settings_photo_aspect">Photo aspect ratio</string>
-    <string name="settings_photo_aspect_desc">What you see is what you get — the saved photo is center-cropped to the selected ratio</string>
-    <string name="settings_mirror">Mirror selfie</string>
-    <string name="settings_mirror_desc">Flip horizontally when using the front camera to match the preview</string>
-    <string name="settings_watermark">Leica frame</string>
-    <string name="settings_watermark_desc">Overlay the branded frame and shooting parameters when using the Leica Moment filter</string>
-    <string name="settings_shutter_sound">Shutter sound</string>
-    <string name="settings_shutter_sound_desc">Play the system shutter sound when taking a photo</string>
-    <string name="settings_filter_intensity">Filter intensity</string>
-    <string name="settings_image">Image</string>
-    <string name="settings_stabilization">Video stabilization</string>
-    <string name="settings_stabilization_desc">Prefer hardware stabilization and enable gyro compensation for super resolution recording</string>
-    <string name="settings_horizon">Horizon Lock</string>
-    <string name="settings_horizon_desc">Gyro-stabilized panning that keeps the horizon level; the viewfinder shows a gold level, correcting up to 8 degrees</string>
-    <string name="settings_superres">Photo super resolution</string>
-    <string name="settings_superres_desc">Upscale photos to a higher resolution after capture</string>
-    <string name="settings_autocomposition">Auto composition</string>
-    <string name="settings_autocomposition_desc">Detect the subject and suggest framing and cropping</string>
-    <string name="settings_capability">Device capability</string>
-    <string name="settings_capability_desc">Check the recording specs this device really supports</string>
-    <string name="settings_lut">LUT filters</string>
-    <string name="settings_lut_desc">Import .cube 3D LUTs (Blackmagic, PhotonCamera, etc.), then pick "Custom LUT" in the filter strip to apply one</string>
-    <string name="settings_debug">Debug mode</string>
-    <string name="settings_debug_desc">Only records debug logs and does not affect normal use; copy the log and send it to the developer when you are done</string>
-    <string name="settings_about">About</string>
-    <string name="settings_about_desc">Fanhua Camera · Multilingual photography</string>
-    <string name="settings_reset">Restore defaults</string>
-    <string name="settings_reset_desc">Clears all shooting preferences; photos and videos are not deleted</string>
-    <string name="settings_reset_done">Defaults restored</string>
+    <!-- 设置 -->
+    <string name="settings_title">设置</string>
+    <string name="settings_language">界面语言</string>
+    <string name="settings_language_system">跟随系统</string>
+    <string name="settings_capture">拍摄</string>
+    <string name="settings_photo_aspect">照片画幅</string>
+    <string name="settings_photo_aspect_desc">取景框所见即所得，保存时按所选画幅居中裁切</string>
+    <string name="settings_mirror">前置镜像</string>
+    <string name="settings_mirror_desc">自拍时水平翻转，与取景画面一致</string>
+    <string name="settings_watermark">徕卡相框</string>
+    <string name="settings_watermark_desc">使用「徕卡一瞬」滤镜时叠加品牌相框与拍摄参数</string>
+    <string name="settings_shutter_sound">快门音效</string>
+    <string name="settings_shutter_sound_desc">拍照时播放系统快门声</string>
+    <string name="settings_filter_intensity">滤镜强度</string>
+    <string name="settings_image">影像</string>
+    <string name="settings_stabilization">视频防抖</string>
+    <string name="settings_stabilization_desc">优先使用硬件防抖，超分录制时启用陀螺仪补偿</string>
+    <string name="settings_horizon">地平线防抖</string>
+    <string name="settings_horizon_desc">陀螺仪补偿平移并保持地平线水平，取景器显示金色水平仪，最大回正 8 度</string>
+    <string name="settings_superres">拍照超分</string>
+    <string name="settings_superres_desc">拍摄后将照片放大至更高分辨率</string>
+    <string name="settings_autocomposition">自动构图</string>
+    <string name="settings_autocomposition_desc">检测主体位置并给出构图引导与裁切建议</string>
+    <string name="settings_capability">设备能力</string>
+    <string name="settings_capability_desc">查看当前设备真实支持的录制规格</string>
+    <string name="settings_lut">LUT 滤镜</string>
+    <string name="settings_lut_desc">支持导入 .cube 3D LUT（Blackmagic、光子相机等），导入后在滤镜条选择「自定义 LUT」即可使用</string>
+    <string name="settings_debug">调试模式</string>
+    <string name="settings_debug_desc">仅记录调试日志，不影响正常使用；测完复制日志发给开发者即可</string>
+    <string name="settings_about">关于</string>
+    <string name="settings_about_desc">繁花如梦相机 · 多语种摄影</string>
+    <string name="settings_reset">恢复默认设置</string>
+    <string name="settings_reset_desc">清除所有拍摄偏好，不会删除照片与视频</string>
+    <string name="settings_reset_done">已恢复默认设置</string>
 
-    <!-- Aspect ratio -->
-    <string name="aspect_full">Full</string>
+    <!-- 画幅 -->
+    <string name="aspect_full">全画幅</string>
     <string name="aspect_4_3">4:3</string>
     <string name="aspect_16_9">16:9</string>
     <string name="aspect_1_1">1:1</string>
 
-    <!-- Device capability -->
-    <string name="capability_title">Device capability report</string>
-    <string name="capability_max_video">Max video spec</string>
-    <string name="capability_max_photo">Max photo spec</string>
-    <string name="capability_encode_4k30">4K 30FPS encoding</string>
-    <string name="capability_encode_4k60">4K 60FPS encoding</string>
-    <string name="capability_encode_4k120">4K 120FPS encoding</string>
-    <string name="capability_hevc">HEVC encoding</string>
-    <string name="capability_highspeed">High speed capture</string>
-    <string name="capability_superres">Super resolution target</string>
-    <string name="capability_stabilization">Stabilization modes</string>
-    <string name="capability_slow_motion">Slow motion profiles</string>
-    <string name="capability_notes">Notes</string>
-    <string name="value_supported">Supported</string>
-    <string name="value_unsupported">Not supported</string>
-    <string name="value_none">None</string>
+    <!-- 设备能力 -->
+    <string name="capability_title">设备能力报告</string>
+    <string name="capability_max_video">最大录像规格</string>
+    <string name="capability_max_photo">最大照片规格</string>
+    <string name="capability_encode_4k30">4K 30FPS 编码</string>
+    <string name="capability_encode_4k60">4K 60FPS 编码</string>
+    <string name="capability_encode_4k120">4K 120FPS 编码</string>
+    <string name="capability_hevc">HEVC 编码</string>
+    <string name="capability_highspeed">高帧率采集</string>
+    <string name="capability_superres">超分输出目标</string>
+    <string name="capability_stabilization">可用防抖模式</string>
+    <string name="capability_slow_motion">慢动作档位</string>
+    <string name="capability_notes">说明</string>
+    <string name="value_supported">支持</string>
+    <string name="value_unsupported">不支持</string>
+    <string name="value_none">无</string>
 
-    <!-- Pro mode -->
-    <string name="pro_manual_focus">Manual focus</string>
-    <string name="pro_exposure">Exposure Compensation</string>
-    <string name="pro_exposure_auto">Auto</string>
-    <string name="pro_focus_auto">Auto focus</string>
-    <string name="pro_output_spec">Output spec</string>
+    <!-- 专业模式 -->
+    <string name="pro_manual_focus">手动对焦</string>
+    <string name="pro_exposure">曝光补偿</string>
+    <string name="pro_exposure_auto">自动</string>
+    <string name="pro_focus_auto">自动对焦</string>
+    <string name="pro_output_spec">输出规格</string>
 
-    <!-- Composition hints -->
-    <string name="composition_hint_center">Move the subject to a thirds intersection</string>
-    <string name="composition_hint_left">Subject is right, adjust left</string>
-    <string name="composition_hint_right">Subject is left, adjust right</string>
-    <string name="composition_hint_up">Subject is low, adjust up</string>
-    <string name="composition_hint_down">Subject is high, adjust down</string>
-    <string name="composition_aligned">Framing looks good</string>
+    <!-- 构图提示 -->
+    <string name="composition_hint_center">将主体移至三分线交点</string>
+    <string name="composition_hint_left">主体偏右，向左调整</string>
+    <string name="composition_hint_right">主体偏左，向右调整</string>
+    <string name="composition_hint_up">主体偏下，向上调整</string>
+    <string name="composition_hint_down">主体偏上，向下调整</string>
+    <string name="composition_aligned">构图良好</string>
 
-    <!-- Gallery -->
-    <string name="gallery_title">Captures</string>
-    <string name="gallery_empty">Nothing here yet</string>
-    <string name="gallery_share">Share</string>
-    <string name="gallery_open">Open in system</string>
-    <string name="gallery_interpolate">Generate high frame rate</string>
-    <string name="gallery_upscale">Upscale to 4K</string>
-    <string name="processing_title">Processing</string>
-    <string name="processing_done">Processing finished</string>
-    <string name="processing_failed">Processing failed</string>
+    <!-- 相册 -->
+    <string name="gallery_title">拍摄结果</string>
+    <string name="gallery_empty">暂无内容</string>
+    <string name="gallery_share">分享</string>
+    <string name="gallery_open">在系统中打开</string>
+    <string name="gallery_interpolate">生成高帧率</string>
+    <string name="gallery_upscale">超分至 4K</string>
+    <string name="processing_title">正在处理</string>
+    <string name="processing_done">处理完成</string>
+    <string name="processing_failed">处理失败</string>
 
-    <!-- Viewfinder and controls -->
-    <string name="zoom_label">Zoom</string>
-    <string name="live_photo">Live Photo</string>
-    <string name="grid">Grid</string>
-    <string name="timer_off">Off</string>
-    <string name="flip_camera">Flip</string>
-    <string name="filter_strip_expand">Expand filters</string>
-    <string name="filter_strip_collapse">Collapse filters</string>
-    <string name="countdown_cancel">Tap to cancel</string>
-    <string name="video_pause">Pause</string>
-    <string name="video_resume">Resume</string>
-    <string name="hide_controls">Hide controls</string>
-    <string name="show_controls">Show controls</string>
-    <string name="camera_starting">Starting camera…</string>
-    <string name="double_tap_switch">Double-tap to switch camera</string>
+    <!-- 取景与控件 -->
+    <string name="zoom_label">变焦</string>
+    <string name="live_photo">实况</string>
+    <string name="grid">网格</string>
+    <string name="timer_off">关闭</string>
+    <string name="flip_camera">翻转</string>
+    <string name="filter_strip_expand">展开滤镜</string>
+    <string name="filter_strip_collapse">收起滤镜</string>
+    <string name="countdown_cancel">轻点取消</string>
+    <string name="video_pause">暂停</string>
+    <string name="video_resume">继续</string>
+    <string name="hide_controls">隐藏控件</string>
+    <string name="show_controls">显示控件</string>
+    <string name="camera_starting">正在启动相机…</string>
+    <string name="double_tap_switch">双击切换前后镜头</string>
 
-    <!-- Feedback and about -->
-    <string name="bug_feedback">Report Bug</string>
-    <string name="bug_feedback_desc">Copy logs with one tap to help locate the issue</string>
-    <string name="copy_log">Copy logs</string>
-    <string name="copied">Copied</string>
-    <string name="report_issue">Report on GitHub</string>
-    <string name="author">Author</string>
-    <string name="open_homepage">Open homepage</string>
-    <string name="device_info">Device info</string>
-    <string name="app_log">App log</string>
-    <string name="open_source">Source code</string>
-    <string name="delete">Delete</string>
-    <string name="reprocess">Reprocess</string>
-    <string name="reprocess_done">New photo created</string>
-    <string name="confirm_delete_title">Delete this photo?</string>
-    <string name="confirm_delete_message">This cannot be undone</string>
-    <string name="open_with_system">Open in system</string>
+    <!-- 反馈与关于 -->
+    <string name="bug_feedback">反馈 Bug</string>
+    <string name="bug_feedback_desc">一键复制日志，方便定位问题</string>
+    <string name="copy_log">一键复制日志</string>
+    <string name="copied">已复制</string>
+    <string name="report_issue">去 GitHub 反馈</string>
+    <string name="author">作者</string>
+    <string name="open_homepage">打开主页</string>
+    <string name="device_info">设备信息</string>
+    <string name="app_log">应用日志</string>
+    <string name="open_source">开源仓库</string>
+    <string name="delete">删除</string>
+    <string name="reprocess">重新处理</string>
+    <string name="reprocess_done">已生成新照片</string>
+    <string name="confirm_delete_title">删除这张照片？</string>
+    <string name="confirm_delete_message">删除后无法恢复</string>
+    <string name="open_with_system">在系统中打开</string>
 
-    <!-- Updates -->
-    <string name="check_update">Check for updates</string>
-    <string name="update_available">New version available</string>
-    <string name="update_latest">You are up to date</string>
-    <string name="update_failed">Update check failed</string>
-    <string name="download_failed">Download failed, check your network</string>
-    <string name="download_update">Download update</string>
-    <string name="downloading">Downloading</string>
-    <string name="download_done">Download finished</string>
-    <string name="install_update">Install update</string>
-    <string name="install_permission_hint">Please allow "Install unknown apps", then come back and tap Install again</string>
+    <!-- 更新 -->
+    <string name="check_update">检查更新</string>
+    <string name="update_available">发现新版本</string>
+    <string name="update_latest">已是最新版本</string>
+    <string name="update_failed">检查更新失败</string>
+    <string name="download_failed">下载失败，请检查网络</string>
+    <string name="download_update">下载更新</string>
+    <string name="downloading">正在下载</string>
+    <string name="download_done">下载完成</string>
+    <string name="install_update">安装更新</string>
+    <string name="install_permission_hint">请先允许「安装未知应用」，返回应用后再次点击安装</string>
 
-    <!-- Debug -->
-    <string name="debug_copy_log">Copy debug log</string>
-    <string name="debug_clear_log">Clear log</string>
-    <string name="debug_log_empty">Log is empty. Enable debug mode and take a few photos first</string>
-    <string name="debug_log_copied">Debug log copied</string>
+    <!-- 调试 -->
+    <string name="debug_copy_log">复制调试日志</string>
+    <string name="debug_clear_log">清空日志</string>
+    <string name="debug_log_empty">日志为空，请先打开调试模式并拍摄几张照片</string>
+    <string name="debug_log_copied">调试日志已复制</string>
 
     <!-- LUT -->
-    <string name="lut_import">Import LUT (.cube)</string>
-    <string name="lut_none">No LUT imported</string>
-    <string name="lut_imported">LUT imported</string>
-    <string name="lut_invalid">Invalid or unparseable LUT file</string>
-    <string name="lut_removed">LUT removed</string>
-    <string name="lut_remove">Remove</string>
-    <string name="lut_use_tip">Applies when the "Custom LUT" filter is selected</string>
+    <string name="lut_import">导入 LUT (.cube)</string>
+    <string name="lut_none">尚未导入 LUT</string>
+    <string name="lut_imported">LUT 导入成功</string>
+    <string name="lut_invalid">LUT 文件无效或解析失败</string>
+    <string name="lut_removed">已移除该 LUT</string>
+    <string name="lut_remove">移除</string>
+    <string name="lut_use_tip">选择「自定义 LUT」滤镜后生效</string>
 
-    <string name="live_photo_saved">Live photo saved</string>
-    <string name="filter_leica_ia">Leica IA</string>
-    <string name="filter_leica_classic">Leica Classic</string>
-    <string name="filter_leica_chrome">Leica Chrome</string>
-    <string name="filter_leica_contemporary">Leica Contemporary</string>
-    <string name="filter_leica_eternal">Leica Eternal</string>
-    <string name="filter_leica_brass">Leica Brass</string>
-    <string name="filter_leica_teal">Leica Teal</string>
-    <string name="filter_film_vivid">Vivid</string>
-    <string name="filter_film_classic">Classic</string>
-    <string name="filter_film_nature">Nature</string>
-    <string name="filter_film_neutral">Neutral</string>
-    <string name="filter_film_fresh">Fresh</string>
-    <string name="filter_film_clear">Clear</string>
-    <string name="filter_film_whitening">Bright White</string>
-    <string name="filter_film_cold_white">Cold White</string>
-    <string name="filter_film_blackgold">Black &amp; Gold</string>
-    <string name="filter_film_red">Crimson</string>
-    <string name="filter_film_teal_blue">Distant Blue</string>
-    <string name="filter_film_high_contrast">Contrast</string>
-    <string name="filter_film_texture">Texture</string>
-    <string name="filter_film_bw">B&amp;W</string>
-    <string name="filter_group_basic">Basic</string>
-    <string name="filter_group_style">Style</string>
-    <string name="detector_title">AI Auto Composition</string>
-    <string name="detector_desc">Recognizes subjects in frame (people, pets, food, vehicles, etc.) and gives rule-of-thirds guidance. Models are not bundled in the APK and must be downloaded once.</string>
-    <string name="detector_need_model">No model downloaded yet — auto composition is unavailable</string>
-    <string name="detector_download">Download model</string>
-    <string name="detector_downloading">Downloading</string>
-    <string name="detector_download_done">Model downloaded</string>
-    <string name="detector_download_failed">Model download failed</string>
-    <string name="detector_download_failed_hint">Check your network and retry, or import a .tflite model manually in Settings</string>
-    <string name="detector_retry">Retry</string>
-    <string name="detector_cancel">Cancel download</string>
-    <string name="detector_models">Available models</string>
-    <string name="detector_model_selected">In use</string>
-    <string name="detector_model_downloaded">Downloaded</string>
-    <string name="detector_model_delete">Delete</string>
-    <string name="detector_import">Import .tflite</string>
-    <string name="detector_import_done">Model imported</string>
-    <string name="detector_import_invalid">Not a valid TFLite model file</string>
-    <string name="detector_source">Source</string>
-    <string name="detector_speed">Speed</string>
-    <string name="detector_ready">Auto composition is ready</string>
-    <string name="detector_no_subject">No subject detected</string>
-    <string name="model_efficientdet_lite0">Efficient (recommended)</string>
-    <string name="model_efficientdet_lite2">Efficient accurate</string>
-    <string name="model_ssd_mobilenet">Compatibility mode</string>
-    <string name="subject_person">Person</string>
-    <string name="subject_animal">Animal</string>
-    <string name="subject_vehicle">Vehicle</string>
-    <string name="subject_food">Food</string>
-    <string name="subject_plant">Plant</string>
-    <string name="subject_object">Object</string>
+    <string name="live_photo_saved">实况照片已保存</string>
+
+    <!-- AI 自动构图 / 目标检测 -->
+    <string name="detector_title">AI 自动构图</string>
+    <string name="detector_desc">识别画面中的主体（人物、宠物、美食、车辆等）并给出三分构图引导。模型不内嵌在安装包中，需要下载后才能使用。</string>
+    <string name="detector_need_model">尚未下载模型，自动构图不可用</string>
+    <string name="detector_download">一键下载模型</string>
+    <string name="detector_downloading">正在下载</string>
+    <string name="detector_download_done">模型下载完成</string>
+    <string name="detector_download_failed">模型下载失败</string>
+    <string name="detector_download_failed_hint">请检查网络后重试，或在设置中手动导入 .tflite 模型</string>
+    <string name="detector_retry">重试</string>
+    <string name="detector_cancel">取消下载</string>
+    <string name="detector_models">可选模型</string>
+    <string name="detector_model_selected">使用中</string>
+    <string name="detector_model_downloaded">已下载</string>
+    <string name="detector_model_delete">删除</string>
+    <string name="detector_import">导入 .tflite 模型</string>
+    <string name="detector_import_done">模型导入成功</string>
+    <string name="detector_import_invalid">不是有效的 TFLite 模型文件</string>
+    <string name="detector_source">下载源</string>
+    <string name="detector_speed">速度</string>
+    <string name="detector_ready">自动构图已就绪</string>
+    <string name="detector_no_subject">未检测到主体</string>
+    <string name="model_efficientdet_lite0">高效轻量（推荐）</string>
+    <string name="model_efficientdet_lite2">高效精准</string>
+    <string name="model_ssd_mobilenet">兼容模式</string>
+    <string name="subject_person">人物</string>
+    <string name="subject_animal">动物</string>
+    <string name="subject_vehicle">车辆</string>
+    <string name="subject_food">美食</string>
+    <string name="subject_plant">植物</string>
+    <string name="subject_object">物体</string>
+    <!-- 显式简体配置：确保 zh-CN 精确匹配，避免回退到 zh-rTW -->
+    <string name="model_yolov8n">YOLOv8n（高精度）</string>
+    <string name="detector_accuracy">精度</string>
 </resources>
