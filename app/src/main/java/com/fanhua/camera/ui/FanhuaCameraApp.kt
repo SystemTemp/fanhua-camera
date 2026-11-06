@@ -54,6 +54,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -302,141 +303,70 @@ fun FanhuaCameraApp(controller: CameraController) {
 }
 
 /**
- * 相机启动动画。
+ * 启动动画（徕卡风格）。
  *
- * Google 风格：光圈环缓慢旋转 + 品牌名淡入 + 波浪进度条。
- * 动画分三段落：0~300ms 图标放大淡入，300ms 后文字与进度条浮现。
+ * 视觉参照「徕卡一瞬」App 的启动表现：纯白底、黑色无衬线字标居中，
+ * 字标下方一条细红线缓慢展开，整体克制、无多余装饰。
+ * 不使用任何强调色与图标，只靠留白与字重传达质感。
  */
 @Composable
 private fun CameraStartingOverlay(modifier: Modifier = Modifier) {
+    // 字标淡入 + 轻微上浮
+    val enter = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        enter.animateTo(1f, tween(durationMillis = 620, easing = LinearEasing))
+    }
+    // 细线从中间向两侧展开
+    val lineGrow = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        delay(380)
+        lineGrow.animateTo(1f, tween(durationMillis = 520, easing = LinearEasing))
+    }
+    // 呼吸式透明度，暗示仍在加载
     val transition = rememberInfiniteTransition(label = "starting")
-    val spin by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
+    val breathe by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.75f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "spin"
-    )
-    val pulse by transition.animateFloat(
-        initialValue = 0.86f,
-        targetValue = 1.06f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1100, easing = LinearEasing),
+            animation = tween(1200, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "pulse"
-    )
-    // 入场动画：图标先出现，文字稍后
-    var revealed by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(220)
-        revealed = true
-    }
-    val iconAlpha by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = tween(420, easing = LinearEasing),
-        label = "iconAlpha"
-    )
-    val textAlpha by animateFloatAsState(
-        targetValue = if (revealed) 1f else 0f,
-        animationSpec = tween(520, easing = LinearEasing),
-        label = "textAlpha"
+        label = "breathe"
     )
 
-    val accent = MaterialTheme.colorScheme.primary
     Box(
-        modifier = modifier
-            .background(Color(0xF2000000))
-            .graphicsLayer { alpha = iconAlpha },
+        modifier = modifier.background(Color.White),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "Fanhua",
+                color = Color.Black,
+                style = MaterialTheme.typography.displaySmall.copy(
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Normal,
+                    fontSize = 44.sp,
+                    letterSpacing = 1.5.sp
+                ),
+                modifier = Modifier.graphicsLayer {
+                    alpha = enter.value
+                    translationY = (1f - enter.value) * 14f
+                }
+            )
+            Spacer(modifier = Modifier.height(18.dp))
+            // 细线：中间向两侧展开
             Box(
                 modifier = Modifier
-                    .size(96.dp)
-                    .graphicsLayer {
-                        scaleX = pulse
-                        scaleY = pulse
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                // 旋转的光圈环
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val radius = size.minDimension / 2f - 4f
-                    val rect = androidx.compose.ui.geometry.Size(
-                        radius * 2f, radius * 2f
-                    )
-                    val topLeft = androidx.compose.ui.geometry.Offset(
-                        (size.width - radius * 2f) / 2f,
-                        (size.height - radius * 2f) / 2f
-                    )
-                    // 底环
-                    drawArc(
-                        color = Color(0x1FFFFFFF),
-                        startAngle = 0f,
-                        sweepAngle = 360f,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = rect,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(
-                            width = 3.5f,
-                            cap = androidx.compose.ui.graphics.StrokeCap.Round
-                        )
-                    )
-                    // 旋转的渐变弧
-                    rotate(spin) {
-                        drawArc(
-                            brush = androidx.compose.ui.graphics.Brush.sweepGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    accent.copy(alpha = 0.25f),
-                                    accent,
-                                    accent.copy(alpha = 0.25f),
-                                    Color.Transparent
-                                )
-                            ),
-                            startAngle = 0f,
-                            sweepAngle = 270f,
-                            useCenter = false,
-                            topLeft = topLeft,
-                            size = rect,
-                            style = androidx.compose.ui.graphics.drawscope.Stroke(
-                                width = 3.5f,
-                                cap = androidx.compose.ui.graphics.StrokeCap.Round
-                            )
-                        )
-                    }
-                }
-                Icon(
-                    imageVector = FanhuaIcons.Aperture,
-                    contentDescription = null,
-                    tint = accent,
-                    modifier = Modifier.size(38.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(22.dp))
-            Text(
-                text = stringResource(R.string.app_name),
-                color = FanhuaText,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.graphicsLayer { alpha = textAlpha }
+                    .height(1.2.dp)
+                    .width(96.dp * lineGrow.value)
+                    .background(Color.Black.copy(alpha = 0.85f))
             )
-            Spacer(modifier = Modifier.height(14.dp))
-            Box(modifier = Modifier.graphicsLayer { alpha = textAlpha }) {
-                IndeterminateWaveBar(
-                    modifier = Modifier.width(120.dp),
-                    height = 3.dp,
-                    color = accent
-                )
-            }
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(26.dp))
             Text(
                 text = stringResource(R.string.camera_starting),
-                color = FanhuaTextDim,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.graphicsLayer { alpha = textAlpha }
+                color = Color.Black.copy(alpha = breathe * 0.7f),
+                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
+                modifier = Modifier.graphicsLayer { alpha = enter.value }
             )
         }
     }

@@ -3,4 +3,5 @@
     <color name="window_background">#FF08090B</color>
     <color name="brand_gold">#FFE8C39E</color>
     <color name="brand_ink">#FF14161A</color>
+    <color name="ic_launcher_background">#FFFFFFFF</color>
 </resources>
