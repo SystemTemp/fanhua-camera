@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  资源保留规则（供 isShrinkResources 使用）。
+
+  以下资源全部通过「运行时拼名字 + Resources.getIdentifier()」动态查找，
+  R8 的静态分析看不到引用，会在 release 包里把它们当无用资源删掉，
+  导致：
+    - 水印素材（wm_*.webp）缺失 → 拍照加水印时 Resources$NotFoundException
+    - 滤镜实拍预览图（look_*.webp）缺失 → 滤镜条回退成色块
+    - 本地烘焙预览（lut_preview_*.png）缺失 → 同上
+  因此在这里显式 keep。
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/wm_*,@drawable/look_*,@drawable/lut_preview_*,@raw/lut_*" />

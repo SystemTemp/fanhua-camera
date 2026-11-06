@@ -3,14 +3,18 @@ package com.fanhua.camera.data
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.fanhua.camera.camera.core.PhotoAspect
 import com.fanhua.camera.camera.core.WatermarkMode
+import com.fanhua.camera.debug.DebugLog
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import java.io.IOException
 
 val Context.settingsDataStore by preferencesDataStore(name = "fanhua_settings")
 
@@ -50,7 +54,19 @@ class SettingsRepository(private val context: Context) {
     private val keyWatermark = stringPreferencesKey("watermark")
     private val keyShutterSound = booleanPreferencesKey("shutter_sound")
 
-    val settings: Flow<AppSettings> = context.settingsDataStore.data.map { prefs ->
+    /**
+     * 设置流。
+     *
+     * DataStore 在文件损坏 / 磁盘不可读时会抛 [IOException] 或 CorruptionException，
+     * 若直接传播会导致 `settings.first()` 抛异常、进而让 CameraXEngine 初始化失败，
+     * 表现为「一打开就闪退」。这里统一兜底为默认值，保证任何情况下都能进主界面。
+     */
+    val settings: Flow<AppSettings> = context.settingsDataStore.data
+        .catch { e ->
+            DebugLog.log("Settings", "读取设置失败，回退默认值: ${e.javaClass.simpleName}: ${e.message}")
+            emit(emptyPreferences())
+        }
+        .map { prefs ->
         AppSettings(
             presetKey = prefs[keyPreset] ?: "DREAM",
             filterIntensity = prefs[keyIntensity] ?: 1f,

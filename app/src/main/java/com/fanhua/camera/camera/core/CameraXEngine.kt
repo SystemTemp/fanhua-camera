@@ -140,42 +140,62 @@ class CameraXEngine(
 
     init {
         scope.launch {
-            val stored = settings.settings.first()
-            DebugLog.enabled = stored.debugEnabled
-            if (stored.lutPath.isNotBlank()) {
-                LutStore.select(context, stored.lutPath)
-            }
-            val preset = FilterPreset.fromKey(stored.presetKey)
-            renderState = RenderState(
-                preset,
-                stored.filterIntensity,
-                false,
-                lut = resolveLut(preset)
-            )
-            _state.update {
-                it.copy(
-                    preset = preset,
-                    filterIntensity = stored.filterIntensity,
-                    stabilizationEnabled = stored.stabilizationEnabled,
-                    horizonEnabled = stored.horizonEnabled,
-                    superResEnabled = stored.superResEnabled,
-                    autoCompositionEnabled = stored.autoCompositionEnabled,
-                    gridEnabled = stored.gridEnabled,
-                    timerSeconds = stored.timerSeconds,
-                    photoAspect = PhotoAspect.fromKey(stored.photoAspectKey),
-                    mirrorSelfie = stored.mirrorSelfie,
-                    watermarkMode = com.fanhua.camera.camera.core.WatermarkMode.entries
-                        .firstOrNull { it.name == stored.watermarkMode } ?: com.fanhua.camera.camera.core.WatermarkMode.FRAME,
-                    shutterSoundEnabled = stored.shutterSoundEnabled
+            // 启动恢复设置。任何异常都不能让协程抛出——未捕获的协程异常会直接
+            // 崩溃进程，表现为「一打开就闪退」。这里整体兜底，失败就用默认值继续。
+            try {
+                val stored = settings.settings.first()
+                DebugLog.enabled = stored.debugEnabled
+                if (stored.lutPath.isNotBlank()) {
+                    try {
+                        LutStore.select(context, stored.lutPath)
+                    } catch (e: Exception) {
+                        DebugLog.log("Engine", "恢复自定义 LUT 失败: ${e.message}")
+                    }
+                }
+                val preset = FilterPreset.fromKey(stored.presetKey)
+                renderState = RenderState(
+                    preset,
+                    stored.filterIntensity,
+                    false,
+                    lut = try {
+                        resolveLut(preset)
+                    } catch (e: Exception) {
+                        DebugLog.log("Engine", "解析 LUT 失败: ${e.message}")
+                        null
+                    }
                 )
+                _state.update {
+                    it.copy(
+                        preset = preset,
+                        filterIntensity = stored.filterIntensity,
+                        stabilizationEnabled = stored.stabilizationEnabled,
+                        horizonEnabled = stored.horizonEnabled,
+                        superResEnabled = stored.superResEnabled,
+                        autoCompositionEnabled = stored.autoCompositionEnabled,
+                        gridEnabled = stored.gridEnabled,
+                        timerSeconds = stored.timerSeconds,
+                        photoAspect = PhotoAspect.fromKey(stored.photoAspectKey),
+                        mirrorSelfie = stored.mirrorSelfie,
+                        watermarkMode = com.fanhua.camera.camera.core.WatermarkMode.entries
+                            .firstOrNull { it.name == stored.watermarkMode } ?: com.fanhua.camera.camera.core.WatermarkMode.FRAME,
+                        shutterSoundEnabled = stored.shutterSoundEnabled
+                    )
+                }
+                DebugLog.log(
+                    "Engine",
+                    "初始化 preset=$preset intensity=${stored.filterIntensity} debug=${DebugLog.enabled} " +
+                        "lut=${stored.lutPath.ifBlank { "(无)" }}"
+                )
+                // 加载已选中的检测模型（如果有）
+                try {
+                    loadSelectedDetector()
+                } catch (e: Exception) {
+                    DebugLog.log("Engine", "加载检测模型失败: ${e.message}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "启动恢复设置失败，使用默认值", e)
+                DebugLog.log("Engine", "启动恢复设置失败: ${e.javaClass.simpleName}: ${e.message}")
             }
-            DebugLog.log(
-                "Engine",
-                "初始化 preset=$preset intensity=${stored.filterIntensity} debug=${DebugLog.enabled} " +
-                    "lut=${stored.lutPath.ifBlank { "(无)" }}"
-            )
-            // 加载已选中的检测模型（如果有）
-            loadSelectedDetector()
         }
         if (ContextCompat.checkSelfPermission(
                 context, Manifest.permission.CAMERA
@@ -339,8 +359,23 @@ class CameraXEngine(
                         renderState
                     }
                 },
-                { error -> setStatus(R.string.message_error_camera, true) },
-                { setStatus(R.string.message_error_record, true) }
+                { error ->
+                    // 预览流错误：记录详情，但不要直接判定「相机不可用」
+                    // （录制时 CameraX 会新增输出 Surface，偶发失败不应影响拍照）
+                    Log.e(TAG, "GL 预览流异常", error)
+                    DebugLog.log(
+                        "Engine",
+                        "GL 预览流异常: ${error.javaClass.simpleName}: ${error.message}"
+                    )
+                },
+                { error ->
+                    Log.e(TAG, "GL 输出流异常", error)
+                    DebugLog.log(
+                        "Engine",
+                        "GL 输出流异常（录制可能受影响）: ${error.javaClass.simpleName}: ${error.message}"
+                    )
+                    setStatus(R.string.message_error_record, true)
+                }
             ).also { processor = it }
         } else {
             null
@@ -1261,12 +1296,51 @@ class CameraXEngine(
         }
     }
 
+    /**
+     * 实况照片。
+     *
+     * 顺序很关键：**先启动录像，等 Start 事件后再拍照**。
+     * 早先的实现是「拍照和录像同时发起」，两者抢占相机资源，
+     * 表现为按快门后卡住几秒、随后报「相机不可用」。
+     */
     private fun startLivePhoto() {
         if (_state.value.busy || _state.value.recording || recording != null) return
-        val capture = videoCapture ?: return
-        val photo = imageCapture ?: return
+        if (videoCapture == null || imageCapture == null) {
+            setStatus(R.string.message_error_record, true)
+            return
+        }
         if (_state.value.shutterSoundEnabled) playShutterSound()
         _state.update { it.copy(busy = true) }
+
+        // 1) 先启动录像
+        startRecordingInternal(livePhoto = true)
+        if (recording == null) {
+            // 录像没起来，直接退出，避免卡在 busy 状态
+            _state.update { it.copy(busy = false) }
+            setStatus(R.string.message_error_record, true)
+            return
+        }
+
+        // 2) 录像起来后再拍照（延迟 260ms 让编码器稳定）
+        scope.launch {
+            delay(260)
+            captureLivePhotoStill()
+        }
+
+        // 3) 定时停止
+        livePhotoJob?.cancel()
+        livePhotoJob = scope.launch {
+            delay(LIVE_PHOTO_DURATION_MS)
+            stopRecording()
+        }
+    }
+
+    /** 实况照片的静态帧。 */
+    private fun captureLivePhotoStill() {
+        val photo = imageCapture ?: run {
+            _state.update { it.copy(busy = false) }
+            return
+        }
         val file = File(context.cacheDir, "fanhua_live_" + System.currentTimeMillis() + ".jpg")
         try {
             photo.takePicture(
@@ -1304,12 +1378,6 @@ class CameraXEngine(
             file.delete()
             _state.update { it.copy(busy = false) }
             return
-        }
-        livePhotoJob?.cancel()
-        startRecordingInternal(livePhoto = true)
-        livePhotoJob = scope.launch {
-            delay(LIVE_PHOTO_DURATION_MS)
-            stopRecording()
         }
     }
 
@@ -1444,6 +1512,20 @@ class CameraXEngine(
                 livePhotoReady = false
                 _state.update { it.copy(recording = false, recordingPaused = false, recordingDurationMs = 0L) }
                 if (event.error != VideoRecordEvent.Finalize.ERROR_NONE) {
+                    val errName = when (event.error) {
+                        VideoRecordEvent.Finalize.ERROR_INVALID_OUTPUT_OPTIONS -> "INVALID_OUTPUT_OPTIONS"
+                        VideoRecordEvent.Finalize.ERROR_ENCODING_FAILED -> "ENCODING_FAILED"
+                        VideoRecordEvent.Finalize.ERROR_RECORDER_ERROR -> "RECORDER_ERROR"
+                        VideoRecordEvent.Finalize.ERROR_NO_VALID_DATA -> "NO_VALID_DATA"
+                        VideoRecordEvent.Finalize.ERROR_DURATION_LIMIT_REACHED -> "DURATION_LIMIT"
+                        VideoRecordEvent.Finalize.ERROR_FILE_SIZE_LIMIT_REACHED -> "FILE_SIZE_LIMIT"
+                        VideoRecordEvent.Finalize.ERROR_INSUFFICIENT_STORAGE -> "INSUFFICIENT_STORAGE"
+                        VideoRecordEvent.Finalize.ERROR_SOURCE_INACTIVE -> "SOURCE_INACTIVE"
+                        VideoRecordEvent.Finalize.ERROR_DURATION_LIMIT_REACHED -> "DURATION_LIMIT"
+                        else -> "code=${event.error}"
+                    }
+                    Log.e(TAG, "录制 Finalize 失败: $errName cause=${event.cause?.message}")
+                    DebugLog.log("Engine", "录制 Finalize 失败: $errName cause=${event.cause?.message}")
                     event.outputResults.outputUri?.let { uri ->
                         try {
                             context.contentResolver.delete(uri, null, null)
