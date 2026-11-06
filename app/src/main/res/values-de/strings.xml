@@ -219,6 +219,8 @@ Leica-Rahmen</string>
     <string name="filter_leica_eternal">Leica Ewig</string>
     <string name="filter_leica_brass">Leica Messing</string>
     <string name="filter_leica_teal">Leica Petrol</string>
+    <string name="filter_leica_m9">Leica M9</string>
+    <string name="filter_leica_m3">Leica M3</string>
     <string name="filter_film_vivid">Kräftig</string>
     <string name="filter_film_classic">Klassisch</string>
     <string name="filter_film_nature">Natürlich</string>

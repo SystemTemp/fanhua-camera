@@ -219,6 +219,8 @@ Cadre Leica</string>
     <string name="filter_leica_eternal">Leica Éternel</string>
     <string name="filter_leica_brass">Leica Laiton</string>
     <string name="filter_leica_teal">Leica Sarcelle</string>
+    <string name="filter_leica_m9">Leica M9</string>
+    <string name="filter_leica_m3">Leica M3</string>
     <string name="filter_film_vivid">Vif</string>
     <string name="filter_film_classic">Classique</string>
     <string name="filter_film_nature">Naturel</string>

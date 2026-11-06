@@ -35,6 +35,11 @@ enum class FilterPreset(
     LEICA_ETERNAL(R.string.filter_leica_eternal, "lut_l_etn", previewAsset = "look_eternal1"),
     LEICA_BRASS(R.string.filter_leica_brass, "lut_l_brs", previewAsset = "look_brass1"),
     LEICA_TEAL(R.string.filter_leica_teal, "lut_l_tel", previewAsset = "look_teal1"),
+    // 徕卡经典机身色彩：无 3D LUT，用参数化调色还原机型特征
+    // M9：CCD 感光元件，色彩浓郁偏暖，红色厚重，暗部微绿，高光柔和
+    LEICA_M9(R.string.filter_leica_m9),
+    // M3：早期胶片机身风格，低饱和、暖调、宽容度高、轻微褪色
+    LEICA_M3(R.string.filter_leica_m3),
 
     // ───────── 电影 LUT（真实 LUT） ─────────
     FILM_VIVID(R.string.filter_film_vivid, "lut_normal_distinct"),
@@ -68,7 +73,7 @@ enum class FilterPreset(
         get() = when (this) {
             ORIGINAL, DREAM -> FilterGroup.BASIC
             LEICA_IA, LEICA_CLASSIC, LEICA_CHROME, LEICA_CONTEMPORARY,
-            LEICA_ETERNAL, LEICA_BRASS, LEICA_TEAL -> FilterGroup.LEICA
+            LEICA_ETERNAL, LEICA_BRASS, LEICA_TEAL, LEICA_M9, LEICA_M3 -> FilterGroup.LEICA
             FILM_VIVID, FILM_CLASSIC, FILM_NATURE, FILM_NEUTRAL, FILM_FRESH,
             FILM_CLEAR, FILM_WHITENING, FILM_COLD_WHITE, FILM_BLACKGOLD,
             FILM_RED, FILM_TEAL_BLUE, FILM_HIGH_CONTRAST, FILM_TEXTURE, FILM_BW -> FilterGroup.FILM

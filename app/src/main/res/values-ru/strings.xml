@@ -219,6 +219,8 @@
     <string name="filter_leica_eternal">Leica Вечный</string>
     <string name="filter_leica_brass">Leica Латунь</string>
     <string name="filter_leica_teal">Leica Бирюза</string>
+    <string name="filter_leica_m9">Leica M9</string>
+    <string name="filter_leica_m3">Leica M3</string>
     <string name="filter_film_vivid">Яркий</string>
     <string name="filter_film_classic">Классика</string>
     <string name="filter_film_nature">Натуральный</string>

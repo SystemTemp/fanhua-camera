@@ -331,6 +331,51 @@ data class FilterGrade(
                 vignette = 0f
             )
 
+            // ───────── 徕卡经典机身（无 3D LUT，参数化还原） ─────────
+            // M9：CCD 色彩特征 —— 饱和度高、暖调、红色厚重、暗部微绿、高光柔和。
+            FilterPreset.LEICA_M9 -> FilterGrade(
+                contrast = 1.08f,
+                saturation = 1.18f,
+                temperature = 0.16f,
+                fade = 0.02f,
+                lift = floatArrayOf(-0.012f, 0.004f, -0.008f),
+                gain = floatArrayOf(1.04f, 1.0f, 0.96f),
+                shadowTint = floatArrayOf(-0.010f, 0.012f, -0.006f),
+                highlightTint = floatArrayOf(0.018f, 0.006f, -0.012f),
+                bloomStrength = 0.05f,
+                bloomThreshold = 0.92f,
+                grain = 0.04f,
+                vignette = 0.10f,
+                highlights = -0.05f,
+                shadows = 0.03f,
+                clarity = 0.10f,
+                halation = 0.04f,
+                curveShadow = 0.10f,
+                curveHighlight = 0.06f
+            )
+
+            // M3：早期胶片机身 —— 低饱和、暖调、宽容度高、轻微褪色。
+            FilterPreset.LEICA_M3 -> FilterGrade(
+                contrast = 0.94f,
+                saturation = 0.86f,
+                temperature = 0.10f,
+                fade = 0.08f,
+                lift = floatArrayOf(0.020f, 0.016f, 0.010f),
+                gain = floatArrayOf(1.02f, 1.0f, 0.97f),
+                shadowTint = floatArrayOf(0.008f, 0.010f, 0.004f),
+                highlightTint = floatArrayOf(0.012f, 0.004f, -0.008f),
+                bloomStrength = 0.07f,
+                bloomThreshold = 0.90f,
+                grain = 0.07f,
+                vignette = 0.08f,
+                highlights = -0.03f,
+                shadows = 0.06f,
+                clarity = -0.04f,
+                halation = 0.06f,
+                curveShadow = 0.04f,
+                curveHighlight = 0.02f
+            )
+
             // 基于真实 3D LUT 的滤镜，调色完全由 LUT 负责
             FilterPreset.FILM_VIVID -> FilterGrade(
                 contrast = 1f,

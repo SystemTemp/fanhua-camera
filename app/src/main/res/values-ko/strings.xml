@@ -219,6 +219,8 @@
     <string name="filter_leica_eternal">라이카 에터날</string>
     <string name="filter_leica_brass">라이카 브라스</string>
     <string name="filter_leica_teal">라이카 틸</string>
+    <string name="filter_leica_m9">라이카 M9</string>
+    <string name="filter_leica_m3">라이카 M3</string>
     <string name="filter_film_vivid">선명</string>
     <string name="filter_film_classic">클래식</string>
     <string name="filter_film_nature">내추럴</string>

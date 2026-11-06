@@ -219,6 +219,8 @@ Leica frame</string>
     <string name="filter_leica_eternal">Leica Eternal</string>
     <string name="filter_leica_brass">Leica Brass</string>
     <string name="filter_leica_teal">Leica Teal</string>
+    <string name="filter_leica_m9">Leica M9</string>
+    <string name="filter_leica_m3">Leica M3</string>
     <string name="filter_film_vivid">Vivid</string>
     <string name="filter_film_classic">Classic</string>
     <string name="filter_film_nature">Nature</string>

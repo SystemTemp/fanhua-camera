@@ -219,6 +219,8 @@
     <string name="filter_leica_eternal">ライカ エターナル</string>
     <string name="filter_leica_brass">ライカ ブラス</string>
     <string name="filter_leica_teal">ライカ ティール</string>
+    <string name="filter_leica_m9">ライカ M9</string>
+    <string name="filter_leica_m3">ライカ M3</string>
     <string name="filter_film_vivid">鮮明</string>
     <string name="filter_film_classic">クラシック</string>
     <string name="filter_film_nature">ナチュラル</string>

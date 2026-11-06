@@ -123,11 +123,21 @@ class CameraXEngine(
 
     private var lensFacing = CameraSelector.LENS_FACING_BACK
     private var capability: CapabilityReport = CapabilityReport()
+    /**
+     * 当前渲染参数。
+     *
+     * 由主线程（UI 切滤镜/调强度）写入、GL 线程（[glExecutor] 上的
+     * FilterSurfaceProcessor）每帧读取。**必须 @Volatile**，否则 GL 线程
+     * 可能长期读到缓存的旧值，表现为「切了滤镜但预览画面没变化」。
+     */
+    @Volatile
     private var renderState = RenderState(FilterPreset.DREAM, 1f, false)
     private var statusJob: Job? = null
     private var livePhotoJob: Job? = null
     private var rotationListener: View.OnLayoutChangeListener? = null
     private var rotationListenerView: View? = null
+    /** 上一次已应用的 display 旋转角，用于过滤掉非旋转引起的布局变化。 */
+    private var lastAppliedRotation: Int = -1
     private var livePhotoSource: Uri? = null
     private var livePhotoReady = false
     private var glFilterDowngraded = false
@@ -461,6 +471,10 @@ class CameraXEngine(
         Log.d(TAG, "bind 成功 mode=$mode filterPreviewActive=$useEffect")
         _state.update { it.copy(filterPreviewActive = useEffect) }
 
+        // 记录本次 bind 使用的旋转角，避免后续布局变化（滤镜条展开等）
+        // 被误判成屏幕旋转而重设 targetRotation。
+        lastAppliedRotation = rotation
+
         refreshHorizonPolling()
         attachRotationListener()
 
@@ -617,6 +631,16 @@ class CameraXEngine(
         }
     }
 
+    /**
+     * 监听屏幕方向变化。
+     *
+     * 注意：这里**不能**用「预览视图尺寸变化」来判定旋转。滤镜条展开/收起、
+     * 控件显隐都会改变预览区高度，早先的实现只要宽高任一变化就重设
+     * targetRotation，导致切滤镜时画面偶发「突然横过来」。
+     *
+     * 正确做法是只跟随 display 的真实旋转角（由系统 Configuration 驱动），
+     * 并在方向真正改变时才更新一次。
+     */
     private fun attachRotationListener() {
         if (released) return
         val view: View? = previewView
@@ -624,26 +648,21 @@ class CameraXEngine(
         if (rotationListenerView === view && rotationListener != null) return
         rotationListenerView?.removeOnLayoutChangeListener(rotationListener)
         rotationListenerView = view
-        var lastWidth = view.width
-        var lastHeight = view.height
-        val listener = View.OnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
-            val width = right - left
-            val height = bottom - top
-            if (width > 0 && height > 0) {
-                val changed = lastWidth != width || lastHeight != height
-                lastWidth = width
-                lastHeight = height
-                if (changed && !released) {
-                    applyRotation()
-                }
-            }
+        val listener = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            if (!released) applyRotationIfOrientationChanged()
         }
         view.addOnLayoutChangeListener(listener)
         rotationListener = listener
     }
 
-    private fun applyRotation() {
+    /**
+     * 仅在 display 旋转角确实变化时更新各 UseCase 的 targetRotation。
+     * 尺寸变化不再触发，避免切滤镜/展开面板时画面被错误旋转。
+     */
+    private fun applyRotationIfOrientationChanged() {
         val rotation = displayRotation()
+        if (rotation == lastAppliedRotation) return
+        lastAppliedRotation = rotation
         try {
             preview?.targetRotation = rotation
             imageCapture?.targetRotation = rotation
