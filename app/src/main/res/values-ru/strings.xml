@@ -267,4 +267,11 @@
     <string name="subject_object">Объект</string>
     <string name="model_yolov8n">YOLOv8n (Высокая точность)</string>
     <string name="detector_accuracy">Точность</string>
+    <string name="watermark_picker_title">Выбор водяного знака</string>
+    <string name="watermark_picker_desc">%d стилей из Leica Moment, по категориям</string>
+    <string name="wm_mode_frame">Рамка</string>
+    <string name="wm_mode_side">Боковой</string>
+    <string name="wm_mode_overlay">Наложение</string>
+    <string name="wm_mode_border">Граница</string>
+    <string name="wm_mode_filmstrip">Плёнка</string>
 </resources>

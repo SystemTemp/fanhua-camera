@@ -114,4 +114,6 @@ dependencies {
 
     implementation("org.tensorflow:tensorflow-lite:2.16.1")
     testImplementation("junit:junit:4.13.2")
+    // 单元测试里 Android 的 org.json 是桩实现，需用真实实现替换
+    testImplementation("org.json:json:20240303")
 }

@@ -267,4 +267,11 @@
     <string name="subject_object">物體</string>
     <string name="model_yolov8n">YOLOv8n（高精度）</string>
     <string name="detector_accuracy">精度</string>
+    <string name="watermark_picker_title">ウォーターマーク選択</string>
+    <string name="watermark_picker_desc">ライカ一瞬から抽出した %d 種類のスタイル、カテゴリ別</string>
+    <string name="wm_mode_frame">フレーム</string>
+    <string name="wm_mode_side">サイド</string>
+    <string name="wm_mode_overlay">オーバーレイ</string>
+    <string name="wm_mode_border">ボーダー</string>
+    <string name="wm_mode_filmstrip">フィルム</string>
 </resources>

@@ -267,4 +267,11 @@ Cadre Leica</string>
     <string name="subject_object">Objet</string>
     <string name="model_yolov8n">YOLOv8n (Haute précision)</string>
     <string name="detector_accuracy">Précision</string>
+    <string name="watermark_picker_title">Choisir le filigrane</string>
+    <string name="watermark_picker_desc">%d styles extraits de Leica Moment, par catégorie</string>
+    <string name="wm_mode_frame">Cadre</string>
+    <string name="wm_mode_side">Latéral</string>
+    <string name="wm_mode_overlay">Superposé</string>
+    <string name="wm_mode_border">Bordure</string>
+    <string name="wm_mode_filmstrip">Pellicule</string>
 </resources>

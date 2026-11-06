@@ -231,18 +231,24 @@ class PhotoProcessor(private val context: Context) {
             val elapsed = SystemClock.elapsedRealtime() - startMs
             DebugLog.log("Photo", "GL 管线耗时 ${elapsed}ms -> 开始保存")
 
-            // 7) 徕卡水印（受三态模式控制，仅 LEICA 组滤镜生效）
+            // 7) 水印（受三态模式控制，仅 LEICA 组滤镜生效）
             var result = readback
             if (watermarkMode != WatermarkMode.OFF && preset.group == FilterGroup.LEICA) {
                 val decorated = try {
-                    when (watermarkMode) {
-                        WatermarkMode.FRAME -> drawLeicaFrame(result, readExifInfo(source))
-                        WatermarkMode.EMBEDDED -> drawEmbeddedWatermark(result, readExifInfo(source))
-                        else -> result
-                    }
+                    // 优先用新的通用水印渲染器（支持徕卡全部 85 个水印样式）
+                    renderWatermark(result, source, watermarkMode, preset, intensity)
                 } catch (e: Exception) {
-                    DebugLog.log("Photo", "徕卡水印绘制失败: ${e.message}")
-                    result
+                    DebugLog.log("Photo", "水印渲染失败，回退旧实现: ${e.message}")
+                    try {
+                        when (watermarkMode) {
+                            WatermarkMode.FRAME -> drawLeicaFrame(result, readExifInfo(source))
+                            WatermarkMode.EMBEDDED -> drawEmbeddedWatermark(result, readExifInfo(source))
+                            else -> result
+                        }
+                    } catch (e2: Exception) {
+                        DebugLog.log("Photo", "旧水印实现也失败: ${e2.message}")
+                        result
+                    }
                 }
                 if (decorated !== result) {
                     result.recycle()
@@ -276,6 +282,41 @@ class PhotoProcessor(private val context: Context) {
             mirror = false,
             watermarkMode = WatermarkMode.FRAME
         )
+
+    /**
+     * 用通用水印渲染器绘制水印。
+     *
+     * 水印规格来自 `assets/watermark_specs.json`（从徕卡一瞬 APK 逆向的 85 个样式），
+     * 通过 [WatermarkSettings] 里保存的样式 id 选择。
+     */
+    private fun renderWatermark(
+        photo: Bitmap,
+        source: File,
+        mode: WatermarkMode,
+        preset: FilterPreset,
+        intensity: Float
+    ): Bitmap {
+        val renderer = com.fanhua.camera.media.watermark.WatermarkRenderer(context)
+        val repo = com.fanhua.camera.media.watermark.WatermarkRegistry.repository(context)
+        val specId = com.fanhua.camera.media.watermark.WatermarkRegistry.currentId(context)
+        val spec = repo.spec(specId) ?: return photo
+
+        val exif = readExifInfo(source)
+        val data = com.fanhua.camera.media.watermark.WatermarkRenderer.RenderData(
+            deviceModel = "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}",
+            appVersion = appVersionName(),
+            timeMillis = System.currentTimeMillis(),
+            focalLength = exif.focalMm.takeIf { it.isNotBlank() },
+            aperture = exif.aperture.takeIf { it.isNotBlank() },
+            shutterSpeed = exif.speed.takeIf { it.isNotBlank() },
+            iso = exif.iso.takeIf { it.isNotBlank() },
+            location = null,
+            filterName = null,
+            themeName = if (mode == WatermarkMode.EMBEDDED) "black" else "white"
+        )
+        DebugLog.log("Photo", "水印渲染 spec=$specId mode=$mode theme=${data.themeName}")
+        return renderer.apply(photo, spec, data)
+    }
 
     fun drawLeicaFrame(source: Bitmap, exif: ExifInfo): Bitmap {
         val base = minOf(source.width, source.height).toFloat()
@@ -473,6 +514,13 @@ class PhotoProcessor(private val context: Context) {
         }
 
         return out
+    }
+
+    /** 当前应用版本名，用于水印里的版本标签。 */
+    private fun appVersionName(): String = try {
+        context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""
+    } catch (e: Exception) {
+        ""
     }
 
     data class ExifInfo(

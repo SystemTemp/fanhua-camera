@@ -108,6 +108,7 @@ fun SettingsSheet(
     var resetConfirming by remember { mutableStateOf(false) }
     var resetNote by remember { mutableStateOf<String?>(null) }
 
+    var showWatermarkPicker by remember { mutableStateOf(false) }
     var lutNames by remember { mutableStateOf(LutStore.listNames(context)) }
     var selectedLut by remember { mutableStateOf(LutStore.path) }
     var lutNote by remember { mutableStateOf<String?>(null) }
@@ -210,6 +211,15 @@ fun SettingsSheet(
                         label = stringResource(mode.labelRes),
                         selected = state.watermarkMode == mode,
                         onClick = { controller.setWatermarkMode(mode) }
+                    )
+                }
+                // 水印样式选择（85 个徕卡原生样式）
+                if (state.watermarkMode != WatermarkMode.OFF) {
+                    GroupDivider()
+                    SelectableRow(
+                        label = stringResource(R.string.watermark_picker_title),
+                        selected = false,
+                        onClick = { showWatermarkPicker = true }
                     )
                 }
                 GroupDivider()
@@ -484,6 +494,12 @@ fun SettingsSheet(
         onDownload = updateController::download,
         onInstall = updateController::install,
         onDismiss = updateController::dismiss
+    )
+
+    // 水印样式选择器（85 个徕卡原生样式）
+    WatermarkPicker(
+        visible = showWatermarkPicker,
+        onDismiss = { showWatermarkPicker = false }
     )
 }
 

@@ -267,4 +267,11 @@ Leica-Rahmen</string>
     <string name="subject_object">Objekt</string>
     <string name="model_yolov8n">YOLOv8n (Hohe Genauigkeit)</string>
     <string name="detector_accuracy">Genauigkeit</string>
+    <string name="watermark_picker_title">Wasserzeichen wählen</string>
+    <string name="watermark_picker_desc">%d Stile aus Leica Moment, nach Kategorie</string>
+    <string name="wm_mode_frame">Rahmen</string>
+    <string name="wm_mode_side">Seite</string>
+    <string name="wm_mode_overlay">Überlagert</string>
+    <string name="wm_mode_border">Rand</string>
+    <string name="wm_mode_filmstrip">Filmstreifen</string>
 </resources>

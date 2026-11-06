@@ -267,4 +267,11 @@
     <string name="subject_object">사물</string>
     <string name="model_yolov8n">YOLOv8n (고정밀)</string>
     <string name="detector_accuracy">정확도</string>
+    <string name="watermark_picker_title">워터마크 선택</string>
+    <string name="watermark_picker_desc">라이카 모먼트에서 추출한 %d개 스타일, 카테고리별</string>
+    <string name="wm_mode_frame">프레임</string>
+    <string name="wm_mode_side">사이드</string>
+    <string name="wm_mode_overlay">오버레이</string>
+    <string name="wm_mode_border">보더</string>
+    <string name="wm_mode_filmstrip">필름</string>
 </resources>

@@ -267,4 +267,11 @@ Leica frame</string>
     <string name="subject_object">Object</string>
     <string name="model_yolov8n">YOLOv8n (High accuracy)</string>
     <string name="detector_accuracy">Accuracy</string>
+    <string name="watermark_picker_title">Choose watermark</string>
+    <string name="watermark_picker_desc">%d watermark styles extracted from Leica Moment, grouped by category</string>
+    <string name="wm_mode_frame">Frame</string>
+    <string name="wm_mode_side">Side</string>
+    <string name="wm_mode_overlay">Overlay</string>
+    <string name="wm_mode_border">Border</string>
+    <string name="wm_mode_filmstrip">Film strip</string>
 </resources>

@@ -267,4 +267,11 @@ Marco Leica</string>
     <string name="subject_object">Objeto</string>
     <string name="model_yolov8n">YOLOv8n (Alta precisión)</string>
     <string name="detector_accuracy">Precisión</string>
+    <string name="watermark_picker_title">Elegir marca de agua</string>
+    <string name="watermark_picker_desc">%d estilos extraídos de Leica Moment, por categoría</string>
+    <string name="wm_mode_frame">Marco</string>
+    <string name="wm_mode_side">Lateral</string>
+    <string name="wm_mode_overlay">Superpuesto</string>
+    <string name="wm_mode_border">Borde</string>
+    <string name="wm_mode_filmstrip">Película</string>
 </resources>

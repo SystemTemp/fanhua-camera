@@ -272,4 +272,11 @@
     <!-- 显式简体配置：确保 zh-CN 精确匹配，避免回退到 zh-rTW -->
     <string name="model_yolov8n">YOLOv8n（高精度）</string>
     <string name="detector_accuracy">精度</string>
+    <string name="watermark_picker_title">选择水印</string>
+    <string name="watermark_picker_desc">从徕卡一瞬逆向的 %d 个水印样式，按分类挑选</string>
+    <string name="wm_mode_frame">画框</string>
+    <string name="wm_mode_side">侧栏</string>
+    <string name="wm_mode_overlay">照片内</string>
+    <string name="wm_mode_border">竖排</string>
+    <string name="wm_mode_filmstrip">胶片</string>
 </resources>
