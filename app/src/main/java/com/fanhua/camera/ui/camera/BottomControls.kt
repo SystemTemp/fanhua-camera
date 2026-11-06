@@ -671,12 +671,19 @@ private fun FilterSwatch(
     modifier: Modifier = Modifier
 ) {
     val ctx = LocalContext.current
-    // 运行时解析预览图资源 id（命名规则：lut_preview_<lutAsset>）
+    // 预览图优先级：徕卡官方实拍图（look_*） > 本地烘焙的 LUT 预览（lut_preview_*）
     val previewRes = remember(preset, ctx) {
+        // 1) 徕卡官方实拍预览图
+        preset.previewAsset?.let { name ->
+            val id = ctx.resources.getIdentifier(name, "drawable", ctx.packageName)
+            if (id != 0) return@remember id
+        }
+        // 2) 本地烘焙的 LUT 预览图
         preset.lutAsset?.let { asset ->
             val id = ctx.resources.getIdentifier("lut_preview_$asset", "drawable", ctx.packageName)
-            if (id != 0) id else null
+            if (id != 0) return@remember id
         }
+        null
     }
 
     if (previewRes != null) {

@@ -16,23 +16,25 @@ import com.fanhua.camera.R
  */
 enum class FilterPreset(
     @StringRes val labelRes: Int,
-    /** res/raw 下的 .cube 资源名（不含扩展名），null 表示用参数化调色。 */
+    /** res/raw 下的 .lut 资源名（不含扩展名），null 表示用参数化调色。 */
     val lutAsset: String? = null,
     /** 真实 LUT 的默认强度（1 = 100%）。 */
-    val lutStrength: Float = 1f
+    val lutStrength: Float = 1f,
+    /** drawable-nodpi 下的实拍预览图资源名，null 表示无预览图（回退到色卡渲染）。 */
+    val previewAsset: String? = null
 ) {
     // ───────── 基础 ─────────
     ORIGINAL(R.string.filter_original),
     DREAM(R.string.filter_dream, "lut_effect_fbld", 0.7f),
 
     // ───────── 徕卡 Looks（真实 LUT，来自徕卡一瞬 App 的 LC_* 系列） ─────────
-    LEICA_IA(R.string.filter_leica_ia, "lut_l_ia"),
-    LEICA_CLASSIC(R.string.filter_leica_classic, "lut_l_cls"),
-    LEICA_CHROME(R.string.filter_leica_chrome, "lut_l_chr"),
-    LEICA_CONTEMPORARY(R.string.filter_leica_contemporary, "lut_l_cnt"),
-    LEICA_ETERNAL(R.string.filter_leica_eternal, "lut_l_etn"),
-    LEICA_BRASS(R.string.filter_leica_brass, "lut_l_brs"),
-    LEICA_TEAL(R.string.filter_leica_teal, "lut_l_tel"),
+    LEICA_IA(R.string.filter_leica_ia, "lut_l_ia", previewAsset = "look_ia1"),
+    LEICA_CLASSIC(R.string.filter_leica_classic, "lut_l_cls", previewAsset = "look_classic1"),
+    LEICA_CHROME(R.string.filter_leica_chrome, "lut_l_chr", previewAsset = "look_chrome1"),
+    LEICA_CONTEMPORARY(R.string.filter_leica_contemporary, "lut_l_cnt", previewAsset = "look_contemporary1"),
+    LEICA_ETERNAL(R.string.filter_leica_eternal, "lut_l_etn", previewAsset = "look_eternal1"),
+    LEICA_BRASS(R.string.filter_leica_brass, "lut_l_brs", previewAsset = "look_brass1"),
+    LEICA_TEAL(R.string.filter_leica_teal, "lut_l_tel", previewAsset = "look_teal1"),
 
     // ───────── 电影 LUT（真实 LUT） ─────────
     FILM_VIVID(R.string.filter_film_vivid, "lut_normal_distinct"),
