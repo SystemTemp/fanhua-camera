@@ -164,6 +164,7 @@
     <string name="hide_controls">Скрыть элементы</string>
     <string name="show_controls">Показать элементы</string>
     <string name="camera_starting">Запуск камеры…</string>
+    <string name="splash_quote">Бесконечный прогресс</string>
     <string name="double_tap_switch">Двойное касание для смены камеры</string>
 
     <!-- Обратная связь и о программе -->

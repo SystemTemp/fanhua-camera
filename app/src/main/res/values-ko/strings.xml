@@ -164,6 +164,7 @@
     <string name="hide_controls">조작부 숨기기</string>
     <string name="show_controls">조작부 표시</string>
     <string name="camera_starting">카메라 시작 중…</string>
+    <string name="splash_quote">무한한 진보</string>
     <string name="double_tap_switch">두 번 탭하여 전후면 카메라 전환</string>
 
     <!-- 피드백 및 정보 -->

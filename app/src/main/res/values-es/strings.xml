@@ -164,6 +164,7 @@ Marco Leica</string>
     <string name="hide_controls">Ocultar controles</string>
     <string name="show_controls">Mostrar controles</string>
     <string name="camera_starting">Iniciando cámara…</string>
+    <string name="splash_quote">Progreso infinito</string>
     <string name="double_tap_switch">Doble toque para cambiar de cámara</string>
 
     <!-- Comentarios y acerca de -->

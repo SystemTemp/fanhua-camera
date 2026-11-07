@@ -164,6 +164,7 @@
     <string name="hide_controls">操作部を隠す</string>
     <string name="show_controls">操作部を表示</string>
     <string name="camera_starting">カメラを起動中…</string>
+    <string name="splash_quote">無限の進歩</string>
     <string name="double_tap_switch">ダブルタップでカメラ切替</string>
 
     <!-- フィードバックとアプリ情報 -->

@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -303,32 +304,41 @@ fun FanhuaCameraApp(controller: CameraController) {
 }
 
 /**
- * 启动动画（徕卡风格）。
+ * 启动动画（徕卡风格 + 字标展开）。
  *
- * 视觉参照「徕卡一瞬」App 的启动表现：纯白底、黑色无衬线字标居中，
- * 字标下方一条细红线缓慢展开，整体克制、无多余装饰。
- * 不使用任何强调色与图标，只靠留白与字重传达质感。
+ * 视觉参照「徕卡一瞬」App 的启动表现：纯白底、黑色字标居中。
+ * 动画分四段：
+ *   1. 字标从中心**向两侧横向展开**（scaleX 0→1 + 字距收紧），是本动画的主体；
+ *   2. 细线随后向两侧延展；
+ *   3. 下方浮现「无限进步」——影视飓风 Tim 的标志性口号；
+ *   4. 底部呼吸提示仍在加载。
  */
 @Composable
 private fun CameraStartingOverlay(modifier: Modifier = Modifier) {
-    // 字标淡入 + 轻微上浮
-    val enter = remember { Animatable(0f) }
+    // 字标展开：0 → 1
+    val markExpand = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
-        enter.animateTo(1f, tween(durationMillis = 620, easing = LinearEasing))
+        markExpand.animateTo(1f, tween(durationMillis = 760, easing = FastOutSlowInEasing))
+    }
+    // 名言淡入（字标展开到 55% 时开始）
+    val quoteIn = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        delay(420)
+        quoteIn.animateTo(1f, tween(durationMillis = 640, easing = FastOutSlowInEasing))
     }
     // 细线从中间向两侧展开
     val lineGrow = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
-        delay(380)
-        lineGrow.animateTo(1f, tween(durationMillis = 520, easing = LinearEasing))
+        delay(300)
+        lineGrow.animateTo(1f, tween(durationMillis = 560, easing = FastOutSlowInEasing))
     }
     // 呼吸式透明度，暗示仍在加载
     val transition = rememberInfiniteTransition(label = "starting")
     val breathe by transition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 0.75f,
+        initialValue = 0.30f,
+        targetValue = 0.70f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = LinearEasing),
+            animation = tween(1300, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "breathe"
@@ -339,6 +349,7 @@ private fun CameraStartingOverlay(modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // 字标：从中心横向展开（scaleX 0→1），同时字距从宽收紧，模拟"刻字浮现"
             Text(
                 text = "Fanhua",
                 color = Color.Black,
@@ -346,27 +357,44 @@ private fun CameraStartingOverlay(modifier: Modifier = Modifier) {
                     fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Normal,
                     fontSize = 44.sp,
-                    letterSpacing = 1.5.sp
+                    // 展开过程中字距由宽变紧
+                    letterSpacing = (6.5f - 5f * markExpand.value).sp
                 ),
                 modifier = Modifier.graphicsLayer {
-                    alpha = enter.value
-                    translationY = (1f - enter.value) * 14f
+                    // 只做水平展开：scaleX 0→1，纵向不变，避免变形
+                    scaleX = 0.04f + 0.96f * markExpand.value
+                    alpha = markExpand.value.coerceIn(0f, 1f)
+                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.5f)
                 }
             )
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             // 细线：中间向两侧展开
             Box(
                 modifier = Modifier
                     .height(1.2.dp)
-                    .width(96.dp * lineGrow.value)
+                    .width(108.dp * lineGrow.value)
                     .background(Color.Black.copy(alpha = 0.85f))
             )
-            Spacer(modifier = Modifier.height(26.dp))
+            Spacer(modifier = Modifier.height(22.dp))
+            // 「无限进步」——影视飓风 Tim 的标志性口号
+            Text(
+                text = stringResource(R.string.splash_quote),
+                color = Color.Black.copy(alpha = 0.78f * quoteIn.value),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Normal,
+                    letterSpacing = (10f - 6f * quoteIn.value).sp
+                ),
+                modifier = Modifier.graphicsLayer {
+                    translationY = (1f - quoteIn.value) * 10f
+                }
+            )
+            Spacer(modifier = Modifier.height(30.dp))
             Text(
                 text = stringResource(R.string.camera_starting),
-                color = Color.Black.copy(alpha = breathe * 0.7f),
+                color = Color.Black.copy(alpha = breathe * 0.6f),
                 style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
-                modifier = Modifier.graphicsLayer { alpha = enter.value }
+                modifier = Modifier.graphicsLayer { alpha = quoteIn.value }
             )
         }
     }

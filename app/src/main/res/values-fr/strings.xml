@@ -164,6 +164,7 @@ Cadre Leica</string>
     <string name="hide_controls">Masquer les commandes</string>
     <string name="show_controls">Afficher les commandes</string>
     <string name="camera_starting">Démarrage de la caméra…</string>
+    <string name="splash_quote">Progrès infini</string>
     <string name="double_tap_switch">Double toucher pour changer de caméra</string>
 
     <!-- Retours et à propos -->

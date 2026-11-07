@@ -164,6 +164,7 @@ Leica frame</string>
     <string name="hide_controls">Hide controls</string>
     <string name="show_controls">Show controls</string>
     <string name="camera_starting">Starting camera…</string>
+    <string name="splash_quote">Infinite Progress</string>
     <string name="double_tap_switch">Double-tap to switch camera</string>
 
     <!-- Feedback and about -->

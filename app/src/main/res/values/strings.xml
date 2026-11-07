@@ -191,6 +191,7 @@
     <string name="hide_controls">隐藏控件</string>
     <string name="show_controls">显示控件</string>
     <string name="camera_starting">正在启动相机…</string>
+    <string name="splash_quote">无限进步</string>
     <string name="double_tap_switch">双击切换前后镜头</string>
 
     <!-- 反馈与关于 -->

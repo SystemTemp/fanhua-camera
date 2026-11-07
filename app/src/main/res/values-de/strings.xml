@@ -164,6 +164,7 @@ Leica-Rahmen</string>
     <string name="hide_controls">Bedienelemente ausblenden</string>
     <string name="show_controls">Bedienelemente einblenden</string>
     <string name="camera_starting">Kamera wird gestartet…</string>
+    <string name="splash_quote">Endloser Fortschritt</string>
     <string name="double_tap_switch">Doppeltippen, um die Kamera zu wechseln</string>
 
     <!-- Feedback und Über -->
