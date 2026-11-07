@@ -277,4 +277,9 @@
     <string name="wm_mode_overlay">照片內</string>
     <string name="wm_mode_border">豎排</string>
     <string name="wm_mode_filmstrip">膠片</string>
+    <string name="settings_super_moon">超級月亮</string>
+    <string name="settings_super_moon_desc">辨識到月亮時自動強化月面細節與體積，拍照直出</string>
+    <string name="supermoon_auto">自動</string>
+    <string name="supermoon_off">關閉</string>
+    <string name="supermoon_badge">超級月亮</string>
 </resources>

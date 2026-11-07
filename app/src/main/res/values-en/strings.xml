@@ -277,4 +277,9 @@ Leica frame</string>
     <string name="wm_mode_overlay">Overlay</string>
     <string name="wm_mode_border">Border</string>
     <string name="wm_mode_filmstrip">Film strip</string>
+    <string name="settings_super_moon">Super Moon</string>
+    <string name="settings_super_moon_desc">Auto-enhances lunar detail and scale when the moon is detected — straight out of camera</string>
+    <string name="supermoon_auto">Auto</string>
+    <string name="supermoon_off">Off</string>
+    <string name="supermoon_badge">Super Moon</string>
 </resources>

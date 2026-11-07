@@ -277,4 +277,9 @@
     <string name="wm_mode_overlay">オーバーレイ</string>
     <string name="wm_mode_border">ボーダー</string>
     <string name="wm_mode_filmstrip">フィルム</string>
+    <string name="settings_super_moon">スーパームーン</string>
+    <string name="settings_super_moon_desc">月を検出すると月面のディテールと大きさを自動強調して撮影します</string>
+    <string name="supermoon_auto">自動</string>
+    <string name="supermoon_off">オフ</string>
+    <string name="supermoon_badge">スーパームーン</string>
 </resources>

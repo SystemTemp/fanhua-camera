@@ -277,4 +277,9 @@ Marco Leica</string>
     <string name="wm_mode_overlay">Superpuesto</string>
     <string name="wm_mode_border">Borde</string>
     <string name="wm_mode_filmstrip">Película</string>
+    <string name="settings_super_moon">Superluna</string>
+    <string name="settings_super_moon_desc">Mejora automáticamente el detalle y el tamaño lunar al detectar la luna, directo de la cámara</string>
+    <string name="supermoon_auto">Automático</string>
+    <string name="supermoon_off">Apagado</string>
+    <string name="supermoon_badge">Superluna</string>
 </resources>

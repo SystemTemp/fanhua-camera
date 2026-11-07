@@ -17,6 +17,7 @@ import android.os.SystemClock
 import android.provider.MediaStore
 import androidx.exifinterface.media.ExifInterface
 import com.fanhua.camera.R
+import com.fanhua.camera.camera.analyzer.MoonDetector
 import com.fanhua.camera.camera.core.PhotoAspect
 import com.fanhua.camera.camera.core.WatermarkMode
 import com.fanhua.camera.camera.filters.FilterGroup
@@ -117,7 +118,9 @@ class PhotoProcessor(private val context: Context) {
         mirror: Boolean = false,
         watermarkMode: WatermarkMode = WatermarkMode.FRAME,
         /** 自动构图裁切框（归一化坐标）；null 表示不裁切。 */
-        autoCrop: com.fanhua.camera.camera.detect.NormRect? = null
+        autoCrop: com.fanhua.camera.camera.detect.NormRect? = null,
+        /** 超级月亮：命中月亮时在成片上增强并适度放大圆盘（直出）。 */
+        superMoon: Boolean = false
     ): Uri? {
         DebugLog.log(
             "Photo",
@@ -235,8 +238,40 @@ class PhotoProcessor(private val context: Context) {
             val elapsed = SystemClock.elapsedRealtime() - startMs
             DebugLog.log("Photo", "GL 管线耗时 ${elapsed}ms -> 开始保存")
 
-            // 7) 水印（受三态模式控制，仅 LEICA 组滤镜生效）
             var result = readback
+
+            // 6.5) 超级月亮（直出）
+            // 在**最终成片**上重新检测一次月亮：分析帧与成片之间存在画幅/裁剪差异，
+            // 直接复用预览阶段的坐标会错位。检测在缩略图上做，开销很小。
+            if (superMoon) {
+                val enhanced = try {
+                    val moon = MoonDetector.detect(result)
+                    if (moon != null) {
+                        DebugLog.log(
+                            "Photo",
+                            "超级月亮 命中 conf=%.2f 半径=%.3f 中心=(%.3f,%.3f)".format(
+                                moon.confidence, moon.radiusRatio,
+                                (moon.norm.left + moon.norm.right) / 2f,
+                                (moon.norm.top + moon.norm.bottom) / 2f
+                            )
+                        )
+                        SuperMoonProcessor.enhance(result, moon) ?: result
+                    } else {
+                        DebugLog.log("Photo", "超级月亮 未检测到月亮，跳过")
+                        result
+                    }
+                } catch (e: Exception) {
+                    DebugLog.log("Photo", "超级月亮处理失败: ${e.javaClass.simpleName}: ${e.message}")
+                    result
+                }
+                if (enhanced !== result) {
+                    result.recycle()
+                    result = enhanced
+                    output = enhanced
+                }
+            }
+
+            // 7) 水印（受三态模式控制，仅 LEICA 组滤镜生效）
             if (watermarkMode != WatermarkMode.OFF && preset.group == FilterGroup.LEICA) {
                 val decorated = try {
                     // 优先用新的通用水印渲染器（支持徕卡全部 85 个水印样式）

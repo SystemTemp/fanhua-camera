@@ -27,6 +27,17 @@ enum class WatermarkMode(@StringRes val labelRes: Int) {
     EMBEDDED(R.string.watermark_embedded)
 }
 
+/**
+ * 超级月亮模式（直出）。
+ *
+ * - [AUTO]：检测到月亮时自动生效，无需手动切换；
+ * - [OFF]：完全关闭，不做任何月亮处理。
+ */
+enum class SuperMoonMode(@StringRes val labelRes: Int) {
+    AUTO(R.string.supermoon_auto),
+    OFF(R.string.supermoon_off)
+}
+
 enum class FlashMode(@StringRes val labelRes: Int) {
     AUTO(R.string.flash_auto),
     ON(R.string.flash_on),
@@ -177,6 +188,11 @@ data class CameraUiState(
     /** 自动构图是否正在计算。 */
     val autoComposing: Boolean = false,
     val mirrorSelfie: Boolean = false,
+    val superMoonMode: SuperMoonMode = SuperMoonMode.AUTO,
+    /** 实时预览是否检测到月亮（用于 UI 标识与自动生效）。 */
+    val moonDetected: Boolean = false,
+    /** 月亮检测置信度 0~1。 */
+    val moonConfidence: Float = 0f,
     val watermarkMode: WatermarkMode = WatermarkMode.FRAME,
     val shutterSoundEnabled: Boolean = true,
     val busy: Boolean = false,

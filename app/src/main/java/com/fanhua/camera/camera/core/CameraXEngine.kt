@@ -49,6 +49,7 @@ import com.fanhua.camera.camera.detect.Detection as DetectDetection
 import com.fanhua.camera.camera.detect.DetectorModels
 import com.fanhua.camera.camera.detect.ObjectDetector
 import com.fanhua.camera.camera.capture.FilterCameraEffect
+import com.fanhua.camera.camera.analyzer.MoonBox
 import com.fanhua.camera.camera.capture.FilterSurfaceProcessor
 import com.fanhua.camera.camera.capture.RenderState
 import com.fanhua.camera.camera.filters.FilterPreset
@@ -572,17 +573,22 @@ class CameraXEngine(
         }
 
         imageAnalysis = null
-        // 只有检测模型就绪时才挂分析器，否则白耗电且给不出提示
+        // 分析流有两个用途：自动构图（需要检测模型）与月亮识别（纯算法，不需要模型）。
+        // 任一需要就挂上，都不需要才不挂。
         val detectorReady = detector.ready
-        if (_state.value.autoCompositionEnabled && detectorReady) {
+        val needAnalysis = (_state.value.autoCompositionEnabled && detectorReady) ||
+            _state.value.superMoonMode == SuperMoonMode.AUTO
+        if (needAnalysis) {
             val analysisBuilder = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .setTargetRotation(rotation)
             val analysis = analysisBuilder.build()
             val analyzer = SubjectAnalyzer(
                 detectorProvider = { detector },
-                useFaceDetection = true,
-                onResult = { detections, faces -> onDetections(detections, faces) }
+                useFaceDetection = _state.value.autoCompositionEnabled && detectorReady,
+                onResult = { detections, faces -> onDetections(detections, faces) },
+                moonEnabled = { _state.value.superMoonMode == SuperMoonMode.AUTO },
+                onMoon = { moon -> onMoonResult(moon) }
             )
             analysis.setAnalyzer(analysisExecutor, analyzer)
             subjectAnalyzer = analyzer
@@ -1138,6 +1144,31 @@ class CameraXEngine(
         scope.launch { settings.setWatermarkMode(mode) }
     }
 
+    override fun setSuperMoonMode(mode: SuperMoonMode) {
+        if (_state.value.superMoonMode == mode) return
+        _state.update { it.copy(superMoonMode = mode) }
+        scope.launch { settings.setSuperMoonMode(mode.name) }
+        // 切换模式要重建绑定的 UseCase（决定分析流挂不挂）
+        bind()
+    }
+
+    /**
+     * 实时月亮检测结果。
+     *
+     * 只用于 UI 标识与「自动生效」的判定；真正拍照时会在成片上重新检测一次，
+     * 避免分析帧与成片之间的画幅/裁剪差异导致位置错位。
+     */
+    private fun onMoonResult(moon: MoonBox?) {
+        val detected = moon != null && moon.confidence >= 0.56f
+        val conf = moon?.confidence ?: 0f
+        val cur = _state.value
+        if (cur.moonDetected == detected && kotlin.math.abs(cur.moonConfidence - conf) < 0.04f) return
+        if (detected && !cur.moonDetected) {
+            DebugLog.log("Moon", "检测到月亮 conf=%.2f 半径=%.3f".format(conf, moon!!.radiusRatio))
+        }
+        _state.update { it.copy(moonDetected = detected, moonConfidence = conf) }
+    }
+
     override fun setShutterSoundEnabled(enabled: Boolean) {
         if (_state.value.shutterSoundEnabled == enabled) return
         _state.update { it.copy(shutterSoundEnabled = enabled) }
@@ -1295,7 +1326,8 @@ class CameraXEngine(
             val uri = withContext(Dispatchers.IO) {
                 photoProcessor.process(
                     file, preset, intensity, upscale, aspect, mirror, watermarkMode,
-                    autoCrop = _state.value.autoCropRect
+                    autoCrop = _state.value.autoCropRect,
+                    superMoon = _state.value.superMoonMode == SuperMoonMode.AUTO
                 )
             }
             file.delete()

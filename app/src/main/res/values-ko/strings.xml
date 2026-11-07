@@ -277,4 +277,9 @@
     <string name="wm_mode_overlay">오버레이</string>
     <string name="wm_mode_border">보더</string>
     <string name="wm_mode_filmstrip">필름</string>
+    <string name="settings_super_moon">슈퍼 문</string>
+    <string name="settings_super_moon_desc">달이 감지되면 달 표면 디테일과 크기를 자동으로 강화해 바로 촬영합니다</string>
+    <string name="supermoon_auto">자동</string>
+    <string name="supermoon_off">끄기</string>
+    <string name="supermoon_badge">슈퍼 문</string>
 </resources>

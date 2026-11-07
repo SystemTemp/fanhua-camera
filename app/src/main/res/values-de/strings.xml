@@ -277,4 +277,9 @@ Leica-Rahmen</string>
     <string name="wm_mode_overlay">Überlagert</string>
     <string name="wm_mode_border">Rand</string>
     <string name="wm_mode_filmstrip">Filmstreifen</string>
+    <string name="settings_super_moon">Supermond</string>
+    <string name="settings_super_moon_desc">Verbessert automatisch Monddetails und -größe bei Erkennung – direkt aus der Kamera</string>
+    <string name="supermoon_auto">Automatik</string>
+    <string name="supermoon_off">Aus</string>
+    <string name="supermoon_badge">Supermond</string>
 </resources>

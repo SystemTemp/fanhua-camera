@@ -25,14 +25,21 @@ import java.util.concurrent.atomic.AtomicBoolean
 class SubjectAnalyzer(
     private val detectorProvider: () -> ObjectDetector?,
     private val useFaceDetection: Boolean,
-    private val onResult: (detections: List<Detection>, faces: List<FaceBox>) -> Unit
+    private val onResult: (detections: List<Detection>, faces: List<FaceBox>) -> Unit,
+    /** 是否启用月亮检测（超级月亮为 AUTO 时返回 true）。 */
+    private val moonEnabled: () -> Boolean = { false },
+    /** 月亮检测结果，null 表示本帧没检测到。 */
+    private val onMoon: (MoonBox?) -> Unit = {}
 ) : ImageAnalysis.Analyzer {
 
     private var faceDetector: FaceDetector? = null
     private val busy = AtomicBoolean(false)
     private var lastTimestamp = 0L
+    private var lastMoonTimestamp = 0L
 
     var intervalMs: Long = 220L
+    /** 月亮检测节流：比主体检测稀一些，省电。 */
+    var moonIntervalMs: Long = 420L
 
     private fun faceDetector(): FaceDetector {
         val existing = faceDetector
@@ -57,7 +64,11 @@ class SubjectAnalyzer(
         lastTimestamp = now
 
         val detector = detectorProvider()
-        if (detector == null || !detector.ready) {
+        val detectorReady = detector != null && detector.ready
+        val wantMoon = moonEnabled()
+
+        // 既没有检测模型、也没开超级月亮，这一帧完全没意义，直接丢弃
+        if (!detectorReady && !wantMoon) {
             busy.set(false)
             image.close()
             return
@@ -75,8 +86,27 @@ class SubjectAnalyzer(
             return
         }
 
+        // 月亮检测独立于目标检测：不依赖任何模型文件
+        if (wantMoon && now - lastMoonTimestamp >= moonIntervalMs) {
+            lastMoonTimestamp = now
+            val moon = try {
+                MoonDetector.detect(bitmap)
+            } catch (e: Exception) {
+                DebugLog.log("Moon", "检测失败: ${e.javaClass.simpleName}: ${e.message}")
+                null
+            }
+            onMoon(moon)
+        }
+
+        if (!detectorReady) {
+            onResult(emptyList(), emptyList())
+            busy.set(false)
+            bitmap.recycle()
+            return
+        }
+
         try {
-            val detections = detector.detect(bitmap)
+            val detections = detector!!.detect(bitmap)
             if (!useFaceDetection) {
                 onResult(detections, emptyList())
                 busy.set(false)

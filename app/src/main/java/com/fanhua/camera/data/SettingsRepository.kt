@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.fanhua.camera.camera.core.PhotoAspect
+import com.fanhua.camera.camera.core.SuperMoonMode
 import com.fanhua.camera.camera.core.WatermarkMode
 import com.fanhua.camera.debug.DebugLog
 import kotlinx.coroutines.flow.Flow
@@ -32,6 +33,7 @@ data class AppSettings(
     val timerSeconds: Int = 0,
     val photoAspectKey: String = PhotoAspect.FULL.name,
     val mirrorSelfie: Boolean = false,
+    val superMoonMode: String = SuperMoonMode.AUTO.name,
     val watermarkMode: String = WatermarkMode.FRAME.name,
     val shutterSoundEnabled: Boolean = true
 )
@@ -52,6 +54,7 @@ class SettingsRepository(private val context: Context) {
     private val keyAspect = stringPreferencesKey("photo_aspect")
     private val keyMirror = booleanPreferencesKey("mirror_selfie")
     private val keyWatermark = stringPreferencesKey("watermark")
+    private val keySuperMoon = stringPreferencesKey("super_moon")
     private val keyShutterSound = booleanPreferencesKey("shutter_sound")
 
     /**
@@ -81,6 +84,11 @@ class SettingsRepository(private val context: Context) {
             timerSeconds = prefs[keyTimer] ?: 0,
             photoAspectKey = prefs[keyAspect] ?: PhotoAspect.FULL.name,
             mirrorSelfie = prefs[keyMirror] ?: false,
+            superMoonMode = run {
+                val raw = prefs[keySuperMoon]
+                SuperMoonMode.entries.firstOrNull { it.name == raw }?.name
+                    ?: SuperMoonMode.AUTO.name
+            },
             // 水印模式以枚举名字符串持久化；旧版本若该 key 不存在则默认开启画框水印
             watermarkMode = run {
                 val raw = prefs[keyWatermark]
@@ -141,6 +149,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setMirrorSelfie(value: Boolean) {
         context.settingsDataStore.edit { it[keyMirror] = value }
+    }
+
+    suspend fun setSuperMoonMode(value: String) {
+        context.settingsDataStore.edit { it[keySuperMoon] = value }
     }
 
     suspend fun setWatermarkMode(value: WatermarkMode) {

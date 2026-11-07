@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -63,6 +64,7 @@ import com.fanhua.camera.R
 import com.fanhua.camera.camera.core.CameraController
 import com.fanhua.camera.camera.core.CapabilityProbe
 import com.fanhua.camera.camera.core.CaptureMode
+import com.fanhua.camera.camera.core.SuperMoonMode
 import com.fanhua.camera.camera.core.FlashMode
 import com.fanhua.camera.camera.core.PhotoAspect
 import com.fanhua.camera.ui.camera.BottomControls
@@ -196,6 +198,17 @@ fun FanhuaCameraApp(controller: CameraController) {
                 .statusBarsPadding()
                 .padding(top = 80.dp)
         )
+
+        // 超级月亮：识别到月亮且模式为自动时点亮
+        if (state.moonDetected && state.superMoonMode == SuperMoonMode.AUTO) {
+            MoonBadge(
+                confidence = state.moonConfidence,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = 132.dp)
+            )
+        }
 
         if (state.recording) {
             RecordingBadge(
@@ -395,6 +408,59 @@ private fun CameraStartingOverlay(modifier: Modifier = Modifier) {
                 color = Color.Black.copy(alpha = breathe * 0.6f),
                 style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
                 modifier = Modifier.graphicsLayer { alpha = quoteIn.value }
+            )
+        }
+    }
+}
+
+/**
+ * 超级月亮标识。
+ *
+ * 只在「模式=自动 且 实时检测到月亮」时出现，告诉用户这一张会走月亮增强直出。
+ * 用琥珀色描边 + 细进度条表示置信度，避免遮挡取景。
+ */
+@Composable
+private fun MoonBadge(
+    confidence: Float,
+    modifier: Modifier = Modifier
+) {
+    val scheme = MaterialTheme.colorScheme
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .background(Color(0xCC0B0B0D))
+            .border(1.dp, FanhuaGold.copy(alpha = 0.85f), RoundedCornerShape(50))
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = FanhuaIcons.Sparkle,
+                contentDescription = null,
+                tint = FanhuaGold,
+                modifier = Modifier.size(15.dp)
+            )
+            Spacer(modifier = Modifier.width(7.dp))
+            Text(
+                text = stringResource(R.string.supermoon_badge),
+                color = FanhuaGold,
+                style = MaterialTheme.typography.labelMedium,
+                letterSpacing = 1.2.sp
+            )
+        }
+        Spacer(modifier = Modifier.height(5.dp))
+        Box(
+            modifier = Modifier
+                .width(74.dp)
+                .height(2.dp)
+                .clip(RoundedCornerShape(50))
+                .background(scheme.onSurface.copy(alpha = 0.18f))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(confidence.coerceIn(0f, 1f))
+                    .fillMaxHeight()
+                    .background(FanhuaGold)
             )
         }
     }

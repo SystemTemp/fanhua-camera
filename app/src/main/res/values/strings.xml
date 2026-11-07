@@ -100,6 +100,11 @@
     <string name="settings_mirror">前置镜像</string>
     <string name="settings_mirror_desc">自拍时水平翻转，与取景画面一致</string>
     <string name="settings_watermark">徕卡水印</string>
+    <string name="settings_super_moon">超级月亮</string>
+    <string name="settings_super_moon_desc">识别到月亮时自动增强月面细节与体积，拍照直出</string>
+    <string name="supermoon_auto">自动</string>
+    <string name="supermoon_off">关闭</string>
+    <string name="supermoon_badge">超级月亮</string>
     <string name="settings_watermark_desc">使用「徕卡一瞬」滤镜时叠加品牌水印与拍摄参数，可切换样式</string>
     <string name="watermark_off">关闭</string>
     <string name="watermark_frame">白边画框</string>

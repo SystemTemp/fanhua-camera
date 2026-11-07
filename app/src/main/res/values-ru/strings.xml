@@ -277,4 +277,9 @@
     <string name="wm_mode_overlay">Наложение</string>
     <string name="wm_mode_border">Граница</string>
     <string name="wm_mode_filmstrip">Плёнка</string>
+    <string name="settings_super_moon">Суперлуние</string>
+    <string name="settings_super_moon_desc">Автоматически усиливает детали и размер Луны при обнаружении — сразу из камеры</string>
+    <string name="supermoon_auto">Авто</string>
+    <string name="supermoon_off">Выкл.</string>
+    <string name="supermoon_badge">Суперлуние</string>
 </resources>

@@ -52,6 +52,7 @@ import com.fanhua.camera.R
 import com.fanhua.camera.camera.core.CameraController
 import com.fanhua.camera.camera.core.CapabilityReport
 import com.fanhua.camera.camera.core.PhotoAspect
+import com.fanhua.camera.camera.core.SuperMoonMode
 import com.fanhua.camera.camera.core.WatermarkMode
 import com.fanhua.camera.camera.filters.FilterPreset
 import com.fanhua.camera.data.LocaleManager
@@ -222,6 +223,18 @@ fun SettingsSheet(
                         onClick = { showWatermarkPicker = true }
                     )
                 }
+                GroupDivider()
+                // 超级月亮：识别到月亮时自动生效，拍照直出
+                ToggleRow(
+                    title = stringResource(R.string.settings_super_moon),
+                    description = stringResource(R.string.settings_super_moon_desc),
+                    checked = state.superMoonMode == SuperMoonMode.AUTO,
+                    onCheckedChange = { on ->
+                        controller.setSuperMoonMode(
+                            if (on) SuperMoonMode.AUTO else SuperMoonMode.OFF
+                        )
+                    }
+                )
                 GroupDivider()
                 ToggleRow(
                     title = stringResource(R.string.settings_shutter_sound),
@@ -472,6 +485,7 @@ fun SettingsSheet(
                     controller.setAutoCompositionEnabled(false)
                     controller.setPhotoAspect(PhotoAspect.FULL)
                     controller.setMirrorSelfie(false)
+                    controller.setSuperMoonMode(SuperMoonMode.AUTO)
                     controller.setWatermarkMode(WatermarkMode.FRAME)
                     controller.setShutterSoundEnabled(true)
                     // LUT 记录已被清除，同步清掉内存缓存

@@ -277,4 +277,9 @@ Cadre Leica</string>
     <string name="wm_mode_overlay">Superposé</string>
     <string name="wm_mode_border">Bordure</string>
     <string name="wm_mode_filmstrip">Pellicule</string>
+    <string name="settings_super_moon">Super Lune</string>
+    <string name="settings_super_moon_desc">Améliore automatiquement le détail et la taille de la Lune dès qu’elle est détectée, directement en sortie d’appareil</string>
+    <string name="supermoon_auto">Auto</string>
+    <string name="supermoon_off">Désactivé</string>
+    <string name="supermoon_badge">Super Lune</string>
 </resources>
