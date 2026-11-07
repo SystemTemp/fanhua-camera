@@ -144,6 +144,10 @@ data class LayoutNode(
     val imageRes: String?,
     /** 品牌 logo 候选（按设备品牌选）。 */
     val logoCandidates: Map<String, String>?,
+    /** 徕卡原生 displayHeight（dp）；0 表示未指定。 */
+    val displayHeight: Float? = null,
+    /** 徕卡原生 displayWidth（dp）；0 表示未指定。 */
+    val displayWidth: Float? = null,
     val children: List<LayoutNode>
 )
 
@@ -417,6 +421,12 @@ class WatermarkRepository(
             textColor = o.optString("textColor").takeIf { it.startsWith("#") },
             imageRes = o.optString("imageRes").takeIf { it.isNotBlank() },
             logoCandidates = logoCandidates,
+            // displayHeight / displayWidth 是徕卡原生 ImageView 的尺寸字段，
+            // 形如 {"kind":"dp","value":64.0}，值为 0 时视为未指定。
+            displayHeight = o.optJSONObject("displayHeight")
+                ?.optDouble("value", 0.0)?.toFloat()?.takeIf { it > 0f },
+            displayWidth = o.optJSONObject("displayWidth")
+                ?.optDouble("value", 0.0)?.toFloat()?.takeIf { it > 0f },
             children = children
         )
     }

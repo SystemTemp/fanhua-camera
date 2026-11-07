@@ -309,28 +309,125 @@ class WatermarkRenderer(private val context: Context) {
     }
 
     /**
-     * 测量节点得到矩形。
+     * 测量节点得到矩形（相对父容器的坐标）。
      *
-     * 简化实现：按 orientation 顺序排列子节点，支持 dp/wrap/match/percent 尺寸，
-     * 支持负 margin（反向对齐）。
+     * 对齐规则对齐 Android 的 LinearLayout：
+     * - 沿主轴（vertical 的 top/bottom、horizontal 的 left/right）由**父容器排列**决定，
+     *   这里只负责给出尺寸，位置在 [layoutChildren] 里排；
+     * - 交叉轴由节点的 `gravity` 决定（center_horizontal / right / center_vertical ...）。
+     *
+     * WRAP 按**实际内容**测量（文本宽度、图片原始比例），不再撑满父容器——
+     * 早先直接返回 parent 尺寸，导致所有元素被拉成整块、全部堆在左上角。
      */
     private fun measure(node: LayoutNode, parent: RectF, ctx: DrawContext): RectF {
         val dp = ctx.dp
+        val contentW = contentWidth(node, ctx)
+        val contentH = contentHeight(node, ctx)
+
         val w = when (node.width.kind) {
             DimKind.DP -> (node.width.value ?: 0f) * dp
-            DimKind.MATCH -> parent.width()
+            DimKind.MATCH -> (parent.width() - (node.marginLeft + node.marginRight) * dp)
+                .coerceAtLeast(0f)
             DimKind.PERCENT -> parent.width() * ((node.width.value ?: 0f) / 100f)
-            DimKind.WRAP -> parent.width()
-        }
+            DimKind.WRAP -> contentW
+        }.coerceAtLeast(0f)
         val h = when (node.height.kind) {
             DimKind.DP -> (node.height.value ?: 0f) * dp
-            DimKind.MATCH -> parent.height()
+            DimKind.MATCH -> (parent.height() - (node.marginTop + node.marginBottom) * dp)
+                .coerceAtLeast(0f)
             DimKind.PERCENT -> parent.height() * ((node.height.value ?: 0f) / 100f)
-            DimKind.WRAP -> parent.height()
+            DimKind.WRAP -> contentH
+        }.coerceAtLeast(0f)
+
+        // 交叉轴按 gravity 对齐；主轴位置由父容器排列决定，这里给 0 起点
+        val g = node.gravity.map { it.lowercase() }
+        val left = when {
+            g.any { it.contains("right") || it.contains("end") } -> parent.right - node.marginRight * dp - w
+            g.any { it.contains("center_horizontal") || it == "center" || it == "center_horizontal" } ->
+                parent.left + (parent.width() - w) / 2f
+            else -> parent.left + node.marginLeft * dp
         }
-        val left = parent.left + node.marginLeft * dp
-        val top = parent.top + node.marginTop * dp
+        val top = when {
+            g.any { it.contains("bottom") } -> parent.bottom - node.marginBottom * dp - h
+            g.any { it.contains("center_vertical") } -> parent.top + (parent.height() - h) / 2f
+            else -> parent.top + node.marginTop * dp
+        }
         return RectF(left, top, left + w, top + h)
+    }
+
+    /** 按内容测量宽度（WRAP 用）。 */
+    private fun contentWidth(node: LayoutNode, ctx: DrawContext): Float {
+        return when (node.type) {
+            NodeType.TEXT -> {
+                val t = measureText(node, ctx)
+                if (t == null) 0f else buildTextPaint(node, ctx).measureText(t)
+            }
+            NodeType.IMAGE -> imageAspectSize(node, ctx)?.first ?: 0f
+            else -> layoutContentWidth(node, ctx)
+        }
+    }
+
+    /** 按内容测量高度（WRAP 用）。 */
+    private fun contentHeight(node: LayoutNode, ctx: DrawContext): Float {
+        return when (node.type) {
+            NodeType.TEXT -> {
+                val t = measureText(node, ctx)
+                if (t == null) 0f else buildTextPaint(node, ctx).let { it.descent() - it.ascent() }
+            }
+            NodeType.IMAGE -> imageAspectSize(node, ctx)?.second ?: 0f
+            else -> layoutContentHeight(node, ctx)
+        }
+    }
+
+    /** 容器 WRAP：按子节点在主轴方向的累加、交叉轴的最大值计算。 */
+    private fun layoutContentWidth(node: LayoutNode, ctx: DrawContext): Float {
+        if (node.children.isEmpty()) return 0f
+        return if (node.orientation == "vertical") {
+            node.children.maxOfOrNull { contentWidth(it, ctx) + (it.marginLeft + it.marginRight) * ctx.dp } ?: 0f
+        } else {
+            node.children.sumOf {
+                (contentWidth(it, ctx) + (it.marginLeft + it.marginRight) * ctx.dp).toDouble()
+            }.toFloat()
+        }
+    }
+
+    private fun layoutContentHeight(node: LayoutNode, ctx: DrawContext): Float {
+        if (node.children.isEmpty()) return 0f
+        return if (node.orientation == "vertical") {
+            node.children.sumOf {
+                (contentHeight(it, ctx) + (it.marginTop + it.marginBottom) * ctx.dp).toDouble()
+            }.toFloat()
+        } else {
+            node.children.maxOfOrNull { contentHeight(it, ctx) + (it.marginTop + it.marginBottom) * ctx.dp } ?: 0f
+        }
+    }
+
+    /**
+     * 图片按 `displayHeight`（徕卡原生字段）与原始宽高比计算尺寸。
+     * displayWidth > 0 时优先用它；否则用高度 + 比例推宽度。
+     */
+    private fun imageAspectSize(node: LayoutNode, ctx: DrawContext): Pair<Float, Float>? {
+        val resName = node.logoCandidates?.let { c -> c[brandKey()] ?: c["_fallback"] } ?: node.imageRes
+        if (resName.isNullOrBlank()) return null
+        val id = resId(resName)
+        if (id == 0) return null
+        val opts = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        try {
+            android.graphics.BitmapFactory.decodeResource(context.resources, id, opts)
+        } catch (e: Exception) {
+            return null
+        }
+        val bw = opts.outWidth
+        val bh = opts.outHeight
+        if (bw <= 0 || bh <= 0) return null
+        val wantW = (node.displayWidth ?: 0f) * ctx.dp
+        val wantH = (node.displayHeight ?: 0f) * ctx.dp
+        return when {
+            wantW > 0f && wantH > 0f -> wantW to wantH
+            wantH > 0f -> (wantH * bw / bh) to wantH
+            wantW > 0f -> wantW to (wantW * bh / bw)
+            else -> bw.toFloat() to bh.toFloat()
+        }
     }
 
     private fun drawNode(node: LayoutNode, rect: RectF, ctx: DrawContext) {
@@ -352,34 +449,66 @@ class WatermarkRenderer(private val context: Context) {
             else -> Unit
         }
 
-        // 3) 子节点：按 orientation 依次排布
-        if (node.children.isNotEmpty()) {
-            var cursor = if (node.orientation == "vertical") rect.top else rect.left
-            for (child in node.children) {
-                val cr = if (node.orientation == "vertical") {
-                    val ch = childHeight(child, ctx)
-                    val r = RectF(
-                        rect.left + child.marginLeft * ctx.dp,
-                        cursor + child.marginTop * ctx.dp,
-                        rect.right,
-                        cursor + child.marginTop * ctx.dp + ch
-                    )
-                    cursor += child.marginTop * ctx.dp + ch
-                    r
-                } else {
-                    val cw = childWidth(child, ctx)
-                    val r = RectF(
-                        cursor + child.marginLeft * ctx.dp,
-                        rect.top + child.marginTop * ctx.dp,
-                        cursor + child.marginLeft * ctx.dp + cw,
-                        rect.bottom
-                    )
-                    cursor += child.marginLeft * ctx.dp + cw
-                    r
+        // 3) 子节点：按 orientation + gravity 排布
+        if (node.children.isNotEmpty()) layoutChildren(node, rect, ctx)
+    }
+
+    /**
+     * 子节点排布。
+     *
+     * - 主轴（vertical 的纵向 / horizontal 的横向）依次累加，含 margin；
+     * - 交叉轴按子节点自身 `gravity` 对齐（靠右/居中/居中垂直等）。
+     *
+     * 负 margin（徕卡原生用它做「反向对齐」，如 `marginLeft = -48dp` 让右侧组靠右）
+     * 在这里自然生效：位置 = 游标 + marginLeft，负值即左移，从而贴到右侧。
+     */
+    private fun layoutChildren(node: LayoutNode, rect: RectF, ctx: DrawContext) {
+        val dp = ctx.dp
+        val vertical = node.orientation == "vertical"
+        var cursor = if (vertical) rect.top else rect.left
+
+        for (child in node.children) {
+            val cw = resolveSize(child.width, rect.width(), contentWidth(child, ctx), dp)
+            val ch = resolveSize(child.height, rect.height(), contentHeight(child, ctx), dp)
+            val g = child.gravity.map { it.lowercase() }
+
+            val left: Float
+            val top: Float
+            if (vertical) {
+                // 纵向排列：主轴 = top，交叉轴 = left
+                left = when {
+                    g.any { it.contains("right") || it.contains("end") } ->
+                        rect.right - child.marginRight * dp - cw
+                    g.any { it.contains("center_horizontal") || it == "center" } ->
+                        rect.left + (rect.width() - cw) / 2f
+                    else -> rect.left + child.marginLeft * dp
                 }
-                drawNode(child, cr, ctx)
+                top = cursor + child.marginTop * dp
+                cursor = top + ch + child.marginBottom * dp
+            } else {
+                // 横向排列：主轴 = left，交叉轴 = top
+                left = cursor + child.marginLeft * dp
+                top = when {
+                    g.any { it.contains("bottom") } -> rect.bottom - child.marginBottom * dp - ch
+                    g.any { it.contains("center_vertical") } -> rect.top + (rect.height() - ch) / 2f
+                    else -> rect.top + child.marginTop * dp
+                }
+                cursor = left + cw + child.marginRight * dp
             }
+            drawNode(child, RectF(left, top, left + cw, top + ch), ctx)
         }
+    }
+
+    /** 把 Dim 解析成具体像素值。 */
+    private fun resolveSize(dim: Dim, parentSize: Float, contentSize: Float, dp: Float): Float {
+        return when (dim.kind) {
+            DimKind.DP -> (dim.value ?: 0f) * dp
+            // 父容器本身是 wrap 时，match_parent 没有确定的参照宽度，
+            // 直接退化成 wrap（按内容），否则会形成「父宽依赖子宽、子宽又等于父宽」的循环。
+            DimKind.MATCH -> if (parentSize > 0f) parentSize else contentSize
+            DimKind.PERCENT -> if (parentSize > 0f) parentSize * ((dim.value ?: 0f) / 100f) else contentSize
+            DimKind.WRAP -> contentSize
+        }.coerceAtLeast(0f)
     }
 
     private fun childWidth(node: LayoutNode, ctx: DrawContext): Float = when (node.width.kind) {
@@ -394,12 +523,17 @@ class WatermarkRenderer(private val context: Context) {
         else -> 0f
     }
 
-    private fun drawText(node: LayoutNode, rect: RectF, ctx: DrawContext) {
-        val text = resolveText(node, ctx) ?: return
-        if (text.isBlank()) return
+    /** 解析节点文本（供测量与绘制共用）。 */
+    private fun measureText(node: LayoutNode, ctx: DrawContext): String? {
+        val t = resolveText(node, ctx)
+        return if (t.isNullOrBlank()) null else t
+    }
+
+    /** 构建节点文本的画笔（供测量与绘制共用，保证两者度量一致）。 */
+    private fun buildTextPaint(node: LayoutNode, ctx: DrawContext): TextPaint {
         val font = node.fontRef?.let { ctx.spec.fonts[it] }
         val size = (node.textSize ?: font?.size ?: 20f) * ctx.dp
-        val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+        return TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             textSize = size
             val colorStr = node.textColor
                 ?: font?.colorIn(ctx.theme?.name, ctx.theme?.foregroundAt(0) ?: "#FF000000")
@@ -413,6 +547,11 @@ class WatermarkRenderer(private val context: Context) {
                 strokeWidth = (font?.strokeWidth ?: 0f) * ctx.dp
             }
         }
+    }
+
+    private fun drawText(node: LayoutNode, rect: RectF, ctx: DrawContext) {
+        val text = measureText(node, ctx) ?: return
+        val paint = buildTextPaint(node, ctx)
         val saved = ctx.canvas.save()
         if (abs(node.degree) > 0.5f) {
             ctx.canvas.rotate(node.degree, rect.centerX(), rect.centerY())

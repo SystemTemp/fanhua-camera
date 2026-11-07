@@ -216,6 +216,10 @@ class PhotoProcessor(private val context: Context) {
             pipeline.setPreset(preset, intensity)
             pipeline.setSuperResolutionEnabled(upscale && targetWidth > srcWidth)
             pipeline.drawBitmapFrame(textureId, srcWidth, srcHeight, targetWidth, targetHeight)
+            // 必须等 GPU 把这一帧真正画完再读回。
+            // glReadPixels 虽然会隐式同步，但部分驱动在 pbuffer + 多 pass 场景下
+            // 仍会读到未完成内容（表现为整张照片纯白或纯黑）。
+            GLES20.glFinish()
 
             // 6) 读回像素
             val readback = readPixels(targetWidth, targetHeight)
