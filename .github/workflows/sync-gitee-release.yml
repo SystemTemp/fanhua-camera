@@ -19,6 +19,9 @@ jobs:
       TAG_NAME: ${{ github.event.release.tag_name || inputs.tag }}
       GH_TOKEN: ${{ github.token }}
     steps:
+      - name: Checkout helper scripts
+        uses: actions/checkout@v4
+
       - name: Download release assets
         run: |
           mkdir -p release-tmp
@@ -36,75 +39,100 @@ jobs:
             echo "::error::缺少 secrets.GITEE_TOKEN，无法同步到 Gitee"
             exit 1
           fi
+
+          API="https://gitee.com/api/v5/repos/TDSI/fanhua-camera"
+          HELPER="python3 .github/scripts/gitee_sync_helper.py"
           CURL="curl -s --retry 3 --retry-delay 5 --connect-timeout 20"
-          EXISTS=$($CURL "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases/tags/$TAG_NAME?access_token=$GITEE_TOKEN")
-          RID=$(echo "$EXISTS" | python3 -c "
-          import json,sys
-          try:
-              print(json.load(sys.stdin)['id'])
-          except Exception:
-              print('')
-          ")
+
+          # ── 1. 找到或创建 Gitee Release ──
+          EXISTS=$($CURL "$API/releases/tags/$TAG_NAME?access_token=$GITEE_TOKEN")
+          RID=$(printf '%s' "$EXISTS" | $HELPER release-id)
+
           if [ -z "$RID" ]; then
             BODY=$(gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --json body -q .body)
-            PAYLOAD=$(BODY="$BODY" GITEE_TOKEN="$GITEE_TOKEN" TAG_NAME="$TAG_NAME" python3 -c "import json,os;print(json.dumps({'access_token':os.environ['GITEE_TOKEN'],'tag_name':os.environ['TAG_NAME'],'target_commitish':'main','name':os.environ['TAG_NAME'],'body':os.environ.get('BODY',''),'prerelease':False}))")
-            RID=$($CURL -X POST "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases" -H "Content-Type: application/json;charset=UTF-8" -d "$PAYLOAD" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('id','') if isinstance(d,dict) else '')")
+            PAYLOAD=$(BODY="$BODY" GITEE_TOKEN="$GITEE_TOKEN" TAG_NAME="$TAG_NAME" $HELPER create-payload)
+            RID=$($CURL -X POST "$API/releases" \
+              -H "Content-Type: application/json;charset=UTF-8" -d "$PAYLOAD" | $HELPER release-id)
           fi
+
           echo "Gitee release id: $RID"
           if [ -z "$RID" ]; then
-            echo "failed to create Gitee release"
+            echo "::error::无法创建 Gitee Release"
             exit 1
           fi
+
+          # ── 2. 查已存在附件，避免重复上传（Gitee 对 20MB+ 附件很慢） ──
+          EXISTING=$($CURL "$API/releases/$RID/attach_files?access_token=$GITEE_TOKEN" | $HELPER attach-names)
+          echo "已存在附件:"
+          printf '%s\n' "$EXISTING"
+
+          # ── 3. 上传 APK，带重试与超时控制 ──
           for f in release-tmp/*.apk; do
             [ -f "$f" ] || continue
-            echo "uploading $f"
-            $CURL --max-time 900 -X POST "https://gitee.com/api/v5/repos/TDSI/fanhua-camera/releases/$RID/attach_files" -F "access_token=$GITEE_TOKEN" -F "file=@$f"
-            echo
+            name=$(basename "$f")
+            if printf '%s\n' "$EXISTING" | grep -qxF "$name"; then
+              echo "$name 已存在，跳过上传"
+              continue
+            fi
+            echo "uploading $name ($(du -h "$f" | cut -f1))"
+            ok=0
+            code=000
+            for attempt in 1 2 3; do
+              code=$(curl -s -o /tmp/attach_resp.txt -w "%{http_code}" \
+                --retry 2 --retry-delay 10 --connect-timeout 30 --max-time 1500 \
+                -X POST "$API/releases/$RID/attach_files" \
+                -F "access_token=$GITEE_TOKEN" -F "file=@$f" || echo "000")
+              echo "attempt $attempt -> HTTP $code"
+              head -c 400 /tmp/attach_resp.txt || true
+              echo
+              if [ "$code" = "200" ] || [ "$code" = "201" ]; then
+                ok=1
+                break
+              fi
+              if [ "$code" = "409" ] || [ "$code" = "422" ]; then
+                echo "附件已存在，视为成功"
+                ok=1
+                break
+              fi
+              sleep 15
+            done
+            if [ "$ok" != "1" ]; then
+              echo "::error::上传 $name 到 Gitee 失败（最后 HTTP $code）"
+              exit 1
+            fi
           done
+
+          # ── 4. 回读校验：确认附件真的挂在 Release 上 ──
+          FINAL=$($CURL "$API/releases/$RID/attach_files?access_token=$GITEE_TOKEN" | $HELPER attach-count)
+          echo "Gitee Release 附件数: $FINAL"
+          if [ "$FINAL" = "0" ]; then
+            echo "::error::Gitee Release 上没有附件"
+            exit 1
+          fi
 
       - name: Update Gitee version.json
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
           set -e
+          HELPER="python3 .github/scripts/gitee_sync_helper.py"
           CURL="curl -s --retry 3 --retry-delay 5 --connect-timeout 20"
+
           APK_NAME=$(basename "$(ls release-tmp/*.apk | head -1)")
           NOTES=$(gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --json body -q .body)
           echo "apk: $APK_NAME"
-          SHA=$($CURL "https://gitee.com/api/v5/repos/TDSI/file/contents/fanhua/version.json?access_token=$GITEE_TOKEN" | python3 -c "import json,sys
-          try:
-              d = json.load(sys.stdin)
-              print(d.get('sha','') if isinstance(d, dict) else '')
-          except Exception:
-              print('')
-          ")
-          PAYLOAD=$(APK_NAME="$APK_NAME" NOTES="$NOTES" TAG_NAME="$TAG_NAME" SHA="$SHA" GITEE_TOKEN="$GITEE_TOKEN" python3 -c "
-          import base64, json, os
-          ref = os.environ['TAG_NAME']
-          v = {
-              'version': ref.lstrip('v'),
-              'notes': os.environ['NOTES'],
-              'apk': f\"https://gitee.com/TDSI/fanhua-camera/releases/download/{ref}/{os.environ['APK_NAME']}\"
-          }
-          body = {
-              'access_token': os.environ['GITEE_TOKEN'],
-              'message': f'update version channel to {ref}',
-              'content': base64.b64encode(json.dumps(v, ensure_ascii=False, indent=2).encode('utf-8')).decode(),
-              'branch': 'master'
-          }
-          if os.environ['SHA']:
-              body['sha'] = os.environ['SHA']
-          print(json.dumps(body))
-          ")
-          RESULT=$($CURL -X PUT "https://gitee.com/api/v5/repos/TDSI/file/contents/fanhua/version.json" -H "Content-Type: application/json;charset=UTF-8" -d "$PAYLOAD")
-          echo "$RESULT"
+
+          SHA=$($CURL "https://gitee.com/api/v5/repos/TDSI/file/contents/fanhua/version.json?access_token=$GITEE_TOKEN" | $HELPER content-sha)
+          PAYLOAD=$(APK_NAME="$APK_NAME" NOTES="$NOTES" TAG_NAME="$TAG_NAME" SHA="$SHA" \
+            GITEE_TOKEN="$GITEE_TOKEN" $HELPER version-payload)
+
+          RESULT=$($CURL -X PUT "https://gitee.com/api/v5/repos/TDSI/file/contents/fanhua/version.json" \
+            -H "Content-Type: application/json;charset=UTF-8" -d "$PAYLOAD")
+          echo "$RESULT" | head -c 400
+          echo
+
           # 回读校验：确认版本通道真的写进去了，而不是只看到 200 就以为成功
-          ACTUAL=$($CURL "https://gitee.com/TDSI/file/raw/master/fanhua/version.json" | python3 -c "import json,sys
-          try:
-              print(json.load(sys.stdin).get('version',''))
-          except Exception:
-              print('')
-          ")
+          ACTUAL=$($CURL "https://gitee.com/TDSI/file/raw/master/fanhua/version.json" | $HELPER version)
           echo "version.json 当前版本: $ACTUAL"
           if [ "$ACTUAL" != "${TAG_NAME#v}" ]; then
             echo "::error::版本通道更新失败，期望 ${TAG_NAME#v}，实际 '$ACTUAL'"
