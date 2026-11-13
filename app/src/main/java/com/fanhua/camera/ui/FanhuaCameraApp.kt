@@ -195,7 +195,9 @@ fun FanhuaCameraApp(controller: CameraController) {
                 }
             }
 
-            // 中间：独立取景框（按画幅比例，框外留黑）
+            // 中间：独立取景框（按画幅比例，框外留黑）。
+            // weight(1f) 让它吃掉顶栏/控制区之外的全部高度；
+            // 控制区已压缩为 4 行，取景框能占到屏幕约 60%~70%。
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -360,19 +362,20 @@ private fun LeicaViewfinderFrame(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 6.dp, vertical = 2.dp),
         contentAlignment = Alignment.Center
     ) {
         val maxW = maxWidth
         val maxH = maxHeight
-        // 按可用空间等比放下画幅
+        // 按可用空间等比放下画幅；取景框应尽量占满，只在画幅比空间更宽/更高时才收边
         val frameW: Dp
         val frameH: Dp
         if (maxW / maxH > ratio) {
-            // 空间比画幅更宽：以高度为准
+            // 空间比画幅更宽：以高度为准，左右留窄黑边
             frameH = maxH
             frameW = maxH * ratio
         } else {
+            // 空间比画幅更窄：以宽度为准，上下留黑边
             frameW = maxW
             frameH = maxW / ratio
         }

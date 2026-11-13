@@ -155,13 +155,13 @@ private fun PortraitControls(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(bottom = 12.dp),
+            .padding(bottom = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         AnimatedVisibility(visible = state.mode == CaptureMode.PRO) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 ProPanel(controller = controller, state = state)
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(6.dp))
             }
         }
         AnimatedVisibility(
@@ -169,13 +169,13 @@ private fun PortraitControls(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 VideoSpecBar(state = state, onSelect = controller::selectSpec)
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(6.dp))
             }
         }
         AnimatedVisibility(visible = state.mode == CaptureMode.SUPER_RES) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 SuperResInfo(state = state)
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(6.dp))
             }
         }
 
@@ -186,36 +186,33 @@ private fun PortraitControls(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            QuickTools(state = state, controller = controller)
-        }
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // 模式条与镜头条都用 fillMaxWidth 的 Box 包裹后居中，
-        // 因为 Column 的 horizontalAlignment 对「自身撑满宽度」的子项不生效
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            ModeSelector(state = state, onSelect = controller::setMode)
-        }
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // 镜头档位单独占一行并居中：塞进快门行的侧栏会被压窄导致重叠
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            LensSwitcher(state = state, onSelect = controller::setLens)
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 快门行：左实况 / 中快门 / 右相册，左右等宽保证快门严格居中
+        // 模式条 + 镜头档位合并到同一行：左侧模式文字，右侧镜头倍数，
+        // 省下一整行高度给取景框
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = 18.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ModeSelector(state = state, onSelect = controller::setMode)
+            Spacer(modifier = Modifier.weight(1f))
+            LensSwitcher(state = state, onSelect = controller::setLens, compact = true)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // 快门行：左快捷工具 / 中快门 / 右相册，左右等宽保证快门严格居中
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                // 包一层 Column 以消除 RowScope.AnimatedVisibility 的隐式接收者歧义
-                Column {
+                // 快捷工具（网格 / 定时 / 前后摄）与实况开关共用左侧空间，
+                // 竖屏时优先展示快捷工具，避免再多占一行高度
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     AnimatedVisibility(visible = state.mode == CaptureMode.PHOTO) {
                         LivePhotoToggle(
                             enabled = state.livePhotoEnabled,
@@ -224,6 +221,7 @@ private fun PortraitControls(
                             }
                         )
                     }
+                    QuickTools(state = state, controller = controller, compact = true)
                 }
             }
             ShutterButton(state = state, controller = controller)
@@ -236,7 +234,7 @@ private fun PortraitControls(
                 )
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         ZoomBar(controller = controller, state = state)
     }
 }
@@ -388,36 +386,58 @@ private fun QuickTools(
     controller: CameraController,
     compact: Boolean = false
 ) {
-    M3Panel(
-        shape = RoundedCornerShape(50),
-        contentPadding = PaddingValues(4.dp)
+    // 徕卡一瞬：快捷工具是纯图标，选中为徕卡红，无胶囊底
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 14.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            PillButton(
-                label = stringResource(R.string.grid),
-                selected = state.gridEnabled,
-                onClick = { controller.setGridEnabled(!state.gridEnabled) },
-                leadingIcon = FanhuaIcons.Grid,
-                compact = true
-            )
-            PillButton(
-                label = timerLabel(state.timerSeconds),
-                selected = state.timerSeconds > 0,
-                onClick = { controller.setTimerSeconds(nextTimerSeconds(state.timerSeconds)) },
-                leadingIcon = FanhuaIcons.Timer,
-                compact = true
-            )
-            PillButton(
-                label = stringResource(R.string.flip_camera),
-                selected = state.frontCamera,
-                onClick = { controller.switchCamera() },
-                leadingIcon = FanhuaIcons.SwitchCamera,
-                compact = true
-            )
-        }
+        LeicaQuickIcon(
+            icon = FanhuaIcons.Grid,
+            selected = state.gridEnabled,
+            description = stringResource(R.string.grid),
+            onClick = { controller.setGridEnabled(!state.gridEnabled) }
+        )
+        LeicaQuickIcon(
+            icon = FanhuaIcons.Timer,
+            selected = state.timerSeconds > 0,
+            description = timerLabel(state.timerSeconds),
+            onClick = { controller.setTimerSeconds(nextTimerSeconds(state.timerSeconds)) }
+        )
+        LeicaQuickIcon(
+            icon = FanhuaIcons.SwitchCamera,
+            selected = state.frontCamera,
+            description = stringResource(R.string.flip_camera),
+            onClick = { controller.switchCamera() }
+        )
+    }
+}
+
+/** 徕卡风格快捷图标：无底板，选中染红。 */
+@Composable
+private fun LeicaQuickIcon(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean,
+    description: String,
+    onClick: () -> Unit
+) {
+    val color by animateColorAsState(
+        targetValue = if (selected) Leica.Red else Leica.TextDim,
+        animationSpec = tween(durationMillis = 180),
+        label = "quickIconColor"
+    )
+    Box(
+        modifier = Modifier
+            .size(30.dp)
+            .clip(CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = description,
+            tint = color,
+            modifier = Modifier.size(18.dp)
+        )
     }
 }
 
@@ -1089,48 +1109,45 @@ private fun RecordButton(
 @Composable
 private fun LensSwitcher(
     state: CameraUiState,
-    onSelect: (String) -> Unit
+    onSelect: (String) -> Unit,
+    compact: Boolean = false
 ) {
     if (state.lensOptions.isEmpty()) return
-    val scheme = MaterialTheme.colorScheme
-    M3Panel(
-        shape = RoundedCornerShape(50),
-        contentPadding = PaddingValues(4.dp)
+    // 徕卡一瞬：镜头倍数是一排纯文字，选中项为白色并加一个红点，无胶囊底
+    Row(
+        modifier = Modifier
+            .widthIn(max = if (compact) 150.dp else 200.dp)
+            .horizontalScroll(rememberScrollState()),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 14.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .widthIn(max = 168.dp)
-                .horizontalScroll(rememberScrollState()),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            state.lensOptions.forEach { lens ->
-                val selected = lens.id == state.activeLensId
-                val background by animateColorAsState(
-                    targetValue = if (selected) scheme.primary.copy(alpha = 0.18f) else Color.Transparent,
-                    animationSpec = tween(durationMillis = 200),
-                    label = "lensBackground"
+        state.lensOptions.forEach { lens ->
+            val selected = lens.id == state.activeLensId
+            val color by animateColorAsState(
+                targetValue = if (selected) Leica.White else Leica.TextFaint,
+                animationSpec = tween(durationMillis = 180),
+                label = "lensColor"
+            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(2.dp))
+                    .clickable { onSelect(lens.id) }
+                    .padding(vertical = 2.dp)
+            ) {
+                Text(
+                    text = lens.label,
+                    color = color,
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1
                 )
-                val color by animateColorAsState(
-                    targetValue = if (selected) scheme.primary else scheme.onSurfaceVariant,
-                    animationSpec = tween(durationMillis = 200),
-                    label = "lensColor"
-                )
+                Spacer(modifier = Modifier.height(3.dp))
                 Box(
                     modifier = Modifier
-                        .size(38.dp)
+                        .size(if (selected) 4.dp else 0.dp)
                         .clip(CircleShape)
-                        .background(background)
-                        .clickable { onSelect(lens.id) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = lens.label,
-                        color = color,
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1
-                    )
-                }
+                        .background(if (selected) Leica.Red else Color.Transparent)
+                )
             }
         }
     }
