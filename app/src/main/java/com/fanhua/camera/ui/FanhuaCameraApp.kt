@@ -19,6 +19,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -55,6 +56,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -62,6 +64,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fanhua.camera.R
 import com.fanhua.camera.camera.core.CameraController
+import com.fanhua.camera.camera.core.CameraUiState
 import com.fanhua.camera.camera.core.CapabilityProbe
 import com.fanhua.camera.camera.core.CaptureMode
 import com.fanhua.camera.camera.core.SuperMoonMode
@@ -75,6 +78,7 @@ import com.fanhua.camera.ui.common.FanhuaButtonStyle
 import com.fanhua.camera.ui.common.FanhuaIcons
 import com.fanhua.camera.ui.common.FrostedPanel
 import com.fanhua.camera.ui.common.GlassIconButton
+import com.fanhua.camera.ui.common.GlassSurface
 import com.fanhua.camera.ui.gallery.GallerySheet
 import com.fanhua.camera.ui.settings.BugReportSheet
 import com.fanhua.camera.ui.settings.SettingsSheet
@@ -141,53 +145,91 @@ fun FanhuaCameraApp(controller: CameraController) {
         updateController.check(silent = true)
     }
 
+    // 徕卡一瞬式布局：取景框只占画面中央一块（按画幅比例），控件全部排在框外的黑边上，
+    // 不再浮在实时画面上遮挡构图。
     Box(modifier = Modifier.fillMaxSize().background(FanhuaInk)) {
-        Viewfinder(controller = controller, state = state, modifier = Modifier.fillMaxSize())
+        Column(modifier = Modifier.fillMaxSize()) {
+            // 顶部黑边：放顶栏（液态玻璃）
+            AnimatedVisibility(
+                visible = controlsVisible,
+                enter = fadeIn(animationSpec = tween(180)),
+                exit = fadeOut(animationSpec = tween(160)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                GlassSurface(
+                    cornerRadius = 0.dp,
+                    tint = Color.Black,
+                    tintAlpha = 0.55f,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TopBar(
+                        state = state,
+                        landscape = isLandscape,
+                        onFlashToggle = {
+                            if (state.frontCamera) {
+                                controller.setTorchEnabled(!state.torchEnabled)
+                            } else {
+                                val next = when (state.flashMode) {
+                                    FlashMode.AUTO -> FlashMode.ON
+                                    FlashMode.ON -> FlashMode.OFF
+                                    FlashMode.OFF -> FlashMode.AUTO
+                                }
+                                controller.setFlashMode(next)
+                            }
+                        },
+                        onTorchToggle = { controller.setTorchEnabled(!state.torchEnabled) },
+                        onAspectToggle = {
+                            val next = when (state.photoAspect) {
+                                PhotoAspect.FULL -> PhotoAspect.RATIO_4_3
+                                PhotoAspect.RATIO_4_3 -> PhotoAspect.RATIO_16_9
+                                PhotoAspect.RATIO_16_9 -> PhotoAspect.RATIO_1_1
+                                PhotoAspect.RATIO_1_1 -> PhotoAspect.FULL
+                            }
+                            controller.setPhotoAspect(next)
+                        },
+                        onAutoCompositionToggle = { controller.applyAutoComposition() },
+                        onSuperResToggle = { controller.setSuperResEnabled(!state.superResEnabled) },
+                        onSettings = { showSettings = true },
+                        onHideControls = { controlsVisible = false }
+                    )
+                }
+            }
 
+            // 中间：独立取景框（按画幅比例，框外留黑）
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                LeicaViewfinderFrame(
+                    controller = controller,
+                    state = state,
+                    landscape = isLandscape
+                )
+            }
 
-
-        AnimatedVisibility(
-            visible = controlsVisible,
-            enter = fadeIn(animationSpec = tween(180)),
-            exit = fadeOut(animationSpec = tween(160)),
-            modifier = Modifier.align(Alignment.TopCenter)
-        ) {
-            TopBar(
-                state = state,
-                landscape = isLandscape,
-                onFlashToggle = {
-                    if (state.frontCamera) {
-                        // 前置没有闪光灯，直接切常亮补光（屏幕补光）
-                        controller.setTorchEnabled(!state.torchEnabled)
-                    } else {
-                        val next = when (state.flashMode) {
-                            FlashMode.AUTO -> FlashMode.ON
-                            FlashMode.ON -> FlashMode.OFF
-                            FlashMode.OFF -> FlashMode.AUTO
-                        }
-                        controller.setFlashMode(next)
-                    }
-                },
-                onTorchToggle = { controller.setTorchEnabled(!state.torchEnabled) },
-                onAspectToggle = {
-                    val next = when (state.photoAspect) {
-                        PhotoAspect.FULL -> PhotoAspect.RATIO_4_3
-                        PhotoAspect.RATIO_4_3 -> PhotoAspect.RATIO_16_9
-                        PhotoAspect.RATIO_16_9 -> PhotoAspect.RATIO_1_1
-                        PhotoAspect.RATIO_1_1 -> PhotoAspect.FULL
-                    }
-                    controller.setPhotoAspect(next)
-                },
-                onAutoCompositionToggle = {
-                    // 点击直接执行自动构图（裁切到建议构图），而不是切换开关状态
-                    controller.applyAutoComposition()
-                },
-                onSuperResToggle = {
-                    controller.setSuperResEnabled(!state.superResEnabled)
-                },
-                onSettings = { showSettings = true },
-                onHideControls = { controlsVisible = false }
-            )
+            // 底部黑边：放控制区（液态玻璃）
+            AnimatedVisibility(
+                visible = controlsVisible,
+                enter = fadeIn(animationSpec = tween(180)),
+                exit = fadeOut(animationSpec = tween(160)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                GlassSurface(
+                    cornerRadius = 0.dp,
+                    tint = Color.Black,
+                    tintAlpha = 0.55f,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    BottomControls(
+                        controller = controller,
+                        state = state,
+                        landscape = isLandscape,
+                        onOpenGallery = { showGallery = true }
+                    )
+                }
+            }
         }
 
         StatusOverlay(
@@ -196,7 +238,7 @@ fun FanhuaCameraApp(controller: CameraController) {
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
-                .padding(top = 80.dp)
+                .padding(top = 96.dp)
         )
 
         // 徕卡一瞬风格标识：红点 + LEICA 字标，常驻取景器左上（顶栏下方）
@@ -245,29 +287,6 @@ fun FanhuaCameraApp(controller: CameraController) {
             captureCount = state.captureCount,
             modifier = Modifier.fillMaxSize()
         )
-
-        AnimatedVisibility(
-            visible = controlsVisible,
-            enter = fadeIn(animationSpec = tween(180)),
-            exit = fadeOut(animationSpec = tween(160)),
-            modifier = if (isLandscape) {
-                // 横屏：贴右侧竖直排列，同时避让顶部状态栏与底部导航栏，
-                // 避免与 TopBar 或系统手势区重叠。
-                Modifier
-                    .align(Alignment.CenterEnd)
-                    .fillMaxHeight()
-                    .padding(top = 64.dp, bottom = 24.dp)
-            } else {
-                Modifier.align(Alignment.BottomCenter)
-            }
-        ) {
-            BottomControls(
-                controller = controller,
-                state = state,
-                landscape = isLandscape,
-                onOpenGallery = { showGallery = true }
-            )
-        }
 
         if (!controlsVisible) {
             Box(
@@ -322,6 +341,75 @@ fun FanhuaCameraApp(controller: CameraController) {
         onInstall = updateController::install,
         onDismiss = updateController::dismiss
     )
+}
+
+/**
+ * 徕卡一瞬式取景框：预览只占中央一块，按画幅比例收缩，框外留黑。
+ *
+ * 竖屏：取景框宽度撑满（减去左右 8dp），高度由画幅决定，垂直居中。
+ * 横屏：高度撑满，宽度由画幅决定，水平居中；画幅文字旋转 90° 贴在框左侧，
+ *       这样文字不压在取景画面上。
+ */
+@Composable
+private fun LeicaViewfinderFrame(
+    controller: CameraController,
+    state: CameraUiState,
+    landscape: Boolean
+) {
+    val ratio = state.photoAspect.ratio.let { if (it <= 0f) 4f / 3f else it }
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        val maxW = maxWidth
+        val maxH = maxHeight
+        // 按可用空间等比放下画幅
+        val frameW: Dp
+        val frameH: Dp
+        if (maxW / maxH > ratio) {
+            // 空间比画幅更宽：以高度为准
+            frameH = maxH
+            frameW = maxH * ratio
+        } else {
+            frameW = maxW
+            frameH = maxW / ratio
+        }
+
+        Box(
+            modifier = Modifier
+                .width(frameW)
+                .height(frameH)
+                .clip(RoundedCornerShape(2.dp))
+                .background(Color.Black)
+        ) {
+            Viewfinder(controller = controller, state = state, modifier = Modifier.fillMaxSize())
+
+            // 画幅角标：贴在框内左上角，不压中心构图区
+            Text(
+                text = stringResource(state.photoAspect.labelRes),
+                color = Color.White.copy(alpha = 0.72f),
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(8.dp)
+            )
+        }
+
+        // 横屏：把画幅/机型信息旋转 90°，贴在取景框左侧的黑边上
+        if (landscape) {
+            Text(
+                text = "LEICA  ${state.photoAspect.let { stringResource(it.labelRes) }}",
+                color = com.fanhua.camera.ui.theme.Leica.TextDim,
+                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 2.sp),
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .graphicsLayer { rotationZ = -90f }
+                    .padding(end = 14.dp)
+            )
+        }
+    }
 }
 
 /**
