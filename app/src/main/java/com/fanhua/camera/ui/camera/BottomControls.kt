@@ -97,6 +97,7 @@ import com.fanhua.camera.camera.filters.FilterPreset
 import com.fanhua.camera.media.MediaRepository
 import com.fanhua.camera.ui.common.FanhuaIcons
 import com.fanhua.camera.ui.theme.FanhuaGold
+import com.fanhua.camera.ui.theme.Leica
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -299,15 +300,15 @@ private fun LandscapeControls(
 @Composable
 private fun M3Panel(
     modifier: Modifier = Modifier,
-    shape: RoundedCornerShape = RoundedCornerShape(24.dp),
+    shape: RoundedCornerShape = RoundedCornerShape(4.dp),
     contentPadding: PaddingValues = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
     content: @Composable () -> Unit
 ) {
-    val surface = MaterialTheme.colorScheme.surfaceContainer
+    // 徕卡一瞬：控件区是半透明纯黑底 + 一条极细顶部分隔线，不用毛玻璃胶囊。
     Box(
         modifier = modifier
             .clip(shape)
-            .background(surface.copy(alpha = 0.92f))
+            .background(Leica.Ink.copy(alpha = 0.62f))
             .padding(contentPadding)
     ) {
         content()
@@ -502,45 +503,40 @@ private fun FilterStrip(
             AnimatedVisibility(visible = expanded) {
                 Column {
                     Spacer(modifier = Modifier.height(10.dp))
-                    // 分组切换：Material 3 分段控件观感（胶囊容器 + primary 高亮段）
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(50))
-                            .background(scheme.surfaceContainerHigh.copy(alpha = 0.9f))
-                            .padding(3.dp)
+                    // 分组切换：徕卡风格，文字 + 选中项下方红色短线，无胶囊底
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            FilterGroup.entries.forEach { entry ->
-                                val selected = entry == group
-                                val bg by animateColorAsState(
-                                    targetValue = if (selected) {
-                                        scheme.primary.copy(alpha = 0.18f)
-                                    } else {
-                                        Color.Transparent
-                                    },
-                                    animationSpec = tween(durationMillis = 180),
-                                    label = "groupBg"
+                        FilterGroup.entries.forEach { entry ->
+                            val selected = entry == group
+                            val color by animateColorAsState(
+                                targetValue = if (selected) Leica.White else Leica.TextDim,
+                                animationSpec = tween(durationMillis = 180),
+                                label = "groupColor"
+                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .clickable { activeGroup = entry.name }
+                                    .padding(vertical = 7.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(entry.labelRes),
+                                    color = color,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    maxLines = 1
                                 )
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Box(
                                     modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(50))
-                                        .background(bg)
-                                        .clickable { activeGroup = entry.name }
-                                        .padding(vertical = 7.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = stringResource(entry.labelRes),
-                                        color = if (selected) scheme.primary else scheme.onSurfaceVariant,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        maxLines = 1
-                                    )
-                                }
+                                        .width(if (selected) 14.dp else 0.dp)
+                                        .height(2.dp)
+                                        .clip(RoundedCornerShape(1.dp))
+                                        .background(if (selected) Leica.Red else Color.Transparent)
+                                )
                             }
                         }
                     }
@@ -761,49 +757,42 @@ private fun ModeSelector(
     onSelect: (CaptureMode) -> Unit,
     compact: Boolean = false
 ) {
-    val scheme = MaterialTheme.colorScheme
-    M3Panel(
-        shape = RoundedCornerShape(50),
-        contentPadding = PaddingValues(4.dp)
+    // 徕卡一瞬：模式是一行等宽文字，选中项下方一条 2dp 红色短线，无胶囊底。
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(if (compact) 14.dp else 22.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            CaptureMode.entries.forEach { mode ->
-                val selected = state.mode == mode
-                val background by animateColorAsState(
-                    targetValue = if (selected) scheme.primary.copy(alpha = 0.18f) else Color.Transparent,
-                    animationSpec = tween(durationMillis = 200),
-                    label = "modeBackground"
+        CaptureMode.entries.forEach { mode ->
+            val selected = state.mode == mode
+            val color by animateColorAsState(
+                targetValue = if (selected) Leica.White else Leica.TextDim,
+                animationSpec = tween(durationMillis = 180),
+                label = "modeColor"
+            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(2.dp))
+                    .clickable { onSelect(mode) }
+                    .padding(
+                        horizontal = if (compact) 4.dp else 6.dp,
+                        vertical = 6.dp
+                    )
+            ) {
+                Text(
+                    text = stringResource(mode.labelRes),
+                    color = color,
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1
                 )
-                val color by animateColorAsState(
-                    targetValue = if (selected) scheme.primary else scheme.onSurfaceVariant,
-                    animationSpec = tween(durationMillis = 200),
-                    label = "modeColor"
-                )
+                Spacer(modifier = Modifier.height(5.dp))
                 Box(
                     modifier = Modifier
-                        .clip(CircleShape)
-                        .background(background)
-                        .clickable { onSelect(mode) }
-                        .padding(
-                            horizontal = if (compact) 12.dp else 16.dp,
-                            vertical = if (compact) 8.dp else 10.dp
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = stringResource(mode.labelRes),
-                        color = color,
-                        style = if (compact) {
-                            MaterialTheme.typography.labelMedium
-                        } else {
-                            MaterialTheme.typography.labelLarge
-                        },
-                        maxLines = 1
-                    )
-                }
+                        .width(if (selected) 18.dp else 0.dp)
+                        .height(2.dp)
+                        .clip(RoundedCornerShape(1.dp))
+                        .background(if (selected) Leica.Red else Color.Transparent)
+                )
             }
         }
     }

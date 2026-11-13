@@ -3,13 +3,16 @@ package com.fanhua.camera.ui.camera
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -28,6 +31,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -48,17 +52,14 @@ import com.fanhua.camera.camera.core.CaptureMode
 import com.fanhua.camera.camera.core.FlashMode
 import com.fanhua.camera.camera.core.PhotoAspect
 import com.fanhua.camera.ui.common.FanhuaIcons
+import com.fanhua.camera.ui.theme.Leica
 
 /**
- * 顶栏（Google Material 3 风格）。
+ * 顶栏（徕卡一瞬风格）。
  *
- * 左侧：闪光 / 常亮补光的填充式胶囊。
- * 右侧：一组独立的圆形图标按钮（画幅、自动构图、超分、设置、隐藏）。
- *
- * 视觉规范：
- * - 底色用 [MaterialTheme.colorScheme.surfaceContainer] 半透明，叠在取景画面上有足够对比；
- * - 选中态用 primary 的 18% 透明底 + primary 前景，全栏不再出现金色；
- * - 通过 [WindowInsets.safeDrawing] 避让状态栏、挖孔与横屏时的侧边系统栏。
+ * 真机对照：顶栏没有胶囊/毛玻璃底板，只有一排等距的白色细线图标，
+ * 左侧是闪光灯状态，右侧依次是画幅 / 构图 / 超分 / 设置 / 隐藏。
+ * 选中态用徕卡红（#E20612）纯色，不做填充底。
  */
 @Composable
 fun TopBar(
@@ -76,41 +77,41 @@ fun TopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            // 横屏时状态栏在侧边、挖孔也可能在左右，这里统一用 safeDrawing 的顶部与水平方向
             .windowInsetsPadding(
                 WindowInsets.safeDrawing.only(
                     WindowInsetsSides.Top + WindowInsetsSides.Horizontal
                 )
             )
             .padding(
-                horizontal = if (landscape) 20.dp else 16.dp,
-                vertical = if (landscape) 10.dp else 12.dp
+                horizontal = if (landscape) 22.dp else 18.dp,
+                vertical = if (landscape) 8.dp else 14.dp
             ),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        FlashPill(state = state, onClick = onFlashToggle, compact = landscape)
+        // 左侧：徕卡红点标 + 闪光状态（纯文字，无底板）
+        LeicaMark(active = state.torchEnabled || state.flashMode != FlashMode.OFF)
+        Spacer(modifier = Modifier.width(10.dp))
+        FlashLabel(state = state, onClick = onFlashToggle, compact = landscape)
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // 右侧：独立圆形图标按钮，间距 8dp 保持 Material 3 的宽松节奏
-        // 间距 6dp + 40dp 按钮：360dp 窄屏下 5 个按钮刚好放得下，不溢出
         Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (landscape) 14.dp else 18.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             AnimatedVisibility(
                 visible = state.mode != CaptureMode.VIDEO,
-                enter = fadeIn(tween(180)) + scaleIn(tween(220), initialScale = 0.8f),
-                exit = fadeOut(tween(150)) + scaleOut(tween(180), targetScale = 0.8f)
+                enter = fadeIn(tween(180)),
+                exit = fadeOut(tween(150))
             ) {
-                M3IconButton(
+                LeicaIconButton(
                     icon = FanhuaIcons.Aspect,
                     contentDescription = stringResource(R.string.settings_photo_aspect),
                     onClick = onAspectToggle,
                     active = state.photoAspect != PhotoAspect.FULL
                 )
             }
-            M3IconButton(
+            LeicaIconButton(
                 icon = FanhuaIcons.Sparkle,
                 contentDescription = stringResource(R.string.settings_autocomposition),
                 onClick = onAutoCompositionToggle,
@@ -118,22 +119,22 @@ fun TopBar(
             )
             AnimatedVisibility(
                 visible = state.mode == CaptureMode.PHOTO,
-                enter = fadeIn(tween(180)) + scaleIn(tween(220), initialScale = 0.8f),
-                exit = fadeOut(tween(150)) + scaleOut(tween(180), targetScale = 0.8f)
+                enter = fadeIn(tween(180)),
+                exit = fadeOut(tween(150))
             ) {
-                M3IconButton(
+                LeicaIconButton(
                     icon = FanhuaIcons.Aperture,
                     contentDescription = stringResource(R.string.settings_superres),
                     onClick = onSuperResToggle,
                     active = state.superResEnabled
                 )
             }
-            M3IconButton(
+            LeicaIconButton(
                 icon = FanhuaIcons.Settings,
                 contentDescription = stringResource(R.string.action_settings),
                 onClick = onSettings
             )
-            M3IconButton(
+            LeicaIconButton(
                 icon = FanhuaIcons.VisibilityOff,
                 contentDescription = stringResource(R.string.hide_controls),
                 onClick = onHideControls
@@ -142,71 +143,71 @@ fun TopBar(
     }
 }
 
+/** 徕卡红点标：一个 7dp 实心红圆，激活时带呼吸。 */
+@Composable
+private fun LeicaMark(active: Boolean) {
+    val pulse by rememberInfiniteTransition(label = "leicaMark").animateFloat(
+        initialValue = 0.55f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1100, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "markPulse"
+    )
+    Box(
+        modifier = Modifier
+            .size(7.dp)
+            .clip(CircleShape)
+            .background(Leica.Red.copy(alpha = if (active) pulse else 0.85f))
+    )
+}
+
 /**
- * 闪光胶囊。
- *
- * 点击在「自动 → 开启 → 关闭」之间循环（逻辑由上层回调决定），
- * 补光常亮时同样高亮为 primary。横屏时只留图标，省出横向空间。
+ * 闪光状态：徕卡风格纯文字 + 图标，无胶囊底、无描边。
+ * 激活时文字与图标转为徕卡红，关闭时保持浅灰。
  */
 @Composable
-private fun FlashPill(
+private fun FlashLabel(
     state: CameraUiState,
     onClick: () -> Unit,
     compact: Boolean
 ) {
-    val scheme = MaterialTheme.colorScheme
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.94f else 1f,
+        targetValue = if (pressed) 0.92f else 1f,
         animationSpec = spring(dampingRatio = 0.6f, stiffness = 800f),
-        label = "flashPillScale"
+        label = "flashScale"
     )
-    // 只要不是「关闭」状态都算激活，用 primary 高亮
     val active = state.torchEnabled || state.flashMode != FlashMode.OFF
-    val background by animateColorAsState(
-        targetValue = if (active) {
-            scheme.primary.copy(alpha = 0.18f)
-        } else {
-            scheme.surfaceContainer.copy(alpha = 0.86f)
-        },
-        animationSpec = tween(durationMillis = 200),
-        label = "flashPillBg"
-    )
     val tint by animateColorAsState(
-        targetValue = if (active) scheme.primary else scheme.onSurfaceVariant,
-        animationSpec = tween(durationMillis = 200),
-        label = "flashPillTint"
+        targetValue = if (active) Leica.Red else Leica.TextDim,
+        animationSpec = tween(durationMillis = 180),
+        label = "flashTint"
     )
-
     Row(
         modifier = Modifier
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(CircleShape)
-            .background(background)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(RoundedCornerShape(2.dp))
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 9.dp),
+            .padding(horizontal = 4.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Crossfade(
             targetState = state.torchEnabled to state.flashMode,
-            animationSpec = tween(durationMillis = 200),
+            animationSpec = tween(durationMillis = 180),
             label = "flashIcon"
         ) { target ->
-            val torch = target.first
-            val mode = target.second
             Icon(
-                imageVector = if (torch) FanhuaIcons.Torch else flashIcon(mode),
+                imageVector = if (target.first) FanhuaIcons.Torch else flashIcon(target.second),
                 contentDescription = stringResource(R.string.flash_auto),
                 tint = tint,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(18.dp)
             )
         }
         if (!compact) {
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = if (state.torchEnabled) {
                     stringResource(R.string.torch_on)
@@ -214,63 +215,42 @@ private fun FlashPill(
                     stringResource(state.flashMode.labelRes)
                 },
                 color = tint,
-                style = MaterialTheme.typography.labelLarge
+                style = MaterialTheme.typography.labelSmall
             )
         }
     }
 }
 
 /**
- * Material 3 圆形图标按钮。
- *
- * 未选中：surfaceContainer 填充、无描边、onSurfaceVariant 图标；
- * 选中：primary 18% 填充、primary 图标。
- * 按下时缩放 0.92 作为触觉反馈（相机界面不用水波纹，避免遮挡取景）。
- *
- * 注意：这里不复用 `ui/common/GlassIconButton`，因为该组件属于「玻璃 + 描边」旧风格，
- * 且由其它重构任务维护；顶栏需要的是纯 Material 3 填充式按钮。
+ * 徕卡顶栏图标按钮：纯图标，无底色、无描边。
+ * 选中态直接把图标染成徕卡红，按下轻微缩放。
  */
 @Composable
-private fun M3IconButton(
+private fun LeicaIconButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     active: Boolean = false,
-    buttonSize: Dp = 40.dp,
-    iconSize: Dp = 20.dp
+    buttonSize: Dp = 32.dp,
+    iconSize: Dp = 19.dp
 ) {
-    val scheme = MaterialTheme.colorScheme
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.92f else 1f,
+        targetValue = if (pressed) 0.88f else 1f,
         animationSpec = spring(dampingRatio = 0.6f, stiffness = 800f),
-        label = "m3IconScale"
-    )
-    val background by animateColorAsState(
-        targetValue = if (active) {
-            scheme.primary.copy(alpha = 0.18f)
-        } else {
-            scheme.surfaceContainer.copy(alpha = 0.86f)
-        },
-        animationSpec = tween(durationMillis = 200),
-        label = "m3IconBg"
+        label = "leicaIconScale"
     )
     val tint by animateColorAsState(
-        targetValue = if (active) scheme.primary else scheme.onSurfaceVariant,
-        animationSpec = tween(durationMillis = 200),
-        label = "m3IconTint"
+        targetValue = if (active) Leica.Red else Leica.White,
+        animationSpec = tween(durationMillis = 180),
+        label = "leicaIconTint"
     )
     Box(
         modifier = modifier
             .size(buttonSize)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(CircleShape)
-            .background(background)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {

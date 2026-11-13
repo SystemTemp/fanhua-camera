@@ -199,6 +199,14 @@ fun FanhuaCameraApp(controller: CameraController) {
                 .padding(top = 80.dp)
         )
 
+        // 徕卡一瞬风格标识：红点 + LEICA 字标，常驻取景器左上（顶栏下方）
+        LeicaBadge(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .statusBarsPadding()
+                .padding(start = 18.dp, top = 64.dp)
+        )
+
         // 超级月亮：识别到月亮且模式为自动时点亮
         if (state.moonDetected && state.superMoonMode == SuperMoonMode.AUTO) {
             MoonBadge(
@@ -314,6 +322,31 @@ fun FanhuaCameraApp(controller: CameraController) {
         onInstall = updateController::install,
         onDismiss = updateController::dismiss
     )
+}
+
+/**
+ * 徕卡一瞬标识：7dp 红点 + 细体「LEICA」字标。
+ * 色值取自 APK 真实资源 leica_red(#E20612) / leica_bg_white(#F2F2F2)。
+ */
+@Composable
+private fun LeicaBadge(modifier: Modifier = Modifier) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(7.dp)
+                .clip(CircleShape)
+                .background(com.fanhua.camera.ui.theme.Leica.Red)
+        )
+        Spacer(modifier = Modifier.width(7.dp))
+        Text(
+            text = "LEICA",
+            color = com.fanhua.camera.ui.theme.Leica.GreyLight,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Light,
+                letterSpacing = 3.sp
+            )
+        )
+    }
 }
 
 /**
