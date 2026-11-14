@@ -77,11 +77,11 @@ jobs:
           printf '%s\n' "$EXISTING"
 
           # ── 3. 上传 APK ──
-          # Gitee 从 GitHub 美国 runner 收大文件时经常「连上了但传不动」，
-          # 表现为请求挂住直到 --max-time 到期。所以这里：
-          #   - 用 --speed-limit/--speed-time 让 curl 在速度低于阈值时主动断开重连；
-          #   - 每次尝试都重新完整上传（该 API 不支持断点续传）；
-          #   - 最多 6 次机会，并优先选最快的成功结果。
+          # GitHub 的美国 runner 传 30MB 到 Gitee 经常要 20~40 分钟，这是实测结果
+          # （v0.1.33 那次跑了 36 分钟，APK 最终是传成功的）。
+          # 所以这里给足时间，只在连接真正「不动」时才断开重试：
+          #   --speed-limit 8192 --speed-time 120  → 连续 120s 低于 8KB/s 才判定卡死
+          #   --max-time 2700                      → 单次最多 45 分钟
           for f in release-tmp/*.apk; do
             [ -f "$f" ] || continue
             name=$(basename "$f")
@@ -93,11 +93,10 @@ jobs:
             echo "uploading $name ($size)"
             ok=0
             code=000
-            for attempt in 1 2 3 4 5 6; do
-              # 30KB/s 连续 60s 没进展就判定为卡死并重连
+            for attempt in 1 2 3 4; do
               code=$(curl -s -o /tmp/attach_resp.txt -w "%{http_code}" \
-                --speed-limit 30720 --speed-time 60 \
-                --connect-timeout 30 --max-time 1200 \
+                --speed-limit 8192 --speed-time 120 \
+                --connect-timeout 30 --max-time 2700 \
                 -X POST "$API/releases/$RID/attach_files" \
                 -F "access_token=$GITEE_TOKEN" -F "file=@$f" || echo "000")
               echo "attempt $attempt -> HTTP $code"
