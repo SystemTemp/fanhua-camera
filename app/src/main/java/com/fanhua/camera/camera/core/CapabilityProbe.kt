@@ -226,4 +226,74 @@ class CapabilityProbe(private val context: Context) {
             false
         }
     }
+
+    /**
+     * 探测该朝向所有可用镜头（含超广角 / 长焦），用于生成 0.6x / 1x / 3x 这类档位。
+     *
+     * CameraX 的 `zoomState.minZoomRatio` 通常只反映主摄逻辑范围（>=1.0），
+     * 拿不到 0.6x 这类超广角倍率，所以这里直接读 Camera2 的
+     * [CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS]，
+     * 用「相对主摄的等效倍率」反推每颗物理镜头的档位。
+     *
+     * 做法：
+     * 1. 枚举该朝向所有逻辑摄像头，记录焦距与是否为逻辑多摄；
+     * 2. 取焦距中位数附近的那颗作为主摄基准（通常就是 1x）；
+     * 3. 其余镜头按 focal / mainFocal 换算倍率，过滤掉过于接近（<8%）的重复档。
+     *
+     * 返回值为**由短焦到长焦排序**的倍率列表；设备只有单摄时返回 `[1f]`。
+     */
+    fun probeLensZoomRatios(facing: Int): List<Float> {
+        val manager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        data class Lens(val focal: Float, val logical: Boolean)
+
+        val lenses = mutableListOf<Lens>()
+        for (id in manager.cameraIdList) {
+            val ch = try {
+                manager.getCameraCharacteristics(id)
+            } catch (e: Exception) {
+                continue
+            }
+            if (ch.get(CameraCharacteristics.LENS_FACING) != facing) continue
+            val focals = ch.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)
+                ?: continue
+            if (focals.isEmpty()) continue
+            // 逻辑多摄的焦距数组往往含多颗镜头，取最短的代表它的最广视角
+            val focal = focals.minOrNull() ?: continue
+            val caps = ch.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES)
+            val logical = caps?.contains(
+                CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_LOGICAL_MULTI_CAMERA
+            ) == true
+            lenses += Lens(focal, logical)
+        }
+        if (lenses.isEmpty()) return listOf(1f)
+
+        // 主摄基准：优先逻辑多摄里焦距居中的那颗，否则取最长焦距（主摄一般比超广角长）
+        val sortedFocals = lenses.map { it.focal }.sorted()
+        val mainFocal = sortedFocals.getOrNull(sortedFocals.size / 2)
+            ?: return listOf(1f)
+        if (mainFocal <= 0f) return listOf(1f)
+
+        val ratios = linkedSetOf<Float>()
+        ratios += 1f
+        for (lens in lenses) {
+            val r = lens.focal / mainFocal
+            if (r.isFinite() && r > 0.1f && r < 20f) {
+                // 与已有档位相差 8% 以内视为同一颗，避免 UI 出现 0.9x/1.1x 这种噪声
+                val dup = ratios.any { kotlin.math.abs(it - r) / r < 0.08f }
+                if (!dup) ratios += r
+            }
+        }
+        return ratios.sorted().map { normalizeZoom(it) }
+    }
+
+    /** 把探测到的物理倍率对齐到相机 App 惯用的档位标签。 */
+    private fun normalizeZoom(raw: Float): Float = when {
+        raw < 0.75f -> 0.5f      // 超广角统一显示 0.5x / 0.6x 区间
+        raw < 0.95f -> 0.6f
+        raw < 1.6f -> 1f
+        raw < 2.4f -> 2f
+        raw < 3.6f -> 3f
+        raw < 5.5f -> 5f
+        else -> raw
+    }
 }

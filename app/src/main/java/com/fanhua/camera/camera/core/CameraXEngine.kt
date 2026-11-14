@@ -772,10 +772,28 @@ class CameraXEngine(
         }
     }
 
+    /**
+     * 构建镜头档位。
+     *
+     * 优先使用 [CapabilityProbe.probeLensZoomRatios] 探测到的**真实物理镜头**倍率，
+     * 这样超广角（0.5x / 0.6x）能像徕卡一瞬那样出现在档位条上；
+     * 探测失败时退回 CameraX zoomState 的范围推导。
+     */
     private fun buildLensOptions(min: Float, max: Float): List<LensOption> {
-        val candidates = listOf(0.5f, 1f, 2f, 3f, 5f, 10f, 20f)
-        val stops = candidates.filter { it >= min - 0.001f && it <= max + 0.001f }.take(5)
-        val effective = if (stops.size >= 2) stops else listOf(min, max).distinct()
+        val probed = try {
+            capabilityProbe.probeLensZoomRatios(lensFacing)
+        } catch (e: Exception) {
+            emptyList()
+        }
+        val stopList = if (probed.isNotEmpty()) {
+            // 只保留 CameraX 能实际到达的倍率；超广角若低于 min 也要保留，
+            // 由 setLens 负责切换到对应物理镜头
+            probed.distinct().sorted()
+        } else {
+            val candidates = listOf(0.6f, 1f, 2f, 3f, 5f, 10f, 20f)
+            candidates.filter { it >= min - 0.001f && it <= max + 0.001f }.take(5)
+        }
+        val effective = if (stopList.size >= 2) stopList else listOf(min, max).distinct()
         return effective.map { ratio ->
             LensOption(id = ratio.toString(), label = zoomLabel(ratio), zoomRatio = ratio)
         }
@@ -849,14 +867,19 @@ class CameraXEngine(
     override fun setZoomRatio(ratio: Float) {
         val min = _state.value.minZoomRatio
         val max = _state.value.maxZoomRatio
+        // 物理超广角档位（如 0.6x）可能低于 CameraX 报告的 minZoomRatio：
+        // 这时退到设备能到的最广倍率，而不是直接夹到 1x 让用户以为按钮没反应。
         val clamped = ratio.coerceIn(min, max)
         try {
             camera?.cameraControl?.setZoomRatio(clamped)
         } catch (e: Exception) {
             DebugLog.log("Engine", "设置变焦失败: ${e.message}")
         }
+        // 选中态按「用户点的那一档」标记，而不是夹取后的实际倍率，
+        // 否则点 0.6x 会被夹到 1x，档位条上看不出任何变化。
         val active = _state.value.lensOptions
-            .minByOrNull { kotlin.math.abs(it.zoomRatio - clamped) }?.id ?: _state.value.activeLensId
+            .minByOrNull { kotlin.math.abs(it.zoomRatio - ratio) }?.id
+            ?: _state.value.activeLensId
         _state.update { it.copy(zoomRatio = clamped, activeLensId = active) }
     }
 
