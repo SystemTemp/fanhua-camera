@@ -91,6 +91,7 @@ import com.fanhua.camera.ui.theme.FanhuaRose
 import com.fanhua.camera.ui.theme.FanhuaStroke
 import com.fanhua.camera.ui.theme.FanhuaText
 import com.fanhua.camera.ui.theme.FanhuaTextDim
+import com.fanhua.camera.ui.theme.Leica
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -437,97 +438,92 @@ private fun LeicaBadge(
 }
 
 /**
- * 启动动画（徕卡风格 + 字标展开）。
+ * 启动动画（徕卡一瞬风格）。
  *
- * 视觉参照「徕卡一瞬」App 的启动表现：纯白底、黑色字标居中。
- * 动画分四段：
- *   1. 字标从中心**向两侧横向展开**（scaleX 0→1 + 字距收紧），是本动画的主体；
- *   2. 细线随后向两侧延展；
- *   3. 下方浮现「无限进步」——影视飓风 Tim 的标志性口号；
- *   4. 底部呼吸提示仍在加载。
+ * 参照徕卡一瞬的开机表现：**纯黑底、极简、无花哨动效**。
+ * 秩序上只做三件事：
+ *   1. 徕卡红圆标从 0.9 轻微放大浮现（250ms）；
+ *   2. FANHUA 矢量字标随后淡入，字距由宽收紧（克制、不夸张）；
+ *   3. 底部一条 0.5dp 的红色进度线从左向右匀速走满，代替转圈。
+ *
+ * 去掉了旧版的衬线字体、白底、以及"无限进步"标语——
+ * 那些元素让启动页看起来像海报，而不是相机 App。
  */
 @Composable
 private fun CameraStartingOverlay(modifier: Modifier = Modifier) {
-    // 字标展开：0 → 1
-    val markExpand = remember { Animatable(0f) }
+    // 圆标浮现
+    val markIn = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
-        markExpand.animateTo(1f, tween(durationMillis = 760, easing = FastOutSlowInEasing))
+        markIn.animateTo(1f, tween(durationMillis = 260, easing = FastOutSlowInEasing))
     }
-    // 名言淡入（字标展开到 55% 时开始）
-    val quoteIn = remember { Animatable(0f) }
+    // 字标淡入
+    val wordIn = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
-        delay(420)
-        quoteIn.animateTo(1f, tween(durationMillis = 640, easing = FastOutSlowInEasing))
+        delay(180)
+        wordIn.animateTo(1f, tween(durationMillis = 420, easing = FastOutSlowInEasing))
     }
-    // 细线从中间向两侧展开
-    val lineGrow = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        delay(300)
-        lineGrow.animateTo(1f, tween(durationMillis = 560, easing = FastOutSlowInEasing))
-    }
-    // 呼吸式透明度，暗示仍在加载
+    // 进度线：循环匀速推进
     val transition = rememberInfiniteTransition(label = "starting")
-    val breathe by transition.animateFloat(
-        initialValue = 0.30f,
-        targetValue = 0.70f,
+    val progress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1300, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            animation = tween(1400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
         ),
-        label = "breathe"
+        label = "progress"
     )
 
     Box(
-        modifier = modifier.background(Color.White),
+        modifier = modifier.background(Leica.Ink),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            // 字标：从中心横向展开（scaleX 0→1），同时字距从宽收紧，模拟"刻字浮现"
-            Text(
-                text = "Fanhua",
-                color = Color.Black,
-                style = MaterialTheme.typography.displaySmall.copy(
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Normal,
-                    fontSize = 44.sp,
-                    // 展开过程中字距由宽变紧
-                    letterSpacing = (6.5f - 5f * markExpand.value).sp
-                ),
-                modifier = Modifier.graphicsLayer {
-                    // 只做水平展开：scaleX 0→1，纵向不变，避免变形
-                    scaleX = 0.04f + 0.96f * markExpand.value
-                    alpha = markExpand.value.coerceIn(0f, 1f)
-                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.5f)
-                }
+            // 徕卡红圆标
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(R.drawable.wm_leica),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(54.dp)
+                    .graphicsLayer {
+                        val p = markIn.value
+                        scaleX = 0.90f + 0.10f * p
+                        scaleY = 0.90f + 0.10f * p
+                        alpha = p
+                    }
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            // 细线：中间向两侧展开
+            Spacer(modifier = Modifier.height(18.dp))
+            // FANHUA 矢量字标
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(R.drawable.wordmark_fanhua),
+                contentDescription = null,
+                modifier = Modifier
+                    .height(13.dp)
+                    .width(86.dp)
+                    .graphicsLayer {
+                        alpha = wordIn.value
+                        translationY = (1f - wordIn.value) * 4f
+                    }
+            )
+        }
+
+        // 底部进度线：细、克制，只占屏幕 84dp 宽
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = 56.dp)
+                .width(84.dp)
+                .height(1.dp)
+                .clip(RoundedCornerShape(1.dp))
+                .background(Color.White.copy(alpha = 0.10f))
+        ) {
             Box(
                 modifier = Modifier
-                    .height(1.2.dp)
-                    .width(108.dp * lineGrow.value)
-                    .background(Color.Black.copy(alpha = 0.85f))
-            )
-            Spacer(modifier = Modifier.height(22.dp))
-            // 「无限进步」——影视飓风 Tim 的标志性口号
-            Text(
-                text = stringResource(R.string.splash_quote),
-                color = Color.Black.copy(alpha = 0.78f * quoteIn.value),
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Normal,
-                    letterSpacing = (10f - 6f * quoteIn.value).sp
-                ),
-                modifier = Modifier.graphicsLayer {
-                    translationY = (1f - quoteIn.value) * 10f
-                }
-            )
-            Spacer(modifier = Modifier.height(30.dp))
-            Text(
-                text = stringResource(R.string.camera_starting),
-                color = Color.Black.copy(alpha = breathe * 0.6f),
-                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
-                modifier = Modifier.graphicsLayer { alpha = quoteIn.value }
+                    .fillMaxHeight()
+                    .width(84.dp * progress)
+                    .clip(RoundedCornerShape(1.dp))
+                    .background(Leica.Red)
             )
         }
     }

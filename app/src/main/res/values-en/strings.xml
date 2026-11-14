@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Fanhua Camera</string>
+    <string name="app_name">Fanhua Moment</string>
 
     <!-- Capture modes -->
     <string name="mode_photo">Photo</string>
@@ -96,7 +96,7 @@ Leica frame</string>
     <string name="settings_debug">Debug mode</string>
     <string name="settings_debug_desc">Only records debug logs and does not affect normal use; copy the log and send it to the developer when you are done</string>
     <string name="settings_about">About</string>
-    <string name="settings_about_desc">Fanhua Camera · Multilingual photography</string>
+    <string name="settings_about_desc">Fanhua Moment · Multilingual photography</string>
     <string name="settings_reset">Restore defaults</string>
     <string name="settings_reset_desc">Clears all shooting preferences; photos and videos are not deleted</string>
     <string name="settings_reset_done">Defaults restored</string>
@@ -282,4 +282,28 @@ Leica frame</string>
     <string name="supermoon_auto">Auto</string>
     <string name="supermoon_off">Off</string>
     <string name="supermoon_badge">Super Moon</string>
+    <string name="filter_group_tone">Tone</string>
+    <string name="filter_tone_0">Classic Color</string>
+    <string name="filter_tone_1">Silver BW</string>
+    <string name="filter_tone_2">Warm</string>
+    <string name="filter_tone_3">Cool Teal</string>
+    <string name="filter_tone_4">Vivid</string>
+    <string name="filter_tone_5">Soft</string>
+    <string name="filter_tone_6">Faded</string>
+    <string name="filter_tone_7">Natural</string>
+    <string name="filter_tone_8">Cool Grey</string>
+    <string name="filter_tone_9">Warm Gold</string>
+    <string name="filter_tone_10">Grain</string>
+    <string name="filter_tone_11">Teal Orange</string>
+    <string name="filter_tone_12">Dark Rich</string>
+    <string name="filter_tone_13">Bright Clear</string>
+    <string name="filter_tone_14">Sunny Warm</string>
+    <string name="filter_tone_15">Cold Crisp</string>
+    <string name="filter_tone_16">Soft Pink</string>
+    <string name="filter_tone_17">Muted Blue</string>
+    <string name="filter_tone_18">High Contrast BW</string>
+    <string name="filter_tone_19">Low Sat Natural</string>
+    <string name="filter_tone_20">Dusk Warm</string>
+    <string name="filter_tone_21">Fresh Green</string>
+    <string name="filter_tone_22">Night Cool</string>
 </resources>

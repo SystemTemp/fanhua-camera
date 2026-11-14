@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">繁花如梦相机</string>
+    <string name="app_name">繁花一瞬</string>
 
     <!-- 拍摄模式 -->
     <string name="mode_photo">照片</string>
@@ -128,7 +128,7 @@
     <string name="settings_debug">调试模式</string>
     <string name="settings_debug_desc">仅记录调试日志，不影响正常使用；测完复制日志发给开发者即可</string>
     <string name="settings_about">关于</string>
-    <string name="settings_about_desc">繁花如梦相机 · 多语种摄影</string>
+    <string name="settings_about_desc">繁花一瞬 · 多语种摄影</string>
     <string name="settings_reset">恢复默认设置</string>
     <string name="settings_reset_desc">清除所有拍摄偏好，不会删除照片与视频</string>
     <string name="settings_reset_done">已恢复默认设置</string>
@@ -287,4 +287,28 @@
     <string name="wm_mode_overlay">照片内</string>
     <string name="wm_mode_border">竖排</string>
     <string name="wm_mode_filmstrip">胶片</string>
+    <string name="filter_group_tone">Tone</string>
+    <string name="filter_tone_0">Classic Color</string>
+    <string name="filter_tone_1">Silver BW</string>
+    <string name="filter_tone_2">Warm</string>
+    <string name="filter_tone_3">Cool Teal</string>
+    <string name="filter_tone_4">Vivid</string>
+    <string name="filter_tone_5">Soft</string>
+    <string name="filter_tone_6">Faded</string>
+    <string name="filter_tone_7">Natural</string>
+    <string name="filter_tone_8">Cool Grey</string>
+    <string name="filter_tone_9">Warm Gold</string>
+    <string name="filter_tone_10">Grain</string>
+    <string name="filter_tone_11">Teal Orange</string>
+    <string name="filter_tone_12">Dark Rich</string>
+    <string name="filter_tone_13">Bright Clear</string>
+    <string name="filter_tone_14">Sunny Warm</string>
+    <string name="filter_tone_15">Cold Crisp</string>
+    <string name="filter_tone_16">Soft Pink</string>
+    <string name="filter_tone_17">Muted Blue</string>
+    <string name="filter_tone_18">High Contrast BW</string>
+    <string name="filter_tone_19">Low Sat Natural</string>
+    <string name="filter_tone_20">Dusk Warm</string>
+    <string name="filter_tone_21">Fresh Green</string>
+    <string name="filter_tone_22">Night Cool</string>
 </resources>

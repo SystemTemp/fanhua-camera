@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Камера Фаньхуа</string>
+    <string name="app_name">Момент Фаньхуа</string>
 
     <!-- Режимы съёмки -->
     <string name="mode_photo">Фото</string>
@@ -96,7 +96,7 @@
     <string name="settings_debug">Режим отладки</string>
     <string name="settings_debug_desc">Записывает только отладочные журналы и не мешает работе; скопируйте журнал и отправьте разработчику</string>
     <string name="settings_about">О программе</string>
-    <string name="settings_about_desc">Камера Фаньхуа · Многоязычная фотография</string>
+    <string name="settings_about_desc">Момент Фаньхуа · Многоязычная фотография</string>
     <string name="settings_reset">Сбросить настройки</string>
     <string name="settings_reset_desc">Удаляет все настройки съёмки; фото и видео не удаляются</string>
     <string name="settings_reset_done">Настройки сброшены</string>
@@ -282,4 +282,28 @@
     <string name="supermoon_auto">Авто</string>
     <string name="supermoon_off">Выкл.</string>
     <string name="supermoon_badge">Суперлуние</string>
+    <string name="filter_group_tone">Tone</string>
+    <string name="filter_tone_0">Classic Color</string>
+    <string name="filter_tone_1">Silver BW</string>
+    <string name="filter_tone_2">Warm</string>
+    <string name="filter_tone_3">Cool Teal</string>
+    <string name="filter_tone_4">Vivid</string>
+    <string name="filter_tone_5">Soft</string>
+    <string name="filter_tone_6">Faded</string>
+    <string name="filter_tone_7">Natural</string>
+    <string name="filter_tone_8">Cool Grey</string>
+    <string name="filter_tone_9">Warm Gold</string>
+    <string name="filter_tone_10">Grain</string>
+    <string name="filter_tone_11">Teal Orange</string>
+    <string name="filter_tone_12">Dark Rich</string>
+    <string name="filter_tone_13">Bright Clear</string>
+    <string name="filter_tone_14">Sunny Warm</string>
+    <string name="filter_tone_15">Cold Crisp</string>
+    <string name="filter_tone_16">Soft Pink</string>
+    <string name="filter_tone_17">Muted Blue</string>
+    <string name="filter_tone_18">High Contrast BW</string>
+    <string name="filter_tone_19">Low Sat Natural</string>
+    <string name="filter_tone_20">Dusk Warm</string>
+    <string name="filter_tone_21">Fresh Green</string>
+    <string name="filter_tone_22">Night Cool</string>
 </resources>

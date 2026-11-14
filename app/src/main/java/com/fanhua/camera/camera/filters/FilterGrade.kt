@@ -187,6 +187,29 @@ data class FilterGrade(
         private val UNIT = floatArrayOf(1f, 1f, 1f)
 
         fun of(preset: FilterPreset): FilterGrade = when (preset) {
+            // 23 个徕卡影调全部走真实 3D LUT（res/raw/tone_*.lut），
+            // 参数化部分保持恒等，避免与 LUT 叠加产生二次偏色。
+            FilterPreset.TONE_0, FilterPreset.TONE_1, FilterPreset.TONE_2,
+            FilterPreset.TONE_3, FilterPreset.TONE_4, FilterPreset.TONE_5,
+            FilterPreset.TONE_6, FilterPreset.TONE_7, FilterPreset.TONE_8,
+            FilterPreset.TONE_9, FilterPreset.TONE_10, FilterPreset.TONE_11,
+            FilterPreset.TONE_12, FilterPreset.TONE_13, FilterPreset.TONE_14,
+            FilterPreset.TONE_15, FilterPreset.TONE_16, FilterPreset.TONE_17,
+            FilterPreset.TONE_18, FilterPreset.TONE_19, FilterPreset.TONE_20,
+            FilterPreset.TONE_21, FilterPreset.TONE_22 -> FilterGrade(
+                contrast = 1f,
+                saturation = 1f,
+                temperature = 0f,
+                fade = 0f,
+                lift = NEUTRAL,
+                gain = UNIT,
+                shadowTint = NEUTRAL,
+                highlightTint = NEUTRAL,
+                bloomStrength = 0f,
+                bloomThreshold = 0.99f,
+                grain = 0f,
+                vignette = 0f
+            )
             FilterPreset.ORIGINAL -> FilterGrade(
                 contrast = 1f,
                 saturation = 1f,

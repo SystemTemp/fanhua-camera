@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">繁花如梦相机</string>
+    <string name="app_name">繁花一瞬</string>
 
     <!-- 拍摄模式 -->
     <string name="mode_photo">照片</string>
@@ -118,7 +118,7 @@
     <string name="settings_debug">调试模式</string>
     <string name="settings_debug_desc">仅记录调试日志，不影响正常使用；测完复制日志发给开发者即可</string>
     <string name="settings_about">关于</string>
-    <string name="settings_about_desc">繁花如梦相机 · 多语种摄影</string>
+    <string name="settings_about_desc">繁花一瞬 · 多语种摄影</string>
     <string name="settings_reset">恢复默认设置</string>
     <string name="settings_reset_desc">清除所有拍摄偏好，不会删除照片与视频</string>
     <string name="settings_reset_done">已恢复默认设置</string>
@@ -276,4 +276,28 @@
     <string name="wm_mode_overlay">照片内</string>
     <string name="wm_mode_border">竖排</string>
     <string name="wm_mode_filmstrip">胶片</string>
+    <string name="filter_group_tone">影调</string>
+    <string name="filter_tone_0">经典彩色</string>
+    <string name="filter_tone_1">银盐黑白</string>
+    <string name="filter_tone_2">温润暖调</string>
+    <string name="filter_tone_3">冷调青蓝</string>
+    <string name="filter_tone_4">浓郁高饱和</string>
+    <string name="filter_tone_5">柔和低对比</string>
+    <string name="filter_tone_6">复古褪色</string>
+    <string name="filter_tone_7">自然通透</string>
+    <string name="filter_tone_8">清冷灰调</string>
+    <string name="filter_tone_9">暖金调</string>
+    <string name="filter_tone_10">胶片颗粒</string>
+    <string name="filter_tone_11">青橙电影</string>
+    <string name="filter_tone_12">暗调浓郁</string>
+    <string name="filter_tone_13">明亮通透</string>
+    <string name="filter_tone_14">暖阳调</string>
+    <string name="filter_tone_15">冷冽清透</string>
+    <string name="filter_tone_16">柔和粉调</string>
+    <string name="filter_tone_17">沉静灰蓝</string>
+    <string name="filter_tone_18">高对比黑白</string>
+    <string name="filter_tone_19">低饱和自然</string>
+    <string name="filter_tone_20">黄昏暖调</string>
+    <string name="filter_tone_21">清新绿调</string>
+    <string name="filter_tone_22">夜间冷调</string>
 </resources>
