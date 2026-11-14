@@ -243,12 +243,24 @@ fun FanhuaCameraApp(controller: CameraController) {
                 .padding(top = 96.dp)
         )
 
-        // 徕卡一瞬风格标识：红点 + LEICA 字标，常驻取景器左上（顶栏下方）
+        // 实时水印标识：徕卡红圆标 + FANHUA 字标 + 当前滤镜名。
+        // 横屏时旋转 -90° 贴左侧黑边，避免压在取景画面上。
         LeicaBadge(
+            filterName = stringResource(state.preset.labelRes),
             modifier = Modifier
-                .align(Alignment.TopStart)
-                .statusBarsPadding()
-                .padding(start = 18.dp, top = 64.dp)
+                .align(if (isLandscape) Alignment.CenterStart else Alignment.TopStart)
+                .then(
+                    if (isLandscape) {
+                        Modifier
+                            .statusBarsPadding()
+                            .padding(start = 10.dp)
+                            .graphicsLayer { rotationZ = -90f }
+                    } else {
+                        Modifier
+                            .statusBarsPadding()
+                            .padding(start = 18.dp, top = 64.dp)
+                    }
+                )
         )
 
         // 超级月亮：识别到月亮且模式为自动时点亮
@@ -416,27 +428,47 @@ private fun LeicaViewfinderFrame(
 }
 
 /**
- * 徕卡一瞬标识：7dp 红点 + 细体「LEICA」字标。
- * 色值取自 APK 真实资源 leica_red(#E20612) / leica_bg_white(#F2F2F2)。
+ * 实时取景水印标识：真实徕卡红圆标 + 一轮参数小字。
+ *
+ * 徕卡圆标用 APK 内提取的原图 `wm_leica.webp`（240×240，红底白字），
+ * 下方是当前滤镜 / 画幅 / 机型信息，模拟徕卡一瞬取景时左下的品牌标识区。
+ * 该标识只做视觉提示，不写入照片；照片水印由 WatermarkRenderer 处理。
  */
 @Composable
-private fun LeicaBadge(modifier: Modifier = Modifier) {
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(7.dp)
-                .clip(CircleShape)
-                .background(com.fanhua.camera.ui.theme.Leica.Red)
+private fun LeicaBadge(
+    modifier: Modifier = Modifier,
+    filterName: String? = null
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 真实徕卡红圆标
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(R.drawable.wm_leica),
+            contentDescription = "Leica",
+            modifier = Modifier.size(22.dp)
         )
-        Spacer(modifier = Modifier.width(7.dp))
-        Text(
-            text = "LEICA",
-            color = com.fanhua.camera.ui.theme.Leica.GreyLight,
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Light,
-                letterSpacing = 3.sp
+        Spacer(modifier = Modifier.width(9.dp))
+        Column {
+            // FANHUA 矢量字标（细笔画、宽字距）
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(R.drawable.wordmark_fanhua),
+                contentDescription = "FANHUA",
+                modifier = Modifier
+                    .height(11.dp)
+                    .width(73.dp)
             )
-        )
+            if (!filterName.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = filterName,
+                    color = com.fanhua.camera.ui.theme.Leica.TextDim,
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
+                    maxLines = 1
+                )
+            }
+        }
     }
 }
 

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  FANHUA 字标（矢量）。
+  设计：全大写、细笔画、宽字距，模拟徕卡一瞬那类高端相机品牌的克制字标。
+  用途：取景器实时水印标识、启动动画字标。
+  色值由调用方 tint 控制，这里统一用纯白。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="264dp"
+    android:height="40dp"
+    android:viewportWidth="660"
+    android:viewportHeight="100">
+    <!-- F -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M8,20 h62 v13 h-46 v22 h40 v13 h-40 v32 h-16 z" />
+    <!-- A -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M92,100 L126,20 h17 L177,100 h-17 l-7,-21 h-36 l-7,21 z M117,66 h26 l-13,-38 z" />
+    <!-- N -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M196,100 V20 h15 l38,54 V20 h15 v80 h-15 l-38,-54 v54 z" />
+    <!-- H -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M292,100 V20 h16 v32 h36 V20 h16 v80 h-16 V65 h-36 v35 z" />
+    <!-- U -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M388,20 h16 v52 c0,12 8,18 20,18 s20,-6 20,-18 V20 h16 v53 c0,19 -15,29 -36,29 s-36,-10 -36,-29 z" />
+    <!-- A -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M502,100 L536,20 h17 L587,100 h-17 l-7,-21 h-36 l-7,21 z M527,66 h26 l-13,-38 z" />
+    <!-- LEICA 副标（小字，可选） -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M610,20 h44 v11 h-33 v20 h29 v11 h-29 v27 h34 v11 h-45 z" />
+</vector>
