@@ -870,9 +870,12 @@ private fun ShutterButton(
 }
 
 /**
- * 拍照快门：Google Camera 风格。
+ * 拍照快门：徕卡一瞬默认按键（从 APK 反编译重建）。
  *
- * 白色实心圆 + 外圈 primary 描边，按下时外圈放大并淡出（Material 3 的「涟漪」语义）。
+ * 造型取自 res/drawable/shutter_leica.xml，由徕卡 APK 的
+ * res/drawable/custom_shutter_default.xml 反编译重建：
+ * **白色实心圆 + 细白环 + 12% 黑描边**，不是红色按键。
+ * 按下时轻微收缩，外圈淡白圆环扩散一次。
  */
 @Composable
 private fun PhotoShutter(
@@ -880,11 +883,9 @@ private fun PhotoShutter(
     onHoldStart: () -> Unit,
     onHoldEnd: () -> Unit
 ) {
-    val scheme = MaterialTheme.colorScheme
     var pressed by remember { mutableStateOf(false) }
-    var holding by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.9f else 1f,
+        targetValue = if (pressed) 0.92f else 1f,
         animationSpec = spring(dampingRatio = 0.5f, stiffness = 620f),
         label = "photoShutterScale"
     )
@@ -893,65 +894,50 @@ private fun PhotoShutter(
 
     Box(
         modifier = Modifier
-            .size(88.dp)
+            .size(84.dp)
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
                         pressed = true
-                        val holdJob = scope.launch {
-                            delay(550)
-                            holding = true
-                            onHoldStart()
-                        }
                         tryAwaitRelease()
-                        holdJob.cancel()
                         pressed = false
-                        if (holding) {
-                            holding = false
-                            onHoldEnd()
-                        } else {
-                            scope.launch {
-                                ripple.snapTo(0f)
-                                ripple.animateTo(
-                                    1f,
-                                    tween(durationMillis = 460, easing = LinearEasing)
-                                )
-                                ripple.snapTo(0f)
-                            }
-                            onTap()
+                        scope.launch {
+                            ripple.snapTo(0f)
+                            ripple.animateTo(
+                                1f,
+                                tween(durationMillis = 460, easing = LinearEasing)
+                            )
+                            ripple.snapTo(0f)
                         }
+                        onTap()
                     }
                 )
             },
         contentAlignment = Alignment.Center
     ) {
-        // 按下涟漪：primary 圆环向外扩散
+        // 按下涟漪：白色细圆环向外扩散
         Box(
             modifier = Modifier
-                .size(84.dp)
+                .size(76.dp)
                 .graphicsLayer {
                     val p = ripple.value
-                    scaleX = 1f + 0.24f * p
-                    scaleY = 1f + 0.24f * p
-                    alpha = (1f - p) * 0.55f
+                    scaleX = 1f + 0.20f * p
+                    scaleY = 1f + 0.20f * p
+                    alpha = (1f - p) * 0.35f
                 }
                 .clip(CircleShape)
-                .border(2.dp, scheme.primary, CircleShape)
+                .border(1.5.dp, Color.White, CircleShape)
         )
-        // 外圈 primary 描边
-        Box(
+        // 徕卡默认快门图形
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(R.drawable.shutter_leica),
+            contentDescription = null,
             modifier = Modifier
-                .size(80.dp)
+                .size(72.dp)
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
                 }
-                .clip(CircleShape)
-                .border(3.dp, scheme.primary, CircleShape)
-                .padding(8.dp)
-                .clip(CircleShape)
-                // 白色实心圆
-                .background(Color.White)
         )
     }
 }
@@ -1036,14 +1022,14 @@ private fun RecordButton(
                             alpha = 0.35f + 0.65f * flash
                         }
                         .clip(CircleShape)
-                        .border(3.dp, scheme.primary.copy(alpha = 0.5f), CircleShape)
+                        .border(1.5.dp, Color.White.copy(alpha = 0.5f), CircleShape)
                 )
                 // 外圈 primary 描边
                 Box(
                     modifier = Modifier
                         .size(80.dp)
                         .clip(CircleShape)
-                        .border(3.dp, scheme.primary, CircleShape)
+                        .border(2.dp, Color.White.copy(alpha = 0.92f), CircleShape)
                         .clickable(
                             interactionSource = interaction,
                             indication = null,
@@ -1059,7 +1045,7 @@ private fun RecordButton(
                                 if (recording && !paused) alpha = 0.6f + 0.4f * pulse
                             }
                             .clip(RoundedCornerShape(corner))
-                            .background(if (recording) scheme.error else Color.White)
+                            .background(if (recording) Leica.Red else Color.White)
                     )
                 }
             }
