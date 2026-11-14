@@ -45,12 +45,12 @@ jobs:
           fi
 
       - name: Build debug & release APK
-        # 使用仓库自带 build.sh：先 --setup 自举 JDK/Gradle/Android SDK（CI 干净环境无 .buildenv），
-        # 再执行 assemble。build.sh 会把 GRADLE_USER_HOME 等重定向到项目内 .buildenv，规避 HOME 只读。
+        # CI runner 自带 JDK 17 与 Android SDK，不需要 build.sh --setup 去自举
+        # （那个分支会从镜像站下载 JDK，在 Actions 上既慢又容易失败）。
+        # 直接用 gradlew，签名文件由上一步还原；SDK 路径由 runner 自带的环境变量提供。
         run: |
-          chmod +x ./build.sh
-          bash build.sh --setup
-          bash build.sh :app:assembleDebug :app:assembleRelease
+          chmod +x ./gradlew
+          ./gradlew :app:assembleDebug :app:assembleRelease --stacktrace
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4
