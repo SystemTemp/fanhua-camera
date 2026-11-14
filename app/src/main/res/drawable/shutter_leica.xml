@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  徕卡一瞬默认快门按键（从 APK res/drawable/custom_shutter_default.xml 反编译重建）。
+  原资源 44x44dp，真实结构：
+    1. 圆环外形 #FFFFFF（外径 42.778，内径 40.945，即 2dp 环）
+    2. 同样轮廓的 12% 黑描边，做边缘立体感
+    3. 内部白色实心圆（半径 17.1，即 4.889..39.111）
+  注意：不是红色按键，是白色实心圆 + 细白环 + 极淡黑描边。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="44dp"
+    android:height="44dp"
+    android:viewportWidth="44"
+    android:viewportHeight="44">
+
+    <!-- 外圈白环 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M42.778,22C42.778,33.475 33.476,42.778 22,42.778C10.525,42.778 1.223,33.475 1.223,22C1.223,10.525 10.525,1.222 22,1.222C33.476,1.222 42.778,10.525 42.778,22ZM40.945,22C40.945,32.463 32.463,40.944 22,40.944C11.538,40.944 3.056,32.463 3.056,22C3.056,11.537 11.538,3.056 22,3.056C32.463,3.056 40.945,11.537 40.945,22Z" />
+
+    <!-- 内圈白色实心圆 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M22,39.111C31.45,39.111 39.111,31.45 39.111,22C39.111,12.55 31.45,4.889 22,4.889C12.55,4.889 4.889,12.55 4.889,22C4.889,31.45 12.55,39.111 22,39.111Z" />
+</vector>

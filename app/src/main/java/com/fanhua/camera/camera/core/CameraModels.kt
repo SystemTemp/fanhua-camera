@@ -51,10 +51,22 @@ enum class PhotoAspect(@StringRes val labelRes: Int) {
     RATIO_16_9(R.string.aspect_16_9),
     RATIO_1_1(R.string.aspect_1_1);
 
-    /** 宽高比；FULL 表示不裁切，返回 0f。 */
+    /**
+     * 是否「不裁切」模式。裁切逻辑用它判断，而不是靠 [ratio] 是否为 0，
+     * 因为显示层需要一个真实的 4:3 比例来画取景框。
+     */
+    val isFull: Boolean get() = this == FULL
+
+    /**
+     * 宽高比（宽/高）。
+     *
+     * [FULL] 表示「不裁切、跟随传感器」，但**显示**时按 4:3 处理——
+     * 徕卡一瞬取景框默认就是 4:3 长方形，不是正方形。
+     * 裁切逻辑不要用 [ratio] 判断，改用 [isFull]。
+     */
     val ratio: Float
         get() = when (this) {
-            FULL -> 0f
+            FULL -> 4f / 3f
             RATIO_4_3 -> 4f / 3f
             RATIO_16_9 -> 16f / 9f
             RATIO_1_1 -> 1f

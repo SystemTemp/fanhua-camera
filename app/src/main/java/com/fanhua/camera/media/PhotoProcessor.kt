@@ -674,8 +674,9 @@ class PhotoProcessor(private val context: Context) {
     }
 
     private fun cropToAspect(bitmap: Bitmap, aspect: PhotoAspect): Bitmap {
+        // FULL 表示不裁切，跟随传感器原始比例
+        if (aspect.isFull) return bitmap
         val ratio = aspect.ratio
-        if (ratio <= 0f) return bitmap
         val targetRatio = if (bitmap.height > bitmap.width) 1f / ratio else ratio
         val width = bitmap.width
         val height = bitmap.height

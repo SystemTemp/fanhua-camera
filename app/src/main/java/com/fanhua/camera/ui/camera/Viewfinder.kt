@@ -196,6 +196,7 @@ fun Viewfinder(
 @Composable
 private fun AspectMask(aspect: PhotoAspect, accent: Color, mirror: Boolean) {
     val ratio = aspect.ratio
+    // FULL 不裁切，但仍按 4:3 画取景边框提示实际构图范围
     if (ratio <= 0f) return
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val w = maxWidth
