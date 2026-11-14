@@ -119,11 +119,12 @@ jobs:
             fi
           done
 
-          # ── 4. 回读校验：确认附件真的挂在 Release 上 ──
-          # Gitee 在附件刚上传后索引有延迟，列表接口可能短暂返回空或非 JSON。
-          # 这里重试若干次再判定，避免「其实传成功了但工作流报失败」。
+          # ── 4. 附件列表回读（仅作提示，不作为失败依据） ──
+          # Gitee 的 attach_files 列表在附件刚上传后索引延迟很久，经常查不到；
+          # 真正的判据是下一步对「APK 直链」的 Range GET 校验，
+          # 所以这里查不到只 warn，不 exit——否则又会出现「传成功了却报失败」。
           FINAL=0
-          for probe in 1 2 3 4 5; do
+          for probe in 1 2 3; do
             sleep 10
             FINAL=$($CURL "$API/releases/$RID/attach_files?access_token=$GITEE_TOKEN" 2>/dev/null | $HELPER attach-count 2>/dev/null || echo 0)
             echo "附件数探测 #$probe: $FINAL"
@@ -132,8 +133,9 @@ jobs:
             fi
           done
           if [ "$FINAL" = "0" ] || [ -z "$FINAL" ]; then
-            echo "::error::Gitee Release 上没有附件（上传可能已成功但索引未刷新，请手工确认）"
-            exit 1
+            echo "::warning::附件列表暂时查不到（索引延迟），以 APK 直链校验为准"
+          else
+            echo "附件数: $FINAL"
           fi
 
       - name: Update Gitee version.json
@@ -156,15 +158,20 @@ jobs:
           NOTES=$(gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --json body -q .body)
           echo "apk: $APK_NAME"
 
-          # 前置硬校验：APK 必须真的能从 Gitee 下载到，才允许更新版本通道
+          # 前置硬校验：APK 必须真的能从 Gitee 下载到，才允许更新版本通道。
+          # 注意：Gitee 对 Release 附件会拒绝 HEAD 请求（-I 直接返回错误），
+          # 所以这里必须用 Range GET（只取前 1KB）来判断，接受 200/206。
+          # 之前用 curl -I 导致「APK 明明传成功却报失败」。
           APK_URL="https://gitee.com/TDSI/fanhua-camera/releases/download/$TAG_NAME/$APK_NAME"
           echo "verify: $APK_URL"
           ok=0
+          http=000
           for probe in 1 2 3 4 5 6 7 8; do
-            http=$(curl -s -o /dev/null -L -w "%{http_code}" --max-time 60 -I "$APK_URL" || echo "000")
+            http=$(curl -s -o /dev/null -L -w "%{http_code}" --max-time 90 \
+              -r 0-1023 "$APK_URL" || echo "000")
             echo "probe #$probe -> $http"
             case "$http" in
-              200|302) ok=1; break ;;
+              200|206) ok=1; break ;;
             esac
             sleep 20
           done
