@@ -145,21 +145,19 @@ fun FanhuaCameraApp(controller: CameraController) {
         updateController.check(silent = true)
     }
 
-    // 徕卡一瞬式布局：取景框只占画面中央一块（按画幅比例），控件全部排在框外的黑边上，
-    // 不再浮在实时画面上遮挡构图。
+    // 徕卡一瞬布局：预览铺满全屏，控件浮在预览之上（逆向自 res/layout/f6x.xml）。
     Box(modifier = Modifier.fillMaxSize().background(FanhuaInk)) {
-        Column(modifier = Modifier.fillMaxSize()) {
             // 顶部黑边：放顶栏（液态玻璃）
             AnimatedVisibility(
                 visible = controlsVisible,
                 enter = fadeIn(animationSpec = tween(180)),
                 exit = fadeOut(animationSpec = tween(160)),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth()
             ) {
                 GlassSurface(
                     cornerRadius = 0.dp,
                     tint = Color.Black,
-                    tintAlpha = 0.55f,
+                    tintAlpha = 0.26f,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     TopBar(
@@ -195,33 +193,24 @@ fun FanhuaCameraApp(controller: CameraController) {
                 }
             }
 
-            // 中间：独立取景框（按画幅比例，框外留黑）。
-            // weight(1f) 让它吃掉顶栏/控制区之外的全部高度；
-            // 控制区已压缩为 4 行，取景框能占到屏幕约 60%~70%。
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                LeicaViewfinderFrame(
-                    controller = controller,
-                    state = state,
-                    landscape = isLandscape
-                )
-            }
+            // 预览铺满全屏，与徕卡一致
+            LeicaViewfinderFrame(
+                controller = controller,
+                state = state,
+                landscape = isLandscape
+            )
 
             // 底部黑边：放控制区（液态玻璃）
             AnimatedVisibility(
                 visible = controlsVisible,
                 enter = fadeIn(animationSpec = tween(180)),
                 exit = fadeOut(animationSpec = tween(160)),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
             ) {
                 GlassSurface(
                     cornerRadius = 0.dp,
                     tint = Color.Black,
-                    tintAlpha = 0.55f,
+                    tintAlpha = 0.32f,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     BottomControls(
@@ -232,7 +221,6 @@ fun FanhuaCameraApp(controller: CameraController) {
                     )
                 }
             }
-        }
 
         StatusOverlay(
             messageRes = state.statusMessage?.resId,
@@ -370,52 +358,28 @@ private fun LeicaViewfinderFrame(
     state: CameraUiState,
     landscape: Boolean
 ) {
-    val ratio = state.photoAspect.ratio.let { if (it <= 0f) 4f / 3f else it }
     BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 6.dp, vertical = 2.dp),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        val maxW = maxWidth
-        val maxH = maxHeight
-        // 按可用空间等比放下画幅；取景框应尽量占满，只在画幅比空间更宽/更高时才收边
-        val frameW: Dp
-        val frameH: Dp
-        if (maxW / maxH > ratio) {
-            // 空间比画幅更宽：以高度为准，左右留窄黑边
-            frameH = maxH
-            frameW = maxH * ratio
-        } else {
-            // 空间比画幅更窄：以宽度为准，上下留黑边
-            frameW = maxW
-            frameH = maxW / ratio
-        }
+        // 逆向自徕卡 res/layout/f6x.xml：主预览 TextureView 是 match_parent × match_parent，
+        // 取景时画面铺满屏幕，画幅比例只决定出片裁切，不再做 4:3 内接小框。
+        Viewfinder(controller = controller, state = state, modifier = Modifier.fillMaxSize())
 
-        Box(
+        // 画幅角标：左上角小字，不压中心构图区
+        Text(
+            text = stringResource(state.photoAspect.labelRes),
+            color = Color.White.copy(alpha = 0.75f),
+            style = MaterialTheme.typography.labelSmall,
             modifier = Modifier
-                .width(frameW)
-                .height(frameH)
-                .clip(RoundedCornerShape(2.dp))
-                .background(Color.Black)
-        ) {
-            Viewfinder(controller = controller, state = state, modifier = Modifier.fillMaxSize())
+                .align(Alignment.TopStart)
+                .padding(start = 10.dp, top = 8.dp)
+        )
 
-            // 画幅角标：贴在框内左上角，不压中心构图区
-            Text(
-                text = stringResource(state.photoAspect.labelRes),
-                color = Color.White.copy(alpha = 0.72f),
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(8.dp)
-            )
-        }
-
-        // 横屏：把画幅/机型信息旋转 90°，贴在取景框左侧的黑边上
+        // 横屏：画幅/机型信息旋转 -90° 贴左侧边缘
         if (landscape) {
             Text(
-                text = "LEICA  ${state.photoAspect.let { stringResource(it.labelRes) }}",
+                text = "LEICA  ${stringResource(state.photoAspect.labelRes)}",
                 color = com.fanhua.camera.ui.theme.Leica.TextDim,
                 style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 2.sp),
                 modifier = Modifier
