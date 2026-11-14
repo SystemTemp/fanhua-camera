@@ -182,6 +182,19 @@ jobs:
           echo "APK 直链可下载，继续更新版本通道"
 
           SHA=$($CURL "https://gitee.com/api/v5/repos/TDSI/file/contents/fanhua/version.json?access_token=$GITEE_TOKEN" 2>/dev/null | $HELPER content-sha 2>/dev/null || echo "")
+
+          # 防止降级：手工补传旧版本（如 v0.1.24）时，绝不能把版本通道写回旧版，
+          # 否则所有用户会被提示「更新」到一个更老的包。
+          CURRENT=$($CURL "https://gitee.com/TDSI/file/raw/master/fanhua/version.json" 2>/dev/null | $HELPER version 2>/dev/null || echo "")
+          echo "当前通道版本: '$CURRENT'  本次: '${TAG_NAME#v}'"
+          if [ -n "$CURRENT" ] && [ "$CURRENT" != "${TAG_NAME#v}" ]; then
+            NEWEST=$(printf '%s\n%s\n' "$CURRENT" "${TAG_NAME#v}" | sort -V | tail -1)
+            if [ "$NEWEST" != "${TAG_NAME#v}" ]; then
+              echo "本次版本 ${TAG_NAME#v} 不高于当前通道 $CURRENT，跳过版本通道更新（仅补传附件）"
+              exit 0
+            fi
+          fi
+
           PAYLOAD=$(APK_NAME="$APK_NAME" NOTES="$NOTES" TAG_NAME="$TAG_NAME" SHA="$SHA" \
             GITEE_TOKEN="$GITEE_TOKEN" $HELPER version-payload)
 
