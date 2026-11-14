@@ -25,14 +25,24 @@ jobs:
       - name: Download release assets
         run: |
           mkdir -p release-tmp
-          gh release download "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --dir release-tmp
+          # 只下载 APK：GitHub 自动生成的源码 zip（Source code）不需要传到 Gitee，
+          # 传了既浪费带宽又让 Gitee 上出现一堆无用的 .zip 附件。
+          gh release download "$TAG_NAME" --repo "$GITHUB_REPOSITORY" \
+            --pattern '*.apk' --dir release-tmp
           ls -la release-tmp
+          if ! ls release-tmp/*.apk >/dev/null 2>&1; then
+            echo "::error::没有下载到任何 APK"
+            exit 1
+          fi
 
       - name: Sync release to Gitee
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
-          set -e
+          # 不用 set -e：管道里辅助命令的非零退出不该中断脚本，
+          # Gitee 附件列表在上传后短时间内可能返回异常，那只是「暂时查不到」。
+          # 关键失败点用显式 exit 1 判定。
+          set -uo pipefail
           # 令牌缺失时必须明确失败：否则后续步骤会静默跳过，
           # 表现为「Release 建好了但版本通道没更新」，应用内检查更新永远看不到新版本。
           if [ -z "$GITEE_TOKEN" ]; then
@@ -103,26 +113,43 @@ jobs:
           done
 
           # ── 4. 回读校验：确认附件真的挂在 Release 上 ──
-          FINAL=$($CURL "$API/releases/$RID/attach_files?access_token=$GITEE_TOKEN" | $HELPER attach-count)
-          echo "Gitee Release 附件数: $FINAL"
-          if [ "$FINAL" = "0" ]; then
-            echo "::error::Gitee Release 上没有附件"
+          # Gitee 在附件刚上传后索引有延迟，列表接口可能短暂返回空或非 JSON。
+          # 这里重试若干次再判定，避免「其实传成功了但工作流报失败」。
+          FINAL=0
+          for probe in 1 2 3 4 5; do
+            sleep 10
+            FINAL=$($CURL "$API/releases/$RID/attach_files?access_token=$GITEE_TOKEN" 2>/dev/null | $HELPER attach-count 2>/dev/null || echo 0)
+            echo "附件数探测 #$probe: $FINAL"
+            if [ "$FINAL" != "0" ] && [ -n "$FINAL" ]; then
+              break
+            fi
+          done
+          if [ "$FINAL" = "0" ] || [ -z "$FINAL" ]; then
+            echo "::error::Gitee Release 上没有附件（上传可能已成功但索引未刷新，请手工确认）"
             exit 1
           fi
 
       - name: Update Gitee version.json
+        # always()：即使上传步骤报错也要更新版本通道。
+        # 附件其实常已传成功（只是校验查询暂时查不到），这时版本通道必须跟上，
+        # 否则应用内检查更新永远停在旧版本。
+        if: always()
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
-          set -e
+          set -uo pipefail
           HELPER="python3 .github/scripts/gitee_sync_helper.py"
           CURL="curl -s --retry 3 --retry-delay 5 --connect-timeout 20"
 
-          APK_NAME=$(basename "$(ls release-tmp/*.apk | head -1)")
+          APK_NAME=$(basename "$(ls release-tmp/*.apk 2>/dev/null | head -1)")
+          if [ -z "$APK_NAME" ]; then
+            echo "::error::找不到 APK 附件，跳过版本通道更新"
+            exit 1
+          fi
           NOTES=$(gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --json body -q .body)
           echo "apk: $APK_NAME"
 
-          SHA=$($CURL "https://gitee.com/api/v5/repos/TDSI/file/contents/fanhua/version.json?access_token=$GITEE_TOKEN" | $HELPER content-sha)
+          SHA=$($CURL "https://gitee.com/api/v5/repos/TDSI/file/contents/fanhua/version.json?access_token=$GITEE_TOKEN" 2>/dev/null | $HELPER content-sha 2>/dev/null || echo "")
           PAYLOAD=$(APK_NAME="$APK_NAME" NOTES="$NOTES" TAG_NAME="$TAG_NAME" SHA="$SHA" \
             GITEE_TOKEN="$GITEE_TOKEN" $HELPER version-payload)
 
@@ -131,9 +158,16 @@ jobs:
           echo "$RESULT" | head -c 400
           echo
 
-          # 回读校验：确认版本通道真的写进去了，而不是只看到 200 就以为成功
-          ACTUAL=$($CURL "https://gitee.com/TDSI/file/raw/master/fanhua/version.json" | $HELPER version)
-          echo "version.json 当前版本: $ACTUAL"
+          # 回读校验：Gitee 文件写入有传播延迟，重试几次再判定
+          ACTUAL=""
+          for probe in 1 2 3 4 5 6; do
+            sleep 5
+            ACTUAL=$($CURL "https://gitee.com/TDSI/file/raw/master/fanhua/version.json" 2>/dev/null | $HELPER version 2>/dev/null || echo "")
+            echo "version.json 回读 #$probe: '$ACTUAL'"
+            if [ "$ACTUAL" = "${TAG_NAME#v}" ]; then
+              break
+            fi
+          done
           if [ "$ACTUAL" != "${TAG_NAME#v}" ]; then
             echo "::error::版本通道更新失败，期望 ${TAG_NAME#v}，实际 '$ACTUAL'"
             exit 1
