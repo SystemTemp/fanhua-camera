@@ -1,8 +1,8 @@
-# 繁花如梦相机 · Fanhua Camera
+# 繁花一瞬 · Fanhua Camera
 
 An open-source Android photography app featuring Mi-style dream filters, Leica M9-inspired color grading, a real-time GLES super-resolution pipeline, hardware/gyroscope stabilization, TFLite object-detection powered auto-composition and Live Photo capture. Built with Kotlin, Jetpack Compose and CameraX — no third-party filter libraries.
 
-小米「繁花如梦」风格滤镜、徕卡 M9「一瞬」色彩近似、GPU 实时超分（1080p 采集 → 4K 输出）、硬件/陀螺仪防抖、TFLite 目标检测 AI 自动构图、实况照片，9 语种界面。
+小米「繁花如梦」风格滤镜（应用名：繁花一瞬）、徕卡 M9「一瞬」色彩近似、GPU 实时超分（1080p 采集 → 4K 输出）、硬件/陀螺仪防抖、TFLite 目标检测 AI 自动构图、实况照片，9 语种界面。
 
 ## Features
 
@@ -19,7 +19,8 @@ An open-source Android photography app featuring Mi-style dream filters, Leica M
 - Photo aspect ratios (Full / 4:3 / 16:9 / 1:1) with live framing mask
 - EXIF metadata preserved on saved photos (make, model, aperture, shutter, ISO, focal length, GPS)
 - Exposure compensation, video pause/resume, front-camera mirror toggle, shutter sound toggle
-- Hideable camera controls for clean viewfinder, landscape shutter docked to the screen edge
+- Hideable camera controls for clean viewfinder; portrait-locked UI keeps controls upright while text rotates with grip orientation
+- Smart composition: 63 reference templates (48 smart + 15 creative) overlaid on the viewfinder, plus AI-guided composition via on-device detection
 - Debug mode: records pipeline logs, one-tap copy / clear for troubleshooting
 - 9 languages (zh-CN / zh-TW / en / ja / ko / es / fr / de / ru), 184 strings each
 - 63 unit tests covering filter math, composition engine, LUT parsing and detector logic
