@@ -26,6 +26,10 @@ data class AppSettings(
     val horizonEnabled: Boolean = false,
     val superResEnabled: Boolean = false,
     val autoCompositionEnabled: Boolean = false,
+    /** 选中的智能构图模板 id（1..63），null 表示不叠参考图。 */
+    val compositionGuideId: Int? = null,
+    /** 参考图叠加不透明度。 */
+    val compositionGuideAlpha: Float = 0.45f,
     val selectedSpecLabel: String = "",
     val debugEnabled: Boolean = false,
     val lutPath: String = "",
@@ -45,6 +49,8 @@ class SettingsRepository(private val context: Context) {
     private val keyStabilization = booleanPreferencesKey("stabilization")
     private val keySuperRes = booleanPreferencesKey("super_res")
     private val keyAutoComposition = booleanPreferencesKey("auto_composition")
+    private val keyCompositionGuide = intPreferencesKey("composition_guide_id")
+    private val keyCompositionGuideAlpha = floatPreferencesKey("composition_guide_alpha")
     private val keySpec = stringPreferencesKey("output_spec")
     private val keyDebug = booleanPreferencesKey("debug_mode")
     private val keyLut = stringPreferencesKey("lut_path")
@@ -77,6 +83,8 @@ class SettingsRepository(private val context: Context) {
             horizonEnabled = prefs[keyHorizon] ?: false,
             superResEnabled = prefs[keySuperRes] ?: false,
             autoCompositionEnabled = prefs[keyAutoComposition] ?: false,
+            compositionGuideId = prefs[keyCompositionGuide]?.takeIf { it > 0 },
+            compositionGuideAlpha = prefs[keyCompositionGuideAlpha] ?: 0.45f,
             selectedSpecLabel = prefs[keySpec] ?: "",
             debugEnabled = prefs[keyDebug] ?: false,
             lutPath = prefs[keyLut] ?: "",
@@ -121,6 +129,14 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setAutoCompositionEnabled(value: Boolean) {
         context.settingsDataStore.edit { it[keyAutoComposition] = value }
+    }
+
+    suspend fun setCompositionGuideId(id: Int?) {
+        context.settingsDataStore.edit { it[keyCompositionGuide] = id ?: 0 }
+    }
+
+    suspend fun setCompositionGuideAlpha(value: Float) {
+        context.settingsDataStore.edit { it[keyCompositionGuideAlpha] = value }
     }
 
     suspend fun setSelectedSpecLabel(value: String) {

@@ -71,8 +71,7 @@ fun TopBar(
     onSuperResToggle: () -> Unit,
     onSettings: () -> Unit,
     onHideControls: () -> Unit,
-    modifier: Modifier = Modifier,
-    landscape: Boolean = false
+    modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
@@ -82,21 +81,18 @@ fun TopBar(
                     WindowInsetsSides.Top + WindowInsetsSides.Horizontal
                 )
             )
-            .padding(
-                horizontal = if (landscape) 22.dp else 18.dp,
-                vertical = if (landscape) 8.dp else 14.dp
-            ),
+            .padding(horizontal = 18.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 左侧：徕卡红点标 + 闪光状态（纯文字，无底板）
         LeicaMark(active = state.torchEnabled || state.flashMode != FlashMode.OFF)
         Spacer(modifier = Modifier.width(10.dp))
-        FlashLabel(state = state, onClick = onFlashToggle, compact = landscape)
+        FlashLabel(state = state, onClick = onFlashToggle)
 
         Spacer(modifier = Modifier.weight(1f))
 
         Row(
-            horizontalArrangement = Arrangement.spacedBy(if (landscape) 14.dp else 18.dp),
+            horizontalArrangement = Arrangement.spacedBy(18.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             AnimatedVisibility(
@@ -170,8 +166,7 @@ private fun LeicaMark(active: Boolean) {
 @Composable
 private fun FlashLabel(
     state: CameraUiState,
-    onClick: () -> Unit,
-    compact: Boolean
+    onClick: () -> Unit
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -206,18 +201,16 @@ private fun FlashLabel(
                 modifier = Modifier.size(18.dp)
             )
         }
-        if (!compact) {
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = if (state.torchEnabled) {
-                    stringResource(R.string.torch_on)
-                } else {
-                    stringResource(state.flashMode.labelRes)
-                },
-                color = tint,
-                style = MaterialTheme.typography.labelSmall
-            )
-        }
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = if (state.torchEnabled) {
+                stringResource(R.string.torch_on)
+            } else {
+                stringResource(state.flashMode.labelRes)
+            },
+            color = tint,
+            style = MaterialTheme.typography.labelSmall
+        )
     }
 }
 

@@ -2,7 +2,6 @@ package com.fanhua.camera.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.content.res.Configuration
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -40,6 +39,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,7 +52,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -71,6 +70,8 @@ import com.fanhua.camera.camera.core.SuperMoonMode
 import com.fanhua.camera.camera.core.FlashMode
 import com.fanhua.camera.camera.core.PhotoAspect
 import com.fanhua.camera.ui.camera.BottomControls
+import com.fanhua.camera.ui.camera.CompositionGuideOverlay
+import com.fanhua.camera.ui.camera.CompositionGuidePicker
 import com.fanhua.camera.ui.camera.TopBar
 import com.fanhua.camera.ui.camera.Viewfinder
 import com.fanhua.camera.ui.common.FanhuaButton
@@ -107,8 +108,14 @@ import kotlinx.coroutines.delay
 fun FanhuaCameraApp(controller: CameraController) {
     val state by controller.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val configuration = LocalConfiguration.current
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    // 界面锁定竖屏：布局永远用竖排结构，不再读系统横竖屏配置。
+    // 横握手机时由 OrientationTracker 感知物理朝向，只旋转文字。
+    val orientationTracker = remember(context) { OrientationTracker(context) }
+    val deviceAngle by orientationTracker.angle.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { orientationTracker.start() }
+    DisposableEffect(Unit) {
+        onDispose { orientationTracker.stop() }
+    }
     val capability = remember {
         CapabilityProbe(context).probe(CameraSelector.LENS_FACING_BACK)
     }
@@ -147,10 +154,13 @@ fun FanhuaCameraApp(controller: CameraController) {
     }
 
     // 徕卡一瞬布局：预览铺满全屏，控件浮在预览之上（逆向自 res/layout/f6x.xml）。
+    // 拍摄中（busy）：顶栏、底栏、水印标识全部让位，画面上只留倒计时/闪光，
+    // 保存完成自动恢复——「拍摄直接什么都不要动」。
+    val captureQuiet = state.busy || state.countdownRemaining > 0
     Box(modifier = Modifier.fillMaxSize().background(FanhuaInk)) {
             // 顶部黑边：放顶栏（液态玻璃）
             AnimatedVisibility(
-                visible = controlsVisible,
+                visible = controlsVisible && !captureQuiet,
                 enter = fadeIn(animationSpec = tween(180)),
                 exit = fadeOut(animationSpec = tween(160)),
                 modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth()
@@ -163,7 +173,6 @@ fun FanhuaCameraApp(controller: CameraController) {
                 ) {
                     TopBar(
                         state = state,
-                        landscape = isLandscape,
                         onFlashToggle = {
                             if (state.frontCamera) {
                                 controller.setTorchEnabled(!state.torchEnabled)
@@ -197,13 +206,36 @@ fun FanhuaCameraApp(controller: CameraController) {
             // 预览铺满全屏，与徕卡一致
             LeicaViewfinderFrame(
                 controller = controller,
-                state = state,
-                landscape = isLandscape
+                state = state
             )
+
+            // 智能构图参考图：半透明叠在预览之上（与参考包一致，不参与裁切）
+            CompositionGuideOverlay(
+                guideId = state.compositionGuideId,
+                alpha = state.compositionGuideAlpha,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // 构图模板选择面板：从底部弹出，盖住控制区
+            AnimatedVisibility(
+                visible = state.compositionPickerVisible,
+                enter = fadeIn(animationSpec = tween(160)),
+                exit = fadeOut(animationSpec = tween(140)),
+                modifier = Modifier.align(Alignment.BottomCenter)
+            ) {
+                CompositionGuidePicker(
+                    selectedId = state.compositionGuideId,
+                    autoCompositionEnabled = state.autoCompositionEnabled,
+                    alpha = state.compositionGuideAlpha,
+                    onSelect = controller::setCompositionGuide,
+                    onAlphaChange = controller::setCompositionGuideAlpha,
+                    onClose = { controller.setCompositionPickerVisible(false) }
+                )
+            }
 
             // 底部黑边：放控制区（液态玻璃）
             AnimatedVisibility(
-                visible = controlsVisible,
+                visible = controlsVisible && !captureQuiet,
                 enter = fadeIn(animationSpec = tween(180)),
                 exit = fadeOut(animationSpec = tween(160)),
                 modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
@@ -217,7 +249,6 @@ fun FanhuaCameraApp(controller: CameraController) {
                     BottomControls(
                         controller = controller,
                         state = state,
-                        landscape = isLandscape,
                         onOpenGallery = { showGallery = true }
                     )
                 }
@@ -233,24 +264,24 @@ fun FanhuaCameraApp(controller: CameraController) {
         )
 
         // 实时水印标识：徕卡红圆标 + FANHUA 字标 + 当前滤镜名。
-        // 横屏时旋转 -90° 贴左侧黑边，避免压在取景画面上。
-        LeicaBadge(
-            filterName = stringResource(state.preset.labelRes),
-            modifier = Modifier
-                .align(if (isLandscape) Alignment.CenterStart else Alignment.TopStart)
-                .then(
-                    if (isLandscape) {
-                        Modifier
-                            .statusBarsPadding()
-                            .padding(start = 10.dp)
-                            .graphicsLayer { rotationZ = -90f }
-                    } else {
-                        Modifier
-                            .statusBarsPadding()
-                            .padding(start = 18.dp, top = 64.dp)
-                    }
-                )
-        )
+        // 界面锁定竖屏：圆标与文字位置固定在左上，横握手机时
+        // 文字条按物理朝向旋转（deviceAngle 90 → -90°，270 → +90°），
+        // 保证握持者读到的字永远是正的。拍摄中隐藏。
+        if (!captureQuiet) {
+            LeicaBadge(
+                filterName = stringResource(state.preset.labelRes),
+                textRotation = when (deviceAngle) {
+                    90 -> -90f
+                    270 -> 90f
+                    180 -> 180f
+                    else -> 0f
+                },
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .statusBarsPadding()
+                    .padding(start = 18.dp, top = 64.dp)
+            )
+        }
 
         // 超级月亮：识别到月亮且模式为自动时点亮
         if (state.moonDetected && state.superMoonMode == SuperMoonMode.AUTO) {
@@ -291,7 +322,7 @@ fun FanhuaCameraApp(controller: CameraController) {
             modifier = Modifier.fillMaxSize()
         )
 
-        if (!controlsVisible) {
+        if (!controlsVisible && !captureQuiet) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -347,17 +378,13 @@ fun FanhuaCameraApp(controller: CameraController) {
 }
 
 /**
- * 徕卡一瞬式取景框：预览只占中央一块，按画幅比例收缩，框外留黑。
- *
- * 竖屏：取景框宽度撑满（减去左右 8dp），高度由画幅决定，垂直居中。
- * 横屏：高度撑满，宽度由画幅决定，水平居中；画幅文字旋转 90° 贴在框左侧，
- *       这样文字不压在取景画面上。
+ * 徕卡一瞬式取景框：预览铺满全屏，画幅只决定出片裁切。
+ * 界面锁定竖屏，不再区分横竖布局。
  */
 @Composable
 private fun LeicaViewfinderFrame(
     controller: CameraController,
-    state: CameraUiState,
-    landscape: Boolean
+    state: CameraUiState
 ) {
     BoxWithConstraints(
         modifier = Modifier.fillMaxSize(),
@@ -376,19 +403,6 @@ private fun LeicaViewfinderFrame(
                 .align(Alignment.TopStart)
                 .padding(start = 10.dp, top = 8.dp)
         )
-
-        // 横屏：画幅/机型信息旋转 -90° 贴左侧边缘
-        if (landscape) {
-            Text(
-                text = "LEICA  ${stringResource(state.photoAspect.labelRes)}",
-                color = com.fanhua.camera.ui.theme.Leica.TextDim,
-                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 2.sp),
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .graphicsLayer { rotationZ = -90f }
-                    .padding(end = 14.dp)
-            )
-        }
     }
 }
 
@@ -398,43 +412,67 @@ private fun LeicaViewfinderFrame(
  * 徕卡圆标用 APK 内提取的原图 `wm_leica.webp`（240×240，红底白字），
  * 下方是当前滤镜 / 画幅 / 机型信息，模拟徕卡一瞬取景时左下的品牌标识区。
  * 该标识只做视觉提示，不写入照片；照片水印由 WatermarkRenderer 处理。
+ *
+ * 界面锁定竖屏后控件位置不再变化；横握设备时把文字条绕自身中心
+ * 旋转 [textRotation] 度（由物理朝向决定），圆标保持正立。
  */
 @Composable
 private fun LeicaBadge(
     modifier: Modifier = Modifier,
-    filterName: String? = null
+    filterName: String? = null,
+    /** 文字条旋转角：0 / -90 / 90 / 180，来自 OrientationTracker 的量化角度。 */
+    textRotation: Float = 0f
 ) {
-    Row(
+    Column(
         modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 真实徕卡红圆标
         androidx.compose.foundation.Image(
             painter = androidx.compose.ui.res.painterResource(R.drawable.wm_leica),
             contentDescription = "Leica",
             modifier = Modifier.size(22.dp)
         )
-        Spacer(modifier = Modifier.width(9.dp))
-        Column {
-            // FANHUA 矢量字标（细笔画、宽字距）
-            androidx.compose.foundation.Image(
-                painter = androidx.compose.ui.res.painterResource(R.drawable.wordmark_fanhua),
-                contentDescription = "FANHUA",
+        Spacer(modifier = Modifier.height(7.dp))
+        // 旋转前内容按 96dp 宽排版，外层占位按旋转后的包围盒给出：
+        // 0/180 → 宽 96 高 13；±90 → 宽 13 高 96。
+        val rotated = textRotation % 180f != 0f
+        Box(
+            modifier = Modifier
+                .width(if (rotated) 13.dp else 96.dp)
+                .height(if (rotated) 96.dp else 13.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .height(11.dp)
-                    .width(73.dp)
-            )
-            if (!filterName.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = filterName,
-                    color = com.fanhua.camera.ui.theme.Leica.TextDim,
-                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
-                    maxLines = 1
-                )
+                    .width(96.dp)
+                    .graphicsLayer { rotationZ = textRotation }
+            ) {
+                FanhuaWordmark(height = 10.dp, width = 66.dp)
+                if (!filterName.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = filterName,
+                        color = com.fanhua.camera.ui.theme.Leica.TextDim,
+                        style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
+                        maxLines = 1
+                    )
+                }
             }
         }
     }
+}
+
+/** FANHUA 矢量字标（细笔画、宽字距）。 */
+@Composable
+private fun FanhuaWordmark(height: androidx.compose.ui.unit.Dp, width: androidx.compose.ui.unit.Dp) {
+    androidx.compose.foundation.Image(
+        painter = androidx.compose.ui.res.painterResource(R.drawable.wordmark_fanhua),
+        contentDescription = "FANHUA",
+        modifier = Modifier
+            .height(height)
+            .width(width)
+    )
 }
 
 /**

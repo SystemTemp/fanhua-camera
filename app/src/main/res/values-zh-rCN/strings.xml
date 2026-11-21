@@ -300,4 +300,15 @@
     <string name="filter_tone_20">黄昏暖调</string>
     <string name="filter_tone_21">清新绿调</string>
     <string name="filter_tone_22">夜间冷调</string>
+    <string name="composition_title">智能构图</string>
+    <string name="composition_count">共 %1$d 个模板</string>
+    <string name="composition_smart">智能构图 · 4:3</string>
+    <string name="composition_creative">创意构图</string>
+    <string name="composition_opacity">参考图透明度</string>
+    <string name="composition_close">收起</string>
+    <string name="composition_guide_overlay">构图参考图</string>
+    <string name="composition_entry">AI 构图</string>
+    <string name="composition_entry_desc">识别主体给出构图引导</string>
+    <string name="composition_none">无</string>
+    <string name="composition_none_desc">清除构图参考</string>
 </resources>

@@ -1,0 +1,452 @@
+{
+  "doc_link": "模板数据文档:https://xiaomi.f.mioffice.cn/docx/doxk4fml1NylVKdopL3ONV83dAb",
+  "description": "智能构图配置表,注意：aspectRatio字段配置需要参考CameraRatioInfo中的定义要保持一致",
+  "version": "1.0.0",
+  "类型列表": "下面是智能构图模板",
+  "smartCompositionList": [
+    {
+      "id": "1",
+      "fileName": "1.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "1.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "2",
+      "fileName": "2.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "2.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "3",
+      "fileName": "3.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "3.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "4",
+      "fileName": "4.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "4.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "5",
+      "fileName": "5.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "5.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "6",
+      "fileName": "6.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "6.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "7",
+      "fileName": "7.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "7.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "8",
+      "fileName": "8.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "8.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "9",
+      "fileName": "9.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "9.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "10",
+      "fileName": "10.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "10.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "11",
+      "fileName": "11.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "11.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "12",
+      "fileName": "12.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "12.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "13",
+      "fileName": "13.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "13.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "14",
+      "fileName": "14.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "14.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "15",
+      "fileName": "15.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "15.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "16",
+      "fileName": "16.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "16.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "17",
+      "fileName": "17.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "17.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "18",
+      "fileName": "18.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "18.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "19",
+      "fileName": "19.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "19.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "20",
+      "fileName": "20.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "20.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "21",
+      "fileName": "21.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "21.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "22",
+      "fileName": "22.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "22.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "23",
+      "fileName": "23.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "23.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "24",
+      "fileName": "24.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "24.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "25",
+      "fileName": "25.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "25.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "26",
+      "fileName": "26.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "26.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "27",
+      "fileName": "27.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "27.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "28",
+      "fileName": "28.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "28.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "29",
+      "fileName": "29.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "29.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "30",
+      "fileName": "30.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "30.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "31",
+      "fileName": "31.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "31.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "32",
+      "fileName": "32.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "32.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "33",
+      "fileName": "33.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "33.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "34",
+      "fileName": "34.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "34.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "35",
+      "fileName": "35.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "35.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "36",
+      "fileName": "36.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "36.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "37",
+      "fileName": "37.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "37.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "38",
+      "fileName": "38.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "38.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "39",
+      "fileName": "39.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "39.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "40",
+      "fileName": "40.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "40.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "41",
+      "fileName": "41.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "41.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "42",
+      "fileName": "42.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "42.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "43",
+      "fileName": "43.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "43.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "44",
+      "fileName": "44.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "44.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "45",
+      "fileName": "45.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "45.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "46",
+      "fileName": "46.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "46.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "47",
+      "fileName": "47.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "47.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "48",
+      "fileName": "48.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "48.webp",
+      "orientation": "90"
+    }
+  ],
+  "类型列表": "下面是创意构图模板",
+  "creativeCompositionList": [
+    {
+      "id": "49",
+      "fileName": "49.webp",
+      "aspectRatio": "16x9",
+      "coverFileName": "cover_49.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "50",
+      "fileName": "50.webp",
+      "aspectRatio": "16x9",
+      "coverFileName": "cover_50.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "51",
+      "fileName": "51.webp",
+      "aspectRatio": "16x9",
+      "coverFileName": "cover_51.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "52",
+      "fileName": "52.webp",
+      "aspectRatio": "16x9",
+      "coverFileName": "cover_52.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "53",
+      "fileName": "53.webp",
+      "aspectRatio": "16x9",
+      "coverFileName": "cover_53.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "54",
+      "fileName": "54.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "cover_54.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "55",
+      "fileName": "55.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "cover_55.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "56",
+      "fileName": "56.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "cover_56.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "57",
+      "fileName": "57.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "cover_57.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "58",
+      "fileName": "58.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "cover_58.webp",
+      "orientation": "90"
+    },
+    {
+      "id": "59",
+      "fileName": "59.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "cover_59.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "60",
+      "fileName": "60.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "cover_60.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "61",
+      "fileName": "61.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "cover_61.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "62",
+      "fileName": "62.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "cover_62.webp",
+      "orientation": "0"
+    },
+    {
+      "id": "63",
+      "fileName": "63.webp",
+      "aspectRatio": "4x3",
+      "coverFileName": "cover_63.webp",
+      "orientation": "0"
+    }
+  ]
+}

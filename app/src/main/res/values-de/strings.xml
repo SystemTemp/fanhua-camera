@@ -306,4 +306,15 @@ Leica-Rahmen</string>
     <string name="filter_tone_20">Dusk Warm</string>
     <string name="filter_tone_21">Fresh Green</string>
     <string name="filter_tone_22">Night Cool</string>
+    <string name="composition_entry">KI-Komposition</string>
+    <string name="composition_entry_desc">Erkennt das Motiv und führt die Komposition</string>
+    <string name="composition_none">Keine</string>
+    <string name="composition_none_desc">Kompositionshilfe entfernen</string>
+    <string name="composition_guide_overlay">Kompositionshilfe</string>
+    <string name="composition_title">Smart Composition</string>
+    <string name="composition_count">%1$d templates</string>
+    <string name="composition_smart">Smart · 4:3</string>
+    <string name="composition_creative">Creative</string>
+    <string name="composition_opacity">Guide opacity</string>
+    <string name="composition_close">Close</string>
 </resources>

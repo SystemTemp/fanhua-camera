@@ -35,24 +35,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -111,35 +107,31 @@ import kotlin.math.abs
  * 视觉语言统一为「填充式胶囊」：表面色 + 无描边，选中态一律 primary，
  * 金色只保留给徕卡滤镜的品牌标识。
  *
- * 竖屏（自上而下）：模式专属面板 → 滤镜条 → 快捷工具 → 模式选择 → 快门行 → 变焦条。
- * 横屏（自上而下竖排在右侧）：滤镜条 → 快捷工具 → 模式选择 → 快门 → 相册。
+ * 界面锁定竖屏后的控制区（自上而下）：
+ * 模式专属面板 → 滤镜条 → 快捷工具 → 模式选择 → 快门行 → 变焦条。
+ */
+/**
+ * 底部控制区。
  *
- * 横屏遮挡处理：整列套 [WindowInsets.safeDrawing]，一次性避让状态栏、导航栏、
- * 挖孔与刘海；再叠加 [verticalScroll] 作为极端小屏下的兜底，保证任何按钮都不会被裁掉。
+ * 视觉语言统一为「填充式胶囊」：表面色 + 无描边，选中态一律 primary，
+ * 金色只保留给徕卡滤镜的品牌标识。
+ *
+ * 界面锁定竖屏后不再提供横排布局（自上而下）：
+ * 模式专属面板 → 滤镜条 → 快捷工具 → 模式选择 → 快门行 → 变焦条。
  */
 @Composable
 fun BottomControls(
     controller: CameraController,
     state: CameraUiState,
     onOpenGallery: () -> Unit,
-    modifier: Modifier = Modifier,
-    landscape: Boolean = false
+    modifier: Modifier = Modifier
 ) {
-    if (landscape) {
-        LandscapeControls(
-            controller = controller,
-            state = state,
-            onOpenGallery = onOpenGallery,
-            modifier = modifier
-        )
-    } else {
-        PortraitControls(
-            controller = controller,
-            state = state,
-            onOpenGallery = onOpenGallery,
-            modifier = modifier
-        )
-    }
+    PortraitControls(
+        controller = controller,
+        state = state,
+        onOpenGallery = onOpenGallery,
+        modifier = modifier
+    )
 }
 
 /* ------------------------------------------------------------------ 竖屏 */
@@ -236,53 +228,6 @@ private fun PortraitControls(
         }
         Spacer(modifier = Modifier.height(10.dp))
         ZoomBar(controller = controller, state = state)
-    }
-}
-
-/* ------------------------------------------------------------------ 横屏 */
-
-/**
- * 横屏：整列竖排贴右边缘。
- *
- * 关键点是**不被系统区域遮挡**：
- * 1. [WindowInsets.safeDrawing] 同时覆盖状态栏（横屏时在侧边）、导航栏与挖孔；
- * 2. 外层 [verticalScroll] 保证在超矮屏（如分屏）下内容仍可滚动查看，不会硬裁；
- * 3. 滤镜条在横屏用固定宽度，避免在 wrap-content 的列里被拉满屏。
- */
-@Composable
-private fun LandscapeControls(
-    controller: CameraController,
-    state: CameraUiState,
-    onOpenGallery: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxHeight()
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .verticalScroll(rememberScrollState())
-            .padding(vertical = 12.dp, horizontal = 8.dp),
-        horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.Center
-    ) {
-        FilterStrip(
-            state = state,
-            onSelect = controller::setPreset,
-            modifier = Modifier.widthIn(max = 300.dp)
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        QuickTools(state = state, controller = controller, compact = true)
-        Spacer(modifier = Modifier.height(10.dp))
-        ModeSelector(state = state, onSelect = controller::setMode, compact = true)
-        Spacer(modifier = Modifier.height(14.dp))
-        ShutterButton(state = state, controller = controller)
-        Spacer(modifier = Modifier.height(14.dp))
-        GalleryButton(
-            captureCount = state.captureCount,
-            lastCaptureUri = state.lastCaptureUri,
-            size = 48,
-            onClick = onOpenGallery
-        )
     }
 }
 
@@ -391,6 +336,14 @@ private fun QuickTools(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 14.dp)
     ) {
+        LeicaQuickIcon(
+            icon = FanhuaIcons.Composition,
+            selected = state.compositionGuideId != null,
+            description = stringResource(R.string.composition_entry),
+            onClick = {
+                controller.setCompositionPickerVisible(!state.compositionPickerVisible)
+            }
+        )
         LeicaQuickIcon(
             icon = FanhuaIcons.Grid,
             selected = state.gridEnabled,

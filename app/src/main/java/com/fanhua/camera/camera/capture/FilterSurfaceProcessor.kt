@@ -53,6 +53,17 @@ class FilterSurfaceProcessor(
     private var rendering = false
     private var released = false
 
+    /**
+     * 当前输入 SurfaceTexture 是否已经成功产出一帧。
+     *
+     * 竞态背景：输入 Surface 被重建时（切画幅、切模式、CameraX 重新协商），
+     * [inputWidth]/[inputHeight] 会立刻换成新值，但旧 SurfaceTexture 的
+     * onFrameAvailable 回调仍可能在新纹理还没出第一帧时触发一次渲染。
+     * 那一帧会「新尺寸 + 旧纹理」——表现为画面突然旋转 90°、比例扭曲。
+     * 所以在拿到当前纹理的第一帧之前，一律不渲染。
+     */
+    private var inputFrameReady = false
+
     override fun onInputSurface(request: SurfaceRequest) {
         executor.execute {
             if (released) {
@@ -71,6 +82,8 @@ class FilterSurfaceProcessor(
                 surfaceTexture.setDefaultBufferSize(inputWidth, inputHeight)
                 surfaceTexture.setOnFrameAvailableListener { scheduleRender() }
                 inputTexture = surfaceTexture
+                // 新纹理还没出帧，先挡住渲染，避免旧回调配上新尺寸
+                inputFrameReady = false
                 val surface = Surface(surfaceTexture)
                 inputSurface = surface
                 request.provideSurface(surface, executor) {
@@ -121,8 +134,12 @@ class FilterSurfaceProcessor(
     private fun scheduleRender() {
         if (rendering || released) return
         rendering = true
+        // 记下触发这次渲染的纹理：回调可能来自已经被替换掉的旧 SurfaceTexture，
+        // 那种帧必须丢弃，否则会出现「旧帧 + 新尺寸」的旋转/扭曲。
+        val source = inputTexture
         executor.execute {
             rendering = false
+            if (source == null || source !== inputTexture) return@execute
             renderFrame()
         }
     }
@@ -132,7 +149,9 @@ class FilterSurfaceProcessor(
         val core = eglCore ?: return
         val framePipeline = pipeline ?: return
         try {
+            // 新纹理还没出帧时 updateTexImage 会拿到无效帧，直接跳过这次渲染。
             surfaceTexture.updateTexImage()
+            inputFrameReady = true
             surfaceTexture.getTransformMatrix(textureMatrix)
             val timestamp = surfaceTexture.timestamp
             val renderState = stateProvider()

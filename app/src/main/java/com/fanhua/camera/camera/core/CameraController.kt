@@ -27,6 +27,21 @@ interface CameraController {
     fun setAutoCompositionEnabled(enabled: Boolean)
 
     /**
+     * 选择智能构图参考模板（1..63），传 null 关闭叠加。
+     *
+     * 与 [applyAutoComposition] 的区别：这是「照着现成样张摆姿势」，
+     * 参考包的做法就是把 240×320 的样张半透明叠在预览上，
+     * 不参与任何自动裁切。
+     */
+    fun setCompositionGuide(id: Int?)
+
+    /** 调整参考图叠加的不透明度。 */
+    fun setCompositionGuideAlpha(alpha: Float)
+
+    /** 展开 / 收起构图模板选择面板。 */
+    fun setCompositionPickerVisible(visible: Boolean)
+
+    /**
      * 立即执行一次自动构图：检测当前画面主体，把取景框裁切到建议构图。
      *
      * 与 [setAutoCompositionEnabled] 的区别：后者是「持续开启构图引导」，

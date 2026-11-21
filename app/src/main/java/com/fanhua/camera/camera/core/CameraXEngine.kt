@@ -983,6 +983,24 @@ class CameraXEngine(
         bind()
     }
 
+    override fun setCompositionGuide(id: Int?) {
+        val valid = id?.takeIf { candidate ->
+            com.fanhua.camera.camera.compose.SmartCompositionCatalog.find(candidate) != null
+        }
+        _state.update { it.copy(compositionGuideId = valid) }
+        scope.launch { settings.setCompositionGuideId(valid) }
+    }
+
+    override fun setCompositionGuideAlpha(alpha: Float) {
+        val clamped = alpha.coerceIn(0.1f, 0.9f)
+        _state.update { it.copy(compositionGuideAlpha = clamped) }
+        scope.launch { settings.setCompositionGuideAlpha(clamped) }
+    }
+
+    override fun setCompositionPickerVisible(visible: Boolean) {
+        _state.update { it.copy(compositionPickerVisible = visible) }
+    }
+
     /* ------------------------------------------------------------ 检测模型管理 */
 
     /** 加载当前选中的模型；没有选中或文件损坏时把状态置为未就绪。 */

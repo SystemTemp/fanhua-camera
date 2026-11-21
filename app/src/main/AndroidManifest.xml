@@ -41,11 +41,13 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- 锁定竖屏：拍摄界面不随设备旋转，横屏时仅把取景画面内容旋转，
+             控件与文字保持正立，避免整个 UI 被转 90 度。 -->
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|density|uiMode"
             android:exported="true"
-            android:screenOrientation="fullSensor"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.FanhuaCamera">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

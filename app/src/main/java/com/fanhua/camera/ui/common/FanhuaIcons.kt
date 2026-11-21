@@ -190,6 +190,37 @@ object FanhuaIcons {
         }
     }
 
+    /**
+     * 构图模板：一个画框，内部左下角有一个主体方块的「参考样张」符号。
+     * 用于底部快捷工具里的「构图」入口。
+     */
+    val Composition: ImageVector = vector("Composition") {
+        path(
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.6f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round
+        ) {
+            // 外画框
+            moveTo(3.5f, 6f)
+            lineTo(20.5f, 6f)
+            lineTo(20.5f, 18f)
+            lineTo(3.5f, 18f)
+            close()
+            // 三分线（只画两条竖线，暗示构图参考）
+            moveTo(9.17f, 6f)
+            lineTo(9.17f, 18f)
+            moveTo(14.83f, 6f)
+            lineTo(14.83f, 18f)
+            // 主体
+            moveTo(11.2f, 15.4f)
+            lineTo(11.2f, 10.6f)
+            lineTo(15.8f, 10.6f)
+            lineTo(15.8f, 15.4f)
+            close()
+        }
+    }
+
     val Grid: ImageVector = vector("Grid") {
         path(
             stroke = SolidColor(Color.Black),

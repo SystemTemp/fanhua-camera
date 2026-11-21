@@ -8,8 +8,12 @@ import org.junit.Test
 class CameraModelsTest {
 
     @Test
-    fun `全画幅不返回裁切比例`() {
-        assertEquals(0f, PhotoAspect.FULL.ratio, 0.0001f)
+    fun `全画幅显示比例按四比三`() {
+        // FULL 是「不裁切」模式，裁切判断用 isFull；
+        // ratio 是显示用比例，FULL 与 4:3 一致（徕卡取景框默认 4:3）。
+        assertEquals(4f / 3f, PhotoAspect.FULL.ratio, 0.0001f)
+        assertTrue(PhotoAspect.FULL.isFull)
+        assertTrue(!PhotoAspect.RATIO_4_3.isFull)
     }
 
     @Test

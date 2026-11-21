@@ -306,4 +306,15 @@ Cadre Leica</string>
     <string name="filter_tone_20">Dusk Warm</string>
     <string name="filter_tone_21">Fresh Green</string>
     <string name="filter_tone_22">Night Cool</string>
+    <string name="composition_entry">Composition IA</string>
+    <string name="composition_entry_desc">Détecte le sujet et guide la composition</string>
+    <string name="composition_none">Aucun</string>
+    <string name="composition_none_desc">Effacer le guide de composition</string>
+    <string name="composition_guide_overlay">Guide de composition</string>
+    <string name="composition_title">Smart Composition</string>
+    <string name="composition_count">%1$d templates</string>
+    <string name="composition_smart">Smart · 4:3</string>
+    <string name="composition_creative">Creative</string>
+    <string name="composition_opacity">Guide opacity</string>
+    <string name="composition_close">Close</string>
 </resources>

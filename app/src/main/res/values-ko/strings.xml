@@ -306,4 +306,15 @@
     <string name="filter_tone_20">Dusk Warm</string>
     <string name="filter_tone_21">Fresh Green</string>
     <string name="filter_tone_22">Night Cool</string>
+    <string name="composition_entry">AI 구도</string>
+    <string name="composition_entry_desc">피사체를 감지해 구도를 안내</string>
+    <string name="composition_none">없음</string>
+    <string name="composition_none_desc">구도 가이드 지우기</string>
+    <string name="composition_guide_overlay">구도 가이드</string>
+    <string name="composition_title">Smart Composition</string>
+    <string name="composition_count">%1$d templates</string>
+    <string name="composition_smart">Smart · 4:3</string>
+    <string name="composition_creative">Creative</string>
+    <string name="composition_opacity">Guide opacity</string>
+    <string name="composition_close">Close</string>
 </resources>

@@ -82,8 +82,17 @@ object LutStore {
         }
         val cachedFile = fileOf(context, "$name.lut")
         val parsed = if (cachedFile.exists() && cachedFile.length() > 0) {
-            parseFromFile(cachedFile)
+            // 缓存里落的是**二进制** LUT（从 raw 原样写出），
+            // 必须用 BinaryLutLoader 解析。早先这里误用文本 .cube 解析器，
+            // 导致「第二次进 App 后大部分滤镜完全没效果」。
+            parseBinaryFile(cachedFile) ?: run {
+                // 缓存损坏（历史版本可能写坏）时删掉重建，走下面的 raw 分支
+                runCatching { cachedFile.delete() }
+                null
+            }
         } else {
+            null
+        } ?: run {
             // 首次：从 raw 资源读出并落盘
             try {
                 val bytes = context.resources.openRawResource(

@@ -306,4 +306,15 @@ Marco Leica</string>
     <string name="filter_tone_20">Dusk Warm</string>
     <string name="filter_tone_21">Fresh Green</string>
     <string name="filter_tone_22">Night Cool</string>
+    <string name="composition_entry">Composición IA</string>
+    <string name="composition_entry_desc">Detecta el sujeto y guía la composición</string>
+    <string name="composition_none">Ninguna</string>
+    <string name="composition_none_desc">Quitar guía de composición</string>
+    <string name="composition_guide_overlay">Guía de composición</string>
+    <string name="composition_title">Smart Composition</string>
+    <string name="composition_count">%1$d templates</string>
+    <string name="composition_smart">Smart · 4:3</string>
+    <string name="composition_creative">Creative</string>
+    <string name="composition_opacity">Guide opacity</string>
+    <string name="composition_close">Close</string>
 </resources>

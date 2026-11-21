@@ -168,6 +168,12 @@ data class CameraUiState(
     val superResEnabled: Boolean = false,
     val livePhotoEnabled: Boolean = false,
     val autoCompositionEnabled: Boolean = false,
+    /** 当前选中的智能构图模板 id（1..63），null 表示不叠参考图。 */
+    val compositionGuideId: Int? = null,
+    /** 参考图叠加不透明度（0..1）。 */
+    val compositionGuideAlpha: Float = 0.45f,
+    /** 构图模板选择面板是否展开。 */
+    val compositionPickerVisible: Boolean = false,
     val gridEnabled: Boolean = false,
     val timerSeconds: Int = 0,
     val countdownRemaining: Int = 0,
