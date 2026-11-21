@@ -23,8 +23,8 @@ cd "$ROOT"
 ENV_DIR="$ROOT/.buildenv"
 GRADLE_VERSION="8.9"
 JDK_URL="https://mirrors.huaweicloud.com/openjdk/17.0.2/openjdk-17.0.2_linux-x64_bin.tar.gz"
-BUILD_TOOLS_URL="https://dl.google.com/android/repository/build-tools_r34-linux.zip"
-PLATFORM_URL="https://dl.google.com/android/repository/platform-34_r03.zip"
+BUILD_TOOLS_URL="https://mirrors.cloud.tencent.com/AndroidSDK/build-tools_r34-linux.zip"
+PLATFORM_URL="https://mirrors.cloud.tencent.com/AndroidSDK/platform-34-ext7_r03.zip"
 
 log() { printf '\033[1;33m[构建]\033[0m %s\n' "$*"; }
 die() { printf '\033[1;31m[错误]\033[0m %s\n' "$*" >&2; exit 1; }
@@ -81,6 +81,18 @@ if [ "${1:-}" = "--setup" ]; then
 fi
 
 # ---------------------------------------------------------------- 环境变量
+
+# Windows 下项目路径含中文时，Gradle worker 进程无法从中文路径加载
+# gradle-worker.jar（ClassNotFoundException）。构建前把 GRADLE_USER_HOME
+# 重定向到纯 ASCII 路径即可规避。
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*)
+        if [ -z "${GRADLE_USER_HOME:-}" ]; then
+            export GRADLE_USER_HOME="C:/gradle-home"
+        fi
+        ;;
+esac
+export GRADLE_USER_HOME="${GRADLE_USER_HOME:-$ENV_DIR/home}"
 
 # 优先使用项目内的 JDK 17，其次系统 JAVA_HOME
 if [ -d "$ENV_DIR/jdk/jdk-17.0.2" ]; then
