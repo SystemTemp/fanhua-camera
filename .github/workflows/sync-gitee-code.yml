@@ -1,0 +1,35 @@
+name: Sync Code to Gitee
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync-code:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to Gitee mirror
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$GITEE_TOKEN" ]; then
+            echo "::error::缺少 secrets.GITEE_TOKEN，无法同步代码到 Gitee"
+            exit 1
+          fi
+          git config user.name "SystemTemp"
+          git config user.email "systemtemp@users.noreply.github.com"
+          # Gitee 镜像：token 作为推送凭证；只镜像 main 与全部 tag，
+          # 强推对齐历史，保证两边提交哈希一致（镜像语义）。
+          git remote add gitee "https://SystemTemp:${GITEE_TOKEN}@gitee.com/TDSI/fanhua-camera.git"
+          git push gitee --force --tags "HEAD:main"
+          echo "代码已同步到 Gitee main 与全部 tags"
