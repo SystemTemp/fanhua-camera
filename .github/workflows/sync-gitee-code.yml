@@ -28,8 +28,15 @@ jobs:
           fi
           git config user.name "SystemTemp"
           git config user.email "systemtemp@users.noreply.github.com"
-          # Gitee 镜像：token 作为推送凭证；只镜像 main 与全部 tag，
-          # 强推对齐历史，保证两边提交哈希一致（镜像语义）。
-          git remote add gitee "https://SystemTemp:${GITEE_TOKEN}@gitee.com/TDSI/fanhua-camera.git"
+          # Gitee 镜像：HTTPS push 的凭证格式是「Gitee登录名:私人令牌」。
+          # 仓库归属 TDSI，API token 不一定对应用户名 SystemTemp，
+          # 先用 API 查出 token 所属登录名再拼 URL，避免 403。
+          LOGIN=$(curl -s "https://gitee.com/api/v5/user?access_token=${GITEE_TOKEN}" | sed -n 's/.*"login":"\([^"]*\)".*/\1/p')
+          if [ -z "$LOGIN" ]; then
+            echo "::error::GITEE_TOKEN 无效（无法查询到登录名）"
+            exit 1
+          fi
+          echo "Gitee 登录名: $LOGIN"
+          git remote add gitee "https://${LOGIN}:${GITEE_TOKEN}@gitee.com/TDSI/fanhua-camera.git"
           git push gitee --force --tags "HEAD:main"
           echo "代码已同步到 Gitee main 与全部 tags"
