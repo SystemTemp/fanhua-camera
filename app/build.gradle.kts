@@ -12,8 +12,8 @@ android {
         applicationId = "com.fanhua.camera"
         minSdk = 26
         targetSdk = 34
-        versionCode = 43
-        versionName = "0.1.42-beta"
+        versionCode = 44
+        versionName = "0.1.43-beta"
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -27,9 +27,10 @@ android {
     signingConfigs {
         create("release") {
             storeFile = rootProject.file("signing/fanhua-release.p12")
-            storePassword = "fanhua2026"
-            keyAlias = "fanhua"
-            keyPassword = "fanhua2026"
+            // 口令不硬编码：CI 从 secrets 注入，本地回落默认值保证构建可用
+            storePassword = System.getenv("SIGNING_STORE_PASSWORD") ?: "fanhua2026"
+            keyAlias = System.getenv("SIGNING_KEY_ALIAS") ?: "fanhua"
+            keyPassword = System.getenv("SIGNING_KEY_PASSWORD") ?: "fanhua2026"
         }
     }
 

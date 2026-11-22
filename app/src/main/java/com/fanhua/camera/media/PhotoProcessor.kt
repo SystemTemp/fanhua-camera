@@ -25,6 +25,7 @@ import com.fanhua.camera.camera.filters.FilterPreset
 import com.fanhua.camera.camera.gl.EglCore
 import com.fanhua.camera.camera.gl.createGlFramePipeline
 import com.fanhua.camera.debug.DebugLog
+import com.fanhua.camera.lut.LutData
 import com.fanhua.camera.lut.LutStore
 import java.io.File
 import java.io.FileOutputStream
@@ -142,7 +143,14 @@ class PhotoProcessor(private val context: Context) {
             return saveGeometryOnly(source, preset, aspect, mirror, autoCrop)
         }
 
-        val lut = if (preset == FilterPreset.CUSTOM_LUT) LutStore.cached else null
+        // LUT 解析：内置真实 LUT（look_/tone_）与用户导入 LUT 都要走；
+        // 注意 setLut 必须在 EGL makeCurrent 之后调用（createLutTexture 需要
+        // 当前上下文），所以这里只解析数据，真正上传纹理推迟到 GL 就绪后。
+        val lut: LutData? = when {
+            preset == FilterPreset.CUSTOM_LUT -> LutStore.cached
+            preset.usesRealLut -> LutStore.parseFromRaw(context, preset.lutAsset!!)
+            else -> null
+        }
         if (preset == FilterPreset.CUSTOM_LUT && lut == null) {
             DebugLog.log("Photo", "CUSTOM_LUT 未导入 LUT")
             // 没有 LUT 时仍要保证画幅/镜像生效，所以需要几何处理时走纯 CPU 路径
@@ -160,8 +168,6 @@ class PhotoProcessor(private val context: Context) {
         val pipeline = createGlFramePipeline()
         val startMs = SystemClock.elapsedRealtime()
         try {
-            pipeline.setLut(lut)
-
             // 1) 解码 + EXIF 方向旋转
             var working = loadOrientedBitmap(source) ?: return null
             decoded = working
@@ -215,6 +221,9 @@ class PhotoProcessor(private val context: Context) {
             val surface = core.createOffscreenSurface(targetWidth, targetHeight)
             eglSurface = surface
             core.makeCurrent(surface)
+            // LUT 纹理必须在有当前上下文时创建（修复：原先在 makeCurrent 前
+            // setLut，createLutTexture 返回 0 号纹理，LUT 滤镜成片失效/黑片）
+            pipeline.setLut(lut)
             val textureId = pipeline.createTextureFromBitmap(working)
             pipeline.setPreset(preset, intensity)
             pipeline.setSuperResolutionEnabled(upscale && targetWidth > srcWidth)
@@ -298,6 +307,13 @@ class PhotoProcessor(private val context: Context) {
 
             // 8) 保存（压缩到 cache 临时文件 -> 写 EXIF -> 复制进 MediaStore）
             return save(result, preset, source)
+        } catch (oom: OutOfMemoryError) {
+            // 4K 路径同时持有解码图/裁切图/读回图（各 ~33MB）+ direct buffer，
+            // OOM 是 Error 不是 Exception，必须单独兜住并降级为原图直出
+            DebugLog.log("Photo", "GL 管线 OOM，降级原图直出: ${oom.message}")
+            decoded?.recycle(); decoded = null
+            output?.recycle(); output = null
+            return saveOriginal(source)
         } catch (e: Exception) {
             DebugLog.log("Photo", "GL 管线失败: ${e.javaClass.simpleName}: ${e.message}")
             return saveOriginal(source)
@@ -343,7 +359,7 @@ class PhotoProcessor(private val context: Context) {
         val exif = readExifInfo(source)
         val data = com.fanhua.camera.media.watermark.WatermarkRenderer.RenderData(
             deviceModel = "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}",
-            appVersion = appVersionName(),
+            appVersion = appVersionName,
             timeMillis = System.currentTimeMillis(),
             focalLength = exif.focalMm.takeIf { it.isNotBlank() },
             aperture = exif.aperture.takeIf { it.isNotBlank() },
@@ -555,12 +571,8 @@ class PhotoProcessor(private val context: Context) {
         return out
     }
 
-    /** 当前应用版本名，用于水印里的版本标签。 */
-    private fun appVersionName(): String = try {
-        context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""
-    } catch (e: Exception) {
-        ""
-    }
+    /** 当前应用版本名（水印通用渲染器用）。 */
+    private fun appVersionName(): String = appVersionName
 
     data class ExifInfo(
         val focalMm: String = "",
@@ -640,12 +652,6 @@ class PhotoProcessor(private val context: Context) {
 
     // ---------------------------------------------------------------- 几何变换
 
-    /**
-     * 按画幅居中裁切。
-     *
-     * 竖拍处理：手机竖拍时图片高 > 宽，此时 [PhotoAspect.ratio] 应按「长边/短边」理解，
-     * 目标比例取 `1f / ratio`（例如 4:3 的竖拍结果是 3:4 而不是 4:3）。
-     */
     /**
      * 按归一化矩形裁切位图。
      *

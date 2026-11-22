@@ -129,14 +129,14 @@ fun BottomControls(
     onOpenGallery: () -> Unit,
     modifier: Modifier = Modifier,
     deviceAngle: Int = 0,
-    onOpenSettings: (() -> Unit)? = null
+    onHideControls: (() -> Unit)? = null
 ) {
     PortraitControls(
         controller = controller,
         state = state,
         onOpenGallery = onOpenGallery,
         deviceAngle = deviceAngle,
-        onOpenSettings = onOpenSettings,
+        onHideControls = onHideControls,
         modifier = modifier
     )
 }

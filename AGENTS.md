@@ -42,5 +42,5 @@
   - `camera/detect/`：TFLite 目标检测（模型不内嵌，运行时多源下载）、检测器与推理层
   - `camera/analyzer/`：取景分析器（目标检测 + 人脸）与构图评估引擎
 - AI 自动构图依赖运行时下载的 `.tflite` 模型，**模型文件不入库**；单元测试覆盖纯逻辑
-- 发布前请跑 `bash build.sh :app:testDebugUnitTest`（当前 63 个用例）
+- 发布前请跑 `bash build.sh :app:testDebugUnitTest`（当前 84 个用例）
 - 应用内更新检查依赖 Gitee 的版本通道 `https://gitee.com/TDSI/file/raw/master/fanhua/version.json`（由 Release 工作流维护）

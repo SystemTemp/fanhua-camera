@@ -72,8 +72,8 @@ class ModelDownloader(private val context: Context) {
         for (source in sources) {
             currentCoroutineContext().ensureActive()
             DebugLog.log("Detector", "尝试从 ${source.name} 下载 ${definition.id}")
-            val active = currentCoroutineContext().isActive
-            when (val outcome = trySource(source, target, onProgress) { active }) {
+            // 传 lambda 而非快照：快照在循环里永远是 true，取消只能等整个文件下完
+            when (val outcome = trySource(source, target, onProgress) { currentCoroutineContext().isActive }) {
                 is Result.Success -> {
                     // 最终校验
                     if (DetectorStore.isDownloaded(context, definition.id)) {

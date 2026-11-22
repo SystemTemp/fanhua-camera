@@ -313,4 +313,15 @@
     <string name="composition_entry_desc">识别主体给出构图引导</string>
     <string name="composition_none">无</string>
     <string name="composition_none_desc">清除构图参考</string>
+    <string name="filter_leica_m3">徕卡 M3</string>
+    <string name="filter_leica_m9">徕卡 M9</string>
+    <string name="settings_super_moon">超级月亮</string>
+    <string name="settings_super_moon_desc">识别到月亮时自动增强月面细节与体积，拍照直出</string>
+    <string name="splash_quote">無限進步</string>
+    <string name="supermoon_auto">自动</string>
+    <string name="supermoon_badge">超级月亮</string>
+    <string name="supermoon_off">关闭</string>
+    <string name="watermark_embedded">照片内叠加</string>
+    <string name="watermark_frame">白边画框</string>
+    <string name="watermark_off">关闭</string>
 </resources>

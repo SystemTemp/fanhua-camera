@@ -132,8 +132,9 @@ class ObjectDetector(private val context: Context) {
         minConfidence: Float = DEFAULT_CONFIDENCE,
         maxResults: Int = MAX_RESULTS
     ): List<Detection> {
-        val net = interpreter ?: return emptyList()
-        val buffer = inputBuffer ?: return emptyList()
+        // 与 release() 共用一把锁：防止推理进行中解释器被另一线程 close
+        val net = synchronized(gate) { interpreter } ?: return emptyList()
+        val buffer = synchronized(gate) { inputBuffer } ?: return emptyList()
         val letterboxed = try {
             DetectorImageUtils.letterbox(bitmap, inputSize)
         } catch (e: Exception) {
@@ -143,7 +144,7 @@ class ObjectDetector(private val context: Context) {
 
         val raw = try {
             fillInput(letterboxed, buffer)
-            runInference(net)
+            synchronized(gate) { runInference(net) }
         } catch (e: Exception) {
             DebugLog.log("Detector", "推理失败: ${e.javaClass.simpleName}: ${e.message}")
             return emptyList()
@@ -388,15 +389,22 @@ class ObjectDetector(private val context: Context) {
         }
     }
 
+    // detect() 在分析线程、release() 可能从 UI 线程调用；
+    // TFLite Interpreter 并发 close + invoke 是 native crash 级风险，
+    // 用同一把锁串行化两者。
+    private val gate = Any()
+
     fun release() {
-        try {
-            interpreter?.close()
-        } catch (e: Exception) {
-            DebugLog.log("Detector", "关闭解释器失败: ${e.message}")
+        synchronized(gate) {
+            try {
+                interpreter?.close()
+            } catch (e: Exception) {
+                DebugLog.log("Detector", "关闭解释器失败: ${e.message}")
+            }
+            interpreter = null
+            inputBuffer = null
+            loadedModelId = null
         }
-        interpreter = null
-        inputBuffer = null
-        loadedModelId = null
     }
 
     private companion object {

@@ -22,8 +22,8 @@ An open-source Android photography app featuring Mi-style dream filters, Leica M
 - Hideable camera controls for clean viewfinder; portrait-locked UI keeps controls upright while text rotates with grip orientation
 - Smart composition: 63 reference templates (48 smart + 15 creative) overlaid on the viewfinder, plus AI-guided composition via on-device detection
 - Debug mode: records pipeline logs, one-tap copy / clear for troubleshooting
-- 9 languages (zh-CN / zh-TW / en / ja / ko / es / fr / de / ru), 184 strings each
-- 63 unit tests covering filter math, composition engine, LUT parsing and detector logic
+- 9 languages (zh-CN / zh-TW / en / ja / ko / es / fr / de / ru), ~290 strings each
+- 84 unit tests covering filter math, composition engine, LUT parsing and detector logic
 - R8 minification enabled: APK down to ~19 MB
 
 ## Requirements

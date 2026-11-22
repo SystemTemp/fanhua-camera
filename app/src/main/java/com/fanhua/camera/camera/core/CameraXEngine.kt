@@ -98,7 +98,7 @@ class CameraXEngine(
     override val horizonRoll: StateFlow<Float> = _horizonRoll.asStateFlow()
     private var horizonPollJob: Job? = null
     private var countdownJob: Job? = null
-    private var recordingTimerJob: Job? = null
+
 
     private val mainExecutor = ContextCompat.getMainExecutor(context)
     private val glExecutor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -147,7 +147,6 @@ class CameraXEngine(
     private var released = false
 
     /** 记录最近一次绑定的参数，用于判断是否需要重新绑定，避免无谓的重建。 */
-    private var boundSignature: String = ""
 
     init {
         scope.launch {
@@ -405,7 +404,7 @@ class CameraXEngine(
         }
 
         val selector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
-        camera = tryBind(cameraProvider, selector, useCases, effect, buildViewPort())
+        camera = tryBind(cameraProvider, selector, useCases, effect, null)
         if (camera == null) {
             camera = tryBind(cameraProvider, selector, useCases, effect, null)
         }
@@ -413,7 +412,7 @@ class CameraXEngine(
             surfaceProcessor?.release()
             processor = null
             glFilterDowngraded = true
-            camera = tryBind(cameraProvider, selector, useCases, null, buildViewPort())
+            camera = tryBind(cameraProvider, selector, useCases, null, null)
             if (camera == null) {
                 camera = tryBind(cameraProvider, selector, useCases, null, null)
             }
@@ -430,7 +429,7 @@ class CameraXEngine(
                 stabilization,
                 IMAGE_FULL_RES
             )
-            camera = tryBind(cameraProvider, selector, photoOnlyCases, null, buildViewPort())
+            camera = tryBind(cameraProvider, selector, photoOnlyCases, null, null)
             if (camera == null) {
                 camera = tryBind(cameraProvider, selector, photoOnlyCases, null, null)
             }
@@ -449,7 +448,7 @@ class CameraXEngine(
                 stabilization,
                 IMAGE_FALLBACK_RES
             )
-            camera = tryBind(cameraProvider, selector, lowCases, null, buildViewPort())
+            camera = tryBind(cameraProvider, selector, lowCases, null, null)
             if (camera == null) {
                 camera = tryBind(cameraProvider, selector, lowCases, null, null)
             }
@@ -468,7 +467,6 @@ class CameraXEngine(
             return
         }
 
-        boundSignature = signature
         Log.d(TAG, "bind 成功 mode=$mode filterPreviewActive=$useEffect")
         _state.update { it.copy(filterPreviewActive = useEffect) }
 
@@ -679,8 +677,6 @@ class CameraXEngine(
         }
     }
 
-    private fun buildViewPort(): ViewPort? = null
-
     private fun displayRotation(): Int {
         val view: View? = previewView
         val display = view?.display
@@ -851,7 +847,9 @@ class CameraXEngine(
             it.copy(
                 compositionHint = hint,
                 subjectLabel = label,
-                autoComposing = if (hint != null) false else it.autoComposing
+                autoComposing = if (hint != null) false else it.autoComposing,
+                // 建议裁切框跟随最新检测结果：按快门时 PhotoProcessor 会真裁
+                autoCropRect = hint?.cropRect
             )
         }
         if (composing && hint != null) {
@@ -1598,8 +1596,11 @@ class CameraXEngine(
     private fun onVideoEvent(event: VideoRecordEvent) {
         when (event) {
             is VideoRecordEvent.Start -> {
-                _state.update { it.copy(recording = true, recordingPaused = false) }
-                startRecordingTimer()
+                // 录制时长由 CameraX 的 Status 事件流实时推送（recordedDurationNanos），
+                // 不需要本地计时器轮询——起一个空转循环只会白耗电。
+                _state.update {
+                    it.copy(recording = true, recordingPaused = false, recordingDurationMs = 0L)
+                }
             }
 
             is VideoRecordEvent.Status -> {
@@ -1617,7 +1618,6 @@ class CameraXEngine(
 
             is VideoRecordEvent.Finalize -> {
                 recording = null
-                stopRecordingTimer()
                 val live = livePhotoReady
                 livePhotoReady = false
                 _state.update { it.copy(recording = false, recordingPaused = false, recordingDurationMs = 0L) }
@@ -1679,25 +1679,9 @@ class CameraXEngine(
         }
     }
 
-    private fun startRecordingTimer() {
-        stopRecordingTimer()
-        recordingTimerJob = scope.launch {
-            while (isActive) {
-                delay(500)
-                if (!_state.value.recording) break
-            }
-        }
-    }
-
-    private fun stopRecordingTimer() {
-        recordingTimerJob?.cancel()
-        recordingTimerJob = null
-    }
-
     private fun stopRecordingInternal() {
         val handle = recording
         recording = null
-        stopRecordingTimer()
         if (handle != null) {
             try {
                 handle.stop()

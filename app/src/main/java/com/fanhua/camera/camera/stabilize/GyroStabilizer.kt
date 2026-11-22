@@ -96,7 +96,9 @@ class GyroStabilizer(
         resetMotion()
     }
 
-    fun matrix(): FloatArray = readBuffer
+    // 返回副本：readBuffer 在下一次传感器回调时会被原地覆写，
+    // 直接返回内部数组会让 GL 线程读到半更新状态（数据竞争）。
+    fun matrix(): FloatArray = readBuffer.copyOf()
 
     fun cropScale(aspect: Float): Float {
         val a = aspect.coerceIn(0.3f, 3f)
