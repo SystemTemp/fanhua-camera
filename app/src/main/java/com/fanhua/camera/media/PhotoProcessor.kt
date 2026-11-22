@@ -148,7 +148,7 @@ class PhotoProcessor(private val context: Context) {
         // 当前上下文），所以这里只解析数据，真正上传纹理推迟到 GL 就绪后。
         val lut: LutData? = when {
             preset == FilterPreset.CUSTOM_LUT -> LutStore.cached
-            preset.usesRealLut -> LutStore.parseFromRaw(context, preset.lutAsset!!)
+            preset.usesRealLut -> LutStore.builtin(context, preset.lutAsset!!)
             else -> null
         }
         if (preset == FilterPreset.CUSTOM_LUT && lut == null) {

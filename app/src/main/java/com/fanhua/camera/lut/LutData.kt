@@ -123,6 +123,23 @@ object LutStore {
         }
     }
 
+    /**
+     * 按名字读取内置 LUT（res/raw 下的二进制 .lut）。
+     *
+     * 带内存缓存：出片链路每次拍照都要用到对应滤镜的 LUT，
+     * 每个文件约 1.6MB，不缓存的话每张��都要重新解析一遍。
+     * 缓存 key 用资源名，进程内最多几十项，内存占用可接受。
+     */
+    private val builtinCache = java.util.concurrent.ConcurrentHashMap<String, LutData>()
+
+    fun builtin(context: Context, assetName: String): LutData? {
+        if (assetName.isBlank()) return null
+        builtinCache[assetName]?.let { return it }
+        val parsed = parseFromRaw(context, assetName) ?: return null
+        builtinCache[assetName] = parsed
+        return parsed
+    }
+
     /** 解析 raw 资源里的二进制 LUT。 */
     fun parseFromRaw(context: Context, assetName: String): LutData? = try {
         context.resources.openRawResource(
