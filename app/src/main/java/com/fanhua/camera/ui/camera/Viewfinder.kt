@@ -192,11 +192,14 @@ fun Viewfinder(
     }
 }
 
-/** 画幅遮罩：在预览上压暗超出目标画幅的区域，并描出取景边框。 */
+/**
+ * 画幅指示：只在取景框四角画细角标，**不压暗框外画面**——
+ * 压暗层会遮盖预览，用户要求「任何界面都不遮盖画面」。
+ * 出片仍按画幅裁切，只是不再提前遮挡预览。
+ */
 @Composable
 private fun AspectMask(aspect: PhotoAspect, accent: Color, mirror: Boolean) {
     val ratio = aspect.ratio
-    // FULL 不裁切，但仍按 4:3 画取景边框提示实际构图范围
     if (ratio <= 0f) return
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val w = maxWidth
@@ -215,32 +218,23 @@ private fun AspectMask(aspect: PhotoAspect, accent: Color, mirror: Boolean) {
         val padX = (w.value - frameW) / 2f
         val padY = (h.value - frameH) / 2f
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val wpx = size.width
-            val hpx = size.height
-            val scale = wpx / w.value
+            val scale = size.width / w.value
             val left = padX * scale
             val top = padY * scale
-            val right = wpx - left
-            val bottom = hpx - top
-            val scrim = Color.Black.copy(alpha = 0.78f)
-            // 上下遮罩
-            if (top > 1f) {
-                drawRect(scrim, Offset(0f, 0f), Size(wpx, top))
-                drawRect(scrim, Offset(0f, bottom), Size(wpx, hpx - bottom))
+            val right = size.width - left
+            val bottom = size.height - top
+            // 四角角标：细白线，提示出片范围但不遮挡
+            val arm = 26f
+            val stroke = 2f
+            val color = Color.White.copy(alpha = 0.55f)
+            fun corner(cx: Float, cy: Float, dx: Float, dy: Float) {
+                drawLine(color, Offset(cx, cy), Offset(cx + dx * arm, cy), strokeWidth = stroke)
+                drawLine(color, Offset(cx, cy), Offset(cx, cy + dy * arm), strokeWidth = stroke)
             }
-            // 左右遮罩
-            if (left > 1f) {
-                drawRect(scrim, Offset(0f, top), Size(left, bottom - top))
-                drawRect(scrim, Offset(right, top), Size(wpx - right, bottom - top))
-            }
-            // 取景框描边：Material 3 风格，白色低透明度细线，不抢画面
-            drawRoundRect(
-                color = Color.White.copy(alpha = 0.32f),
-                topLeft = Offset(left, top),
-                size = Size(right - left, bottom - top),
-                cornerRadius = CornerRadius(2f),
-                style = Stroke(width = 1f)
-            )
+            corner(left, top, 1f, 1f)
+            corner(right, top, -1f, 1f)
+            corner(left, bottom, 1f, -1f)
+            corner(right, bottom, -1f, -1f)
         }
         if (mirror) {
             // 遮罩本身对称，无需翻转
@@ -498,10 +492,10 @@ private fun CompositionGuide(
 }
 
 /**
- * 自动构图裁切遮罩。
+ * 自动构图裁切指示。
  *
- * 把裁切框以外的区域压暗，框内保持原样，并在四角画出括号（primary 色呼吸动画），
- * 让用户一眼看出「点了自动构图之后会裁成什么样」。
+ * 只在建议裁切框四角画呼吸括号，**不再压暗框外区域**——
+ * 压暗会遮盖预览画面，与「界面不遮盖画面」的要求冲突。
  */
 @Composable
 private fun AutoCropMask(
@@ -525,12 +519,6 @@ private fun AutoCropMask(
         val top = crop.top * h
         val right = crop.right * w
         val bottom = crop.bottom * h
-        val scrim = Color.Black.copy(alpha = 0.7f)
-        // 上、下、左、右四块压暗
-        drawRect(scrim, Offset(0f, 0f), Size(w, top))
-        drawRect(scrim, Offset(0f, bottom), Size(w, h - bottom))
-        drawRect(scrim, Offset(0f, top), Size(left, bottom - top))
-        drawRect(scrim, Offset(right, top), Size(w - right, bottom - top))
         // 四角括号：primary 色，呼吸明暗提示「这是建议裁切范围」
         val arm = 28f
         val stroke = 3f

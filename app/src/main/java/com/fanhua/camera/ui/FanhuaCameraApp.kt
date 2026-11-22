@@ -156,51 +156,47 @@ fun FanhuaCameraApp(controller: CameraController) {
     // 徕卡一瞬布局：预览铺满全屏，控件浮在预览之上（逆向自 res/layout/f6x.xml）。
     // 拍摄中（busy）：顶栏、底栏、水印标识全部让位，画面上只留倒计时/闪光，
     // 保存完成自动恢复——「拍摄直接什么都不要动」。
+    // 控件不带任何底色/压暗层，不遮画面；文字可读性靠描边阴影保证。
     val captureQuiet = state.busy || state.countdownRemaining > 0
     Box(modifier = Modifier.fillMaxSize().background(FanhuaInk)) {
-            // 顶部黑边：放顶栏（液态玻璃）
+            // 顶栏：透明浮层，无玻璃底
             AnimatedVisibility(
                 visible = controlsVisible && !captureQuiet,
                 enter = fadeIn(animationSpec = tween(180)),
                 exit = fadeOut(animationSpec = tween(160)),
                 modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth()
             ) {
-                GlassSurface(
-                    cornerRadius = 0.dp,
-                    tint = Color.Black,
-                    tintAlpha = 0.26f,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    TopBar(
-                        state = state,
-                        onFlashToggle = {
-                            if (state.frontCamera) {
-                                controller.setTorchEnabled(!state.torchEnabled)
-                            } else {
-                                val next = when (state.flashMode) {
-                                    FlashMode.AUTO -> FlashMode.ON
-                                    FlashMode.ON -> FlashMode.OFF
-                                    FlashMode.OFF -> FlashMode.AUTO
-                                }
-                                controller.setFlashMode(next)
+                TopBar(
+                    state = state,
+                    deviceAngle = deviceAngle,
+                    onFlashToggle = {
+                        if (state.frontCamera) {
+                            controller.setTorchEnabled(!state.torchEnabled)
+                        } else {
+                            val next = when (state.flashMode) {
+                                FlashMode.AUTO -> FlashMode.ON
+                                FlashMode.ON -> FlashMode.OFF
+                                FlashMode.OFF -> FlashMode.AUTO
                             }
-                        },
-                        onTorchToggle = { controller.setTorchEnabled(!state.torchEnabled) },
-                        onAspectToggle = {
-                            val next = when (state.photoAspect) {
-                                PhotoAspect.FULL -> PhotoAspect.RATIO_4_3
-                                PhotoAspect.RATIO_4_3 -> PhotoAspect.RATIO_16_9
-                                PhotoAspect.RATIO_16_9 -> PhotoAspect.RATIO_1_1
-                                PhotoAspect.RATIO_1_1 -> PhotoAspect.FULL
-                            }
-                            controller.setPhotoAspect(next)
-                        },
-                        onAutoCompositionToggle = { controller.applyAutoComposition() },
-                        onSuperResToggle = { controller.setSuperResEnabled(!state.superResEnabled) },
-                        onSettings = { showSettings = true },
-                        onHideControls = { controlsVisible = false }
-                    )
-                }
+                            controller.setFlashMode(next)
+                        }
+                    },
+                    onTorchToggle = { controller.setTorchEnabled(!state.torchEnabled) },
+                    onAspectToggle = {
+                        // 默认 4:3；循环 4:3 → 16:9 → 1:1 → 全画幅 → 4:3
+                        val next = when (state.photoAspect) {
+                            PhotoAspect.RATIO_4_3 -> PhotoAspect.RATIO_16_9
+                            PhotoAspect.RATIO_16_9 -> PhotoAspect.RATIO_1_1
+                            PhotoAspect.RATIO_1_1 -> PhotoAspect.FULL
+                            PhotoAspect.FULL -> PhotoAspect.RATIO_4_3
+                        }
+                        controller.setPhotoAspect(next)
+                    },
+                    onAutoCompositionToggle = { controller.applyAutoComposition() },
+                    onSuperResToggle = { controller.setSuperResEnabled(!state.superResEnabled) },
+                    onSettings = { showSettings = true },
+                    onHideControls = { controlsVisible = false }
+                )
             }
 
             // 预览铺满全屏，与徕卡一致
@@ -233,25 +229,20 @@ fun FanhuaCameraApp(controller: CameraController) {
                 )
             }
 
-            // 底部黑边：放控制区（液态玻璃）
+            // 底部控制区：透明浮层，无玻璃底，不遮画面
             AnimatedVisibility(
                 visible = controlsVisible && !captureQuiet,
                 enter = fadeIn(animationSpec = tween(180)),
                 exit = fadeOut(animationSpec = tween(160)),
                 modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
             ) {
-                GlassSurface(
-                    cornerRadius = 0.dp,
-                    tint = Color.Black,
-                    tintAlpha = 0.32f,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    BottomControls(
-                        controller = controller,
-                        state = state,
-                        onOpenGallery = { showGallery = true }
-                    )
-                }
+                BottomControls(
+                    controller = controller,
+                    state = state,
+                    deviceAngle = deviceAngle,
+                    onOpenGallery = { showGallery = true },
+                    onOpenSettings = { showSettings = true }
+                )
             }
 
         StatusOverlay(

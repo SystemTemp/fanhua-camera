@@ -92,6 +92,7 @@ import com.fanhua.camera.camera.filters.FilterGroup
 import com.fanhua.camera.camera.filters.FilterPreset
 import com.fanhua.camera.media.MediaRepository
 import com.fanhua.camera.ui.common.FanhuaIcons
+import com.fanhua.camera.ui.common.gripRotate
 import com.fanhua.camera.ui.theme.FanhuaGold
 import com.fanhua.camera.ui.theme.Leica
 import kotlinx.coroutines.Dispatchers
@@ -124,12 +125,16 @@ fun BottomControls(
     controller: CameraController,
     state: CameraUiState,
     onOpenGallery: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    deviceAngle: Int = 0,
+    onOpenSettings: (() -> Unit)? = null
 ) {
     PortraitControls(
         controller = controller,
         state = state,
         onOpenGallery = onOpenGallery,
+        deviceAngle = deviceAngle,
+        onOpenSettings = onOpenSettings,
         modifier = modifier
     )
 }
@@ -141,7 +146,9 @@ private fun PortraitControls(
     controller: CameraController,
     state: CameraUiState,
     onOpenGallery: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    deviceAngle: Int = 0,
+    onOpenSettings: (() -> Unit)? = null
 ) {
     Column(
         modifier = modifier
@@ -188,7 +195,7 @@ private fun PortraitControls(
                 .padding(horizontal = 18.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ModeSelector(state = state, onSelect = controller::setMode)
+            ModeSelector(state = state, deviceAngle = deviceAngle, onSelect = controller::setMode)
             Spacer(modifier = Modifier.weight(1f))
             LensSwitcher(state = state, onSelect = controller::setLens, compact = true)
         }
@@ -213,7 +220,7 @@ private fun PortraitControls(
                             }
                         )
                     }
-                    QuickTools(state = state, controller = controller, compact = true)
+                    QuickTools(state = state, controller = controller, compact = true, onOpenSettings = onOpenSettings)
                 }
             }
             ShutterButton(state = state, controller = controller)
@@ -227,7 +234,7 @@ private fun PortraitControls(
             }
         }
         Spacer(modifier = Modifier.height(10.dp))
-        ZoomBar(controller = controller, state = state)
+        ZoomBar(controller = controller, state = state, deviceAngle = deviceAngle)
     }
 }
 
@@ -247,11 +254,11 @@ private fun M3Panel(
     contentPadding: PaddingValues = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
     content: @Composable () -> Unit
 ) {
-    // 徕卡一瞬：控件区是半透明纯黑底 + 一条极细顶部分隔线，不用毛玻璃胶囊。
+    // 不给面板加底色：控件直接浮在预览上，不遮画面。
+    // 文字可读性由各文字元素的描边阴影（GripText）保证。
     Box(
         modifier = modifier
             .clip(shape)
-            .background(Leica.Ink.copy(alpha = 0.62f))
             .padding(contentPadding)
     ) {
         content()
@@ -329,7 +336,8 @@ private fun PillButton(
 private fun QuickTools(
     state: CameraUiState,
     controller: CameraController,
-    compact: Boolean = false
+    compact: Boolean = false,
+    onOpenSettings: (() -> Unit)? = null
 ) {
     // 徕卡一瞬：快捷工具是纯图标，选中为徕卡红，无胶囊底
     Row(
@@ -362,6 +370,15 @@ private fun QuickTools(
             description = stringResource(R.string.flip_camera),
             onClick = { controller.switchCamera() }
         )
+        // 设置入口：快捷行末尾，与其它工具同级可见
+        if (onOpenSettings != null) {
+            LeicaQuickIcon(
+                icon = FanhuaIcons.Settings,
+                selected = false,
+                description = stringResource(R.string.action_settings),
+                onClick = onOpenSettings
+            )
+        }
     }
 }
 
@@ -728,7 +745,8 @@ private fun FilterSwatch(
 private fun ModeSelector(
     state: CameraUiState,
     onSelect: (CaptureMode) -> Unit,
-    compact: Boolean = false
+    compact: Boolean = false,
+    deviceAngle: Int = 0
 ) {
     // 徕卡一瞬：模式是一行等宽文字，选中项下方一条 2dp 红色短线，无胶囊底。
     Row(
@@ -756,7 +774,8 @@ private fun ModeSelector(
                     text = stringResource(mode.labelRes),
                     color = color,
                     style = MaterialTheme.typography.labelMedium,
-                    maxLines = 1
+                    maxLines = 1,
+                    modifier = Modifier.gripRotate(deviceAngle)
                 )
                 Spacer(modifier = Modifier.height(5.dp))
                 Box(
@@ -1138,7 +1157,8 @@ private fun LivePhotoToggle(
 @Composable
 private fun ZoomBar(
     controller: CameraController,
-    state: CameraUiState
+    state: CameraUiState,
+    deviceAngle: Int = 0
 ) {
     val range = state.maxZoomRatio - state.minZoomRatio
     if (range <= 0.01f) return
@@ -1169,13 +1189,15 @@ private fun ZoomBar(
             Text(
                 text = stringResource(R.string.zoom_label),
                 color = scheme.onSurfaceVariant,
-                style = MaterialTheme.typography.labelSmall
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.gripRotate(deviceAngle)
             )
             Spacer(modifier = Modifier.weight(1f))
             Text(
                 text = formatZoom(state.zoomRatio),
                 color = scheme.primary,
-                style = MaterialTheme.typography.labelMedium
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.gripRotate(deviceAngle)
             )
         }
         BoxWithConstraints(

@@ -52,6 +52,7 @@ import com.fanhua.camera.camera.core.CaptureMode
 import com.fanhua.camera.camera.core.FlashMode
 import com.fanhua.camera.camera.core.PhotoAspect
 import com.fanhua.camera.ui.common.FanhuaIcons
+import com.fanhua.camera.ui.common.gripRotate
 import com.fanhua.camera.ui.theme.Leica
 
 /**
@@ -64,6 +65,7 @@ import com.fanhua.camera.ui.theme.Leica
 @Composable
 fun TopBar(
     state: CameraUiState,
+    deviceAngle: Int = 0,
     onFlashToggle: () -> Unit,
     onTorchToggle: () -> Unit,
     onAspectToggle: () -> Unit,
@@ -84,10 +86,10 @@ fun TopBar(
             .padding(horizontal = 18.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 左侧：徕卡红点标 + 闪光状态（纯文字，无底板）
+        // 左侧：徕卡红点标 + 闪光状态（纯文字，无底板）；文字随握持方向旋转
         LeicaMark(active = state.torchEnabled || state.flashMode != FlashMode.OFF)
         Spacer(modifier = Modifier.width(10.dp))
-        FlashLabel(state = state, onClick = onFlashToggle)
+        FlashLabel(state = state, deviceAngle = deviceAngle, onClick = onFlashToggle)
 
         Spacer(modifier = Modifier.weight(1f))
 
@@ -166,6 +168,7 @@ private fun LeicaMark(active: Boolean) {
 @Composable
 private fun FlashLabel(
     state: CameraUiState,
+    deviceAngle: Int = 0,
     onClick: () -> Unit
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -209,7 +212,8 @@ private fun FlashLabel(
                 stringResource(state.flashMode.labelRes)
             },
             color = tint,
-            style = MaterialTheme.typography.labelSmall
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.gripRotate(deviceAngle)
         )
     }
 }

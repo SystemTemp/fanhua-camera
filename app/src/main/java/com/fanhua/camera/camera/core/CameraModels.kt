@@ -200,7 +200,7 @@ data class CameraUiState(
     val availableSpecs: List<OutputSpec> = emptyList(),
     val manualFocusPosition: Float = 0.5f,
     val manualFocusActive: Boolean = false,
-    val photoAspect: PhotoAspect = PhotoAspect.FULL,
+    val photoAspect: PhotoAspect = PhotoAspect.RATIO_4_3,
     /** 自动构图产生的裁切框（归一化），null 表示未裁切。 */
     val autoCropRect: com.fanhua.camera.camera.detect.NormRect? = null,
     /** 自动构图是否正在计算。 */

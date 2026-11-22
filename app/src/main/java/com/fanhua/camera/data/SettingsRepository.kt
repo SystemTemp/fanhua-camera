@@ -35,7 +35,7 @@ data class AppSettings(
     val lutPath: String = "",
     val gridEnabled: Boolean = false,
     val timerSeconds: Int = 0,
-    val photoAspectKey: String = PhotoAspect.FULL.name,
+    val photoAspectKey: String = PhotoAspect.RATIO_4_3.name,
     val mirrorSelfie: Boolean = false,
     val superMoonMode: String = SuperMoonMode.AUTO.name,
     val watermarkMode: String = WatermarkMode.FRAME.name,
@@ -90,7 +90,7 @@ class SettingsRepository(private val context: Context) {
             lutPath = prefs[keyLut] ?: "",
             gridEnabled = prefs[keyGrid] ?: false,
             timerSeconds = prefs[keyTimer] ?: 0,
-            photoAspectKey = prefs[keyAspect] ?: PhotoAspect.FULL.name,
+            photoAspectKey = prefs[keyAspect] ?: PhotoAspect.RATIO_4_3.name,
             mirrorSelfie = prefs[keyMirror] ?: false,
             superMoonMode = run {
                 val raw = prefs[keySuperMoon]

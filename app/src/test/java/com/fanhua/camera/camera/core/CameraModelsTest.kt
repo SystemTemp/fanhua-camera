@@ -85,7 +85,8 @@ class CameraModelsTest {
         assertTrue(!state.ready)
         assertTrue(!state.recording)
         assertTrue(!state.busy)
-        assertEquals(PhotoAspect.FULL, state.photoAspect)
+        // 默认画幅 4:3：取景与出片观感与主流相机一致，FULL 需手动切换
+        assertEquals(PhotoAspect.RATIO_4_3, state.photoAspect)
         assertEquals(1f, state.zoomRatio, 0.0001f)
         assertTrue(state.statusMessage == null)
     }
