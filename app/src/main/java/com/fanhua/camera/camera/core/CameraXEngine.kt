@@ -845,7 +845,21 @@ class CameraXEngine(
         val label = detections.maxByOrNull { it.area }?.let {
             context.getString(it.kind.labelRes)
         }
-        _state.update { it.copy(compositionHint = hint, subjectLabel = label) }
+        // 首个有效检测结果到达：结束「识别中」状态（一键构图的思考期）
+        val composing = _state.value.autoComposing
+        _state.update {
+            it.copy(
+                compositionHint = hint,
+                subjectLabel = label,
+                autoComposing = if (hint != null) false else it.autoComposing
+            )
+        }
+        if (composing && hint != null) {
+            setStatus(
+                if (hint.aligned) R.string.composition_aligned else hint.suggestionRes,
+                false
+            )
+        }
     }
 
     override fun setMode(mode: CaptureMode) {
@@ -1099,11 +1113,22 @@ class CameraXEngine(
      * 若模型未就绪，先提示下载；若已有构图建议，直接应用。
      */
     override fun applyAutoComposition() {
-        // 已开启引导时，直接用最新的建议裁切
-        val existing = _state.value.compositionHint
-        if (existing?.cropRect != null) {
-            _state.update { it.copy(autoCropRect = existing.cropRect) }
-            setStatus(R.string.composition_aligned, false)
+        // 一键构图（风味相机式）：
+        //  - 已开启 → 关闭并清掉引导
+        //  - 未开启 → 开启持续检测，取景器实时显示主体框与构图引导；
+        //    对齐时提示「构图良好 · 请按快门」，识别不到主体时给出提示
+        val enabling = !_state.value.autoCompositionEnabled
+        if (!enabling) {
+            _state.update {
+                it.copy(
+                    autoCompositionEnabled = false,
+                    autoComposing = false,
+                    compositionHint = null,
+                    autoCropRect = null
+                )
+            }
+            scope.launch { settings.setAutoCompositionEnabled(false) }
+            bind()
             return
         }
         if (!detector.ready) {
@@ -1113,33 +1138,26 @@ class CameraXEngine(
                 return
             }
         }
-        // 临时开启检测，等待一帧结果后再裁切
-        _state.update { it.copy(autoComposing = true) }
-        val wasEnabled = _state.value.autoCompositionEnabled
-        if (!wasEnabled) {
-            _state.update { it.copy(autoCompositionEnabled = true) }
-            bind()
+        // 进入「识别中」状态：取景器立即显示呼吸框反馈，首帧检测完成后
+        // 由 onDetection 更新 compositionHint，对齐判定随之出现
+        _state.update {
+            it.copy(
+                autoCompositionEnabled = true,
+                autoComposing = true,
+                compositionHint = null,
+                autoCropRect = null
+            )
         }
+        scope.launch { settings.setAutoCompositionEnabled(true) }
+        bind()
+        // 首帧等待兜底：2.5 秒仍无结果时提示未识别，但保持开启——
+        // 用户移动镜头后一旦出现主体，引导立即出现
         scope.launch {
-            // 最多等 1.5 秒拿到一次检测结果
-            var waited = 0
-            while (waited < 1500 && _state.value.compositionHint == null) {
-                delay(100)
-                waited += 100
-            }
-            val hint = _state.value.compositionHint
-            val crop = hint?.cropRect
-            if (crop != null) {
-                _state.update { it.copy(autoCropRect = crop, autoComposing = false) }
-                setStatus(R.string.composition_aligned, false)
-            } else {
+            delay(2500)
+            val s = _state.value
+            if (s.autoCompositionEnabled && s.autoComposing && s.compositionHint == null) {
                 _state.update { it.copy(autoComposing = false) }
                 setStatus(R.string.detector_no_subject, true)
-            }
-            // 若原本没开，用完就关掉，避免持续耗电
-            if (!wasEnabled) {
-                _state.update { it.copy(autoCompositionEnabled = false) }
-                bind()
             }
         }
     }

@@ -51,6 +51,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.fanhua.camera.R
 import com.fanhua.camera.camera.core.CameraController
@@ -180,6 +181,9 @@ fun Viewfinder(
                 subjectLabel = state.subjectLabel,
                 accent = accent
             )
+        } else if (state.autoComposing) {
+            // 一键识别「思考中」：中央呼吸括号 + 状态文案（风味相机式）
+            ComposingIndicator(accent = accent)
         }
 
         Box(
@@ -477,9 +481,12 @@ private fun CompositionGuide(
                 Spacer(modifier = Modifier.height(6.dp))
             }
             Text(
-                text = stringResource(
-                    if (hint.aligned) R.string.composition_aligned else hint.suggestionRes
-                ),
+                text = if (hint.aligned) {
+                    // 风味相机式对齐文案：告诉用户可以拍了
+                    stringResource(R.string.composition_aligned_shoot)
+                } else {
+                    stringResource(hint.suggestionRes)
+                },
                 color = if (hint.aligned) FanhuaSecondary else scheme.onSurface,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier
@@ -488,6 +495,54 @@ private fun CompositionGuide(
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             )
         }
+    }
+}
+
+/**
+ * 一键识别「思考中」指示（风味相机式）。
+ *
+ * 画面中央画一对收缩呼吸的四角括号 + 「正在识别主体…」文案，
+ * 告诉用户 AI 已在分析画面；首帧检测结果到达后由引擎关闭此状态。
+ * 不压暗画面，只有细线与文字。
+ */
+@Composable
+private fun ComposingIndicator(accent: Color) {
+    val transition = rememberInfiniteTransition(label = "composing")
+    val breathe by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "composingBreathe"
+    )
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Canvas(
+            modifier = Modifier
+                .size(180.dp)
+                .graphicsLayer { alpha = breathe }
+        ) {
+            val arm = 26f
+            val stroke = 2.5f
+            val color = accent.copy(alpha = 0.9f)
+            fun corner(cx: Float, cy: Float, dx: Float, dy: Float) {
+                drawLine(color, Offset(cx, cy), Offset(cx + dx * arm, cy), strokeWidth = stroke)
+                drawLine(color, Offset(cx, cy), Offset(cx, cy + dy * arm), strokeWidth = stroke)
+            }
+            corner(0f, 0f, 1f, 1f)
+            corner(size.width, 0f, -1f, 1f)
+            corner(0f, size.height, 1f, -1f)
+            corner(size.width, size.height, -1f, -1f)
+        }
+        Text(
+            text = stringResource(R.string.composition_detecting),
+            color = accent,
+            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
+            modifier = Modifier
+                .align(Alignment.Center)
+                .graphicsLayer { translationY = 118.dp.toPx() }
+        )
     }
 }
 

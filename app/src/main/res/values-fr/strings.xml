@@ -137,7 +137,9 @@ Cadre Leica</string>
     <string name="composition_hint_right">Sujet à gauche, déplacez vers la droite</string>
     <string name="composition_hint_up">Sujet en bas, remontez</string>
     <string name="composition_hint_down">Sujet en haut, descendez</string>
-    <string name="composition_aligned">Cadrage correct</string>
+    <string name="composition_aligned">Bien composée</string>
+    <string name="composition_aligned_shoot">Bien composée · Restez stable et déclenchez</string>
+    <string name="composition_detecting">Détection du sujet…</string>
 
     <!-- Galerie -->
     <string name="gallery_title">Résultats</string>

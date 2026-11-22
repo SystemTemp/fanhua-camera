@@ -137,7 +137,9 @@
     <string name="composition_hint_right">피사체가 왼쪽, 오른쪽으로 조정</string>
     <string name="composition_hint_up">피사체가 아래쪽, 위로 조정</string>
     <string name="composition_hint_down">피사체가 위쪽, 아래로 조정</string>
-    <string name="composition_aligned">구도가 좋습니다</string>
+    <string name="composition_aligned">구도 양호</string>
+    <string name="composition_aligned_shoot">구도 양호 · 안정된 상태로 촬영</string>
+    <string name="composition_detecting">피사체 인식 중…</string>
 
     <!-- 갤러리 -->
     <string name="gallery_title">촬영 결과</string>

@@ -137,7 +137,9 @@ Leica frame</string>
     <string name="composition_hint_right">Subject is left, adjust right</string>
     <string name="composition_hint_up">Subject is low, adjust up</string>
     <string name="composition_hint_down">Subject is high, adjust down</string>
-    <string name="composition_aligned">Framing looks good</string>
+    <string name="composition_aligned">Well composed</string>
+    <string name="composition_aligned_shoot">Well composed · Hold steady and shoot</string>
+    <string name="composition_detecting">Detecting subject…</string>
 
     <!-- Gallery -->
     <string name="gallery_title">Captures</string>

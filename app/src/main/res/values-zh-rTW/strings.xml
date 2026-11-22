@@ -138,6 +138,8 @@
     <string name="composition_hint_up">主體偏下，向上調整</string>
     <string name="composition_hint_down">主體偏上，向下調整</string>
     <string name="composition_aligned">構圖良好</string>
+    <string name="composition_aligned_shoot">構圖良好 · 保持穩定按快門</string>
+    <string name="composition_detecting">正在辨識主體…</string>
 
     <!-- 相簿 -->
     <string name="gallery_title">拍攝結果</string>

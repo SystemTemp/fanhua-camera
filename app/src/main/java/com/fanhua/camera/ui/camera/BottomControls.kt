@@ -23,6 +23,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
@@ -344,11 +346,13 @@ private fun QuickTools(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 14.dp)
     ) {
+        // AI 构图（风味相机式）：点按一键识别并持续引导；长按打开模板面板
         LeicaQuickIcon(
             icon = FanhuaIcons.Composition,
-            selected = state.compositionGuideId != null,
-            description = stringResource(R.string.composition_entry),
-            onClick = {
+            selected = state.autoCompositionEnabled || state.compositionGuideId != null,
+            description = if (state.autoComposing) "ai" else stringResource(R.string.composition_entry),
+            onClick = { controller.applyAutoComposition() },
+            onLongClick = {
                 controller.setCompositionPickerVisible(!state.compositionPickerVisible)
             }
         )
@@ -382,32 +386,72 @@ private fun QuickTools(
     }
 }
 
-/** 徕卡风格快捷图标：无底板，选中染红。 */
+/** 徕卡风格快捷图标：无底板，选中染红；支持点按与长按（长按打开构图面板等）。 */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LeicaQuickIcon(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     selected: Boolean,
     description: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null
 ) {
     val color by animateColorAsState(
         targetValue = if (selected) Leica.Red else Leica.TextDim,
         animationSpec = tween(durationMillis = 180),
         label = "quickIconColor"
     )
+    val scale by animateFloatAsState(
+        targetValue = if (selected) 1.08f else 1f,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = 500f),
+        label = "quickIconScale"
+    )
     Box(
         modifier = Modifier
-            .size(30.dp)
+            .size(34.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(CircleShape)
-            .clickable(onClick = onClick),
+            .then(
+                if (onLongClick != null) {
+                    Modifier.combinedClickable(
+                        onClick = onClick,
+                        onLongClick = onLongClick
+                    )
+                } else {
+                    Modifier.clickable(onClick = onClick)
+                }
+            ),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = description,
             tint = color,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(19.dp)
         )
+        // 识别中：图标下方小呼吸点，提示「思考中」
+        if (selected && description == "ai") {
+            val transition = rememberInfiniteTransition(label = "aiPulse")
+            val alpha by transition.animateFloat(
+                initialValue = 0.2f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(700, easing = LinearEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "aiPulseAlpha"
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .size(4.dp)
+                    .clip(CircleShape)
+                    .background(Leica.Red.copy(alpha = alpha))
+            )
+        }
     }
 }
 

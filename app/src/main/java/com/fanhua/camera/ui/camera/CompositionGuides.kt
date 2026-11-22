@@ -96,6 +96,7 @@ fun CompositionGuidePicker(
     onSelect: (Int?) -> Unit,
     onAlphaChange: (Float) -> Unit,
     onClose: () -> Unit,
+    onAutoComposition: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -152,7 +153,11 @@ fun CompositionGuidePicker(
                 subtitle = stringResource(R.string.composition_entry_desc),
                 selected = autoCompositionEnabled,
                 leading = { AiBadge() },
-                onClick = { onSelect(null) },
+                onClick = {
+                    // 一键识别：关面板、开启持续检测引导
+                    onClose()
+                    onAutoComposition()
+                },
                 modifier = Modifier.weight(1f)
             )
             EntryCard(

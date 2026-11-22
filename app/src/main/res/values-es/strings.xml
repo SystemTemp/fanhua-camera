@@ -137,7 +137,9 @@ Marco Leica</string>
     <string name="composition_hint_right">Sujeto a la izquierda, mueve a la derecha</string>
     <string name="composition_hint_up">Sujeto abajo, sube</string>
     <string name="composition_hint_down">Sujeto arriba, baja</string>
-    <string name="composition_aligned">Buen encuadre</string>
+    <string name="composition_aligned">Bien compuesta</string>
+    <string name="composition_aligned_shoot">Bien compuesta · Sujeta y dispara</string>
+    <string name="composition_detecting">Detectando sujeto…</string>
 
     <!-- Galería -->
     <string name="gallery_title">Resultados</string>

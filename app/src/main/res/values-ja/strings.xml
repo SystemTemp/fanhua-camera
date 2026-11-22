@@ -137,7 +137,9 @@
     <string name="composition_hint_right">被写体が左寄り、右へ調整</string>
     <string name="composition_hint_up">被写体が下寄り、上へ調整</string>
     <string name="composition_hint_down">被写体が上寄り、下へ調整</string>
-    <string name="composition_aligned">構図は良好です</string>
+    <string name="composition_aligned">構図良好</string>
+    <string name="composition_aligned_shoot">構図良好 · 安定してシャッターを</string>
+    <string name="composition_detecting">被写体を認識中…</string>
 
     <!-- ギャラリー -->
     <string name="gallery_title">撮影結果</string>

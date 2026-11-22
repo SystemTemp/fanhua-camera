@@ -137,7 +137,9 @@
     <string name="composition_hint_right">Объект слева, сдвиньте вправо</string>
     <string name="composition_hint_up">Объект снизу, сдвиньте вверх</string>
     <string name="composition_hint_down">Объект сверху, сдвиньте вниз</string>
-    <string name="composition_aligned">Хорошая композиция</string>
+    <string name="composition_aligned">Композиция хорошая</string>
+    <string name="composition_aligned_shoot">Композиция хорошая · Держите ровно и снимайте</string>
+    <string name="composition_detecting">Распознавание объекта…</string>
 
     <!-- Галерея -->
     <string name="gallery_title">Результаты</string>

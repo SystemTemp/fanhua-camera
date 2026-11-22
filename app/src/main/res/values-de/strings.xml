@@ -137,7 +137,9 @@ Leica-Rahmen</string>
     <string name="composition_hint_right">Motiv links, nach rechts verschieben</string>
     <string name="composition_hint_up">Motiv unten, nach oben verschieben</string>
     <string name="composition_hint_down">Motiv oben, nach unten verschieben</string>
-    <string name="composition_aligned">Guter Bildaufbau</string>
+    <string name="composition_aligned">Gut komponiert</string>
+    <string name="composition_aligned_shoot">Gut komponiert · Halten und auslösen</string>
+    <string name="composition_detecting">Motiv wird erkannt…</string>
 
     <!-- Galerie -->
     <string name="gallery_title">Ergebnisse</string>

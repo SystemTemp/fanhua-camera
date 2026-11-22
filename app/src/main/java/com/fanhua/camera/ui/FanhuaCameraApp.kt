@@ -225,7 +225,8 @@ fun FanhuaCameraApp(controller: CameraController) {
                     alpha = state.compositionGuideAlpha,
                     onSelect = controller::setCompositionGuide,
                     onAlphaChange = controller::setCompositionGuideAlpha,
-                    onClose = { controller.setCompositionPickerVisible(false) }
+                    onClose = { controller.setCompositionPickerVisible(false) },
+                    onAutoComposition = { controller.applyAutoComposition() }
                 )
             }
 

@@ -160,6 +160,8 @@
     <string name="composition_hint_up">主体偏下，向上调整</string>
     <string name="composition_hint_down">主体偏上，向下调整</string>
     <string name="composition_aligned">构图良好</string>
+    <string name="composition_aligned_shoot">构图良好 · 保持稳定按快门</string>
+    <string name="composition_detecting">正在识别主体…</string>
 
     <!-- 相册 -->
     <string name="gallery_title">拍摄结果</string>
